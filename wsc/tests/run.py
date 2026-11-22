@@ -246,28 +246,33 @@ def check_ram(ram_path, elf_path, spec):
         if "equals" not in check:
             problems.append("{}: missing equals value".format(symbol))
             continue
+        extra = check.get("offset", 0)
+        if type(extra) is not int or extra < 0:
+            problems.append("{}: offset must be a non-negative integer".format(symbol))
+            continue
         try:
             expected = parse_equals(check["equals"])
         except (TypeError, ValueError):
             problems.append("{}: invalid equals value {!r}".format(symbol, check["equals"]))
             continue
         try:
-            offset, _ = elf_symbol(elf_path, symbol)
+            base, _ = elf_symbol(elf_path, symbol)
         except TestError as exc:
             problems.append(str(exc))
             continue
-        if offset + size > len(ram):
+        address = base + extra
+        if address + size > len(ram):
             problems.append(
-                "{} at 0x{:04X} is outside the {}-byte RAM dump".format(
-                    symbol, offset, len(ram)
+                "{}+0x{:X} at 0x{:04X} is outside the {}-byte RAM dump".format(
+                    symbol, extra, address, len(ram)
                 )
             )
             continue
-        actual = int.from_bytes(ram[offset : offset + size], "little")
+        actual = int.from_bytes(ram[address : address + size], "little")
         if actual != expected:
             problems.append(
-                "{} at RAM 0x{:04X} is 0x{:0{}X}, expected 0x{:0{}X}".format(
-                    symbol, offset, actual, size * 2, expected, size * 2
+                "{}+0x{:X} at RAM 0x{:04X} is 0x{:0{}X}, expected 0x{:0{}X}".format(
+                    symbol, extra, address, actual, size * 2, expected, size * 2
                 )
             )
 

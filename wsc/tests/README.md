@@ -74,7 +74,9 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
 - `frame_sha256` is the SHA-256 of `wsrun --raw` output, or `null` to skip
   the frame check. The raw RGB24 file is always written.
 - `ram` (optional) lists little-endian value checks. `equals` may be a hex
-  string such as `"0x1234"`.
+  string such as `"0x1234"`. An optional `offset` (bytes) is added to the
+  symbol's address, for example `{"symbol": "script_memory", "offset": 4,
+  "size": 2, "equals": "0x2a"}` reads `script_memory[2]`.
 
 ## Tests
 
@@ -86,6 +88,9 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   RAM value must contain only that button's libws bit.
 - `_negative/wrong-magic`: same ROM and frame as `hello`, but expects
   `hello_magic == 0x9999`, so it must fail. Run it with `test-negative`.
+- `vmrom`: runs `wsc/vmrom`, which executes two far-const script banks
+  through the portable VM core and checks the results in `script_memory`
+  and named RAM variables.
 
 The keypad values used by the input tests correspond to the libws
 `WS_KEY_*` constants:

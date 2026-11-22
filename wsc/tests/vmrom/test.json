@@ -1,0 +1,168 @@
+{
+  "rom": "vmrom/vmrom.wsc",
+  "elf": "vmrom/build/vmrom.elf",
+  "build": "vmrom",
+  "frames": 60,
+  "frame_sha256": null,
+  "ram": [
+    {
+      "symbol": "script_memory",
+      "offset": 0,
+      "size": 2,
+      "equals": "0xc"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 2,
+      "size": 2,
+      "equals": "0x11"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 4,
+      "size": 2,
+      "equals": "0x2a"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 6,
+      "size": 2,
+      "equals": "0xde"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 8,
+      "size": 2,
+      "equals": "0x6f"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 10,
+      "size": 2,
+      "equals": "0x2"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 12,
+      "size": 2,
+      "equals": "0x1"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 14,
+      "size": 2,
+      "equals": "0x41"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 16,
+      "size": 2,
+      "equals": "0x1"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 18,
+      "size": 2,
+      "equals": "0x0"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 20,
+      "size": 2,
+      "equals": "0x3"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 22,
+      "size": 2,
+      "equals": "0x2"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 24,
+      "size": 2,
+      "equals": "0x2"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 26,
+      "size": 2,
+      "equals": "0x8002"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 28,
+      "size": 2,
+      "equals": "0x8003"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 30,
+      "size": 2,
+      "equals": "0x1"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 32,
+      "size": 2,
+      "equals": "0x11"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 34,
+      "size": 2,
+      "equals": "0x12"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 36,
+      "size": 2,
+      "equals": "0x21"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 38,
+      "size": 2,
+      "equals": "0x22"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 40,
+      "size": 2,
+      "equals": "0x3"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 42,
+      "size": 2,
+      "equals": "0x1"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 44,
+      "size": 2,
+      "equals": "0xa5"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 46,
+      "size": 2,
+      "equals": "0xbeef"
+    },
+    {
+      "symbol": "vmrom_named_byte",
+      "size": 2,
+      "equals": "0x00A5"
+    },
+    {
+      "symbol": "vmrom_named_word",
+      "size": 2,
+      "equals": "0xBEEF"
+    },
+    {
+      "symbol": "vmrom_done",
+      "size": 2,
+      "equals": "0x0001"
+    }
+  ]
+}
