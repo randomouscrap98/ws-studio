@@ -36,3 +36,9 @@ flamegraph.html
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Wonderful / WSC build outputs
+wsc/build/
+wsc/hello/build/
+wsc/hello/hello.wsc
+wsc/hello/compile_commands.json
