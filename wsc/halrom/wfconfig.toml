@@ -1,0 +1,10 @@
+[cartridge]
+rom_banks = 2
+publisher_id = 0x00
+game_id = 0
+game_version = 0
+
+save_type = "NONE"
+color = true
+rtc = false
+vertical = false

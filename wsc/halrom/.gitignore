@@ -1,0 +1,3 @@
+build/
+*.wsc
+compile_commands.json

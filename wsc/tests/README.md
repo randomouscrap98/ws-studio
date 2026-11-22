@@ -59,6 +59,11 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   "frames": 60,
   "input": "input.txt",
   "frame_sha256": "<hex or null>",
+  "reference": {
+    "script": "tools/ref_render.py",
+    "args": ["--scroll", "0"],
+    "precision": "exact"
+  },
   "ram": [
     {"symbol": "hello_magic", "size": 2, "equals": "0x1234"}
   ]
@@ -73,10 +78,16 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   format documented in `wsc/tools/wsrun/README.md`.
 - `frame_sha256` is the SHA-256 of `wsrun --raw` output, or `null` to skip
   the frame check. The raw RGB24 file is always written.
+- `reference` (optional) runs an expected-frame renderer before the hash is
+  checked. `script` is relative to `wsc/`; `args` are passed to it, and
+  `run.py` adds `--out <test build dir>/reference.rgb`. `precision` is
+  `"exact"` (default) or `"4bit"` (compare the top four bits of each
+  channel). A mismatch reports the first differing pixel.
 - `ram` (optional) lists little-endian value checks. `equals` may be a hex
   string such as `"0x1234"`. An optional `offset` (bytes) is added to the
   symbol's address, for example `{"symbol": "script_memory", "offset": 4,
-  "size": 2, "equals": "0x2a"}` reads `script_memory[2]`.
+  "size": 2, "equals": "0x2a"}` reads `script_memory[2]`. An optional
+  non-negative `tolerance` accepts values within `equals +/- tolerance`.
 
 ## Tests
 
@@ -91,6 +102,12 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
 - `vmrom`: runs `wsc/vmrom`, which executes two far-const script banks
   through the portable VM core and checks the results in `script_memory`
   and named RAM variables.
+- `hal-static`: runs `wsc/halrom` for 30 frames with no input. The HAL loads
+  hand-made GB background data, so the frame must match `ref_render.py` at
+  scroll 0 exactly; `scroll_x == 0` and `hal_frames` is 30 +/- 2.
+- `hal-scroll`: holds X2 (right) from frame 10 for 60 frames. The frame
+  must match `ref_render.py` at scroll 8; `scroll_x == 8` and `hal_input`
+  is the GB `J_RIGHT` bit (`0x01`).
 
 The keypad values used by the input tests correspond to the libws
 `WS_KEY_*` constants:

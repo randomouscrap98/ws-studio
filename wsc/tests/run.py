@@ -8,6 +8,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -209,12 +210,22 @@ def run_wsrun(test_dir, out_dir, spec):
             raise TestError("input file {} does not exist".format(input_path))
         argv.extend(["--input", input_path])
 
-    run_command(argv, what="wsrun ({})".format(test_dir.name))
-    return raw_path, ram_path
+    output = run_command(argv, what="wsrun ({})".format(test_dir.name))
+    match = re.search(r"width=(\d+) height=(\d+)", output)
+    if not match:
+        raise TestError("wsrun did not report frame dimensions")
+    return raw_path, ram_path, int(match.group(1)), int(match.group(2))
+
+
+def read_bytes(path, what):
+    try:
+        return path.read_bytes()
+    except OSError as exc:
+        raise TestError("cannot read {}: {}".format(what, exc)) from exc
 
 
 def check_frame(raw_path, spec):
-    digest = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    digest = hashlib.sha256(read_bytes(raw_path, "wsrun frame")).hexdigest()
     expected = spec.get("frame_sha256")
     if expected is None:
         return
@@ -225,11 +236,88 @@ def check_frame(raw_path, spec):
         )
 
 
+def compare_frames(actual_path, reference_path, precision, width):
+    actual = read_bytes(actual_path, "wsrun frame")
+    reference = read_bytes(reference_path, "reference frame")
+
+    if precision not in ("exact", "4bit"):
+        raise TestError(
+            "reference precision must be 'exact' or '4bit', not {!r}".format(
+                precision
+            )
+        )
+    if len(actual) != len(reference):
+        raise TestError(
+            "reference frame is {} bytes, wsrun frame is {} bytes".format(
+                len(reference), len(actual)
+            )
+        )
+
+    first = None
+    for offset, (got, want) in enumerate(zip(actual, reference)):
+        if precision == "4bit":
+            if (got >> 4) != (want >> 4):
+                first = offset
+                break
+        elif got != want:
+            first = offset
+            break
+    if first is None:
+        return
+
+    pixel = first // 3
+    x = pixel % width if width else 0
+    y = pixel // width if width else 0
+    if first + 3 <= len(actual):
+        got = tuple(actual[first:first + 3])
+        want = tuple(reference[first:first + 3])
+        detail = "wsrun {} != reference {}".format(got, want)
+    else:
+        detail = "wsrun 0x{:02X} != reference 0x{:02X}".format(
+            actual[first], reference[first]
+        )
+    raise TestError(
+        "reference mismatch at pixel ({}, {}): {}".format(x, y, detail)
+    )
+
+
+def run_reference(test_dir, out_dir, spec, raw_path, width):
+    ref_spec = spec.get("reference")
+    if ref_spec is None:
+        return
+    if isinstance(ref_spec, str):
+        ref_spec = {"script": ref_spec}
+    if not isinstance(ref_spec, dict):
+        raise TestError("reference must be a script path or an object")
+
+    script = ref_spec.get("script")
+    if not isinstance(script, str) or not script:
+        raise TestError("reference is missing a script")
+    script_path = resolve(script)
+    if not script_path.is_file():
+        raise TestError("reference script {} does not exist".format(script_path))
+
+    args = ref_spec.get("args", [])
+    if not isinstance(args, list):
+        raise TestError("reference args must be a list")
+    reference_path = out_dir / "reference.rgb"
+    argv = [sys.executable, script_path]
+    argv.extend(str(arg) for arg in args)
+    argv.extend(["--out", reference_path])
+    run_command(argv, what="reference ({})".format(test_dir.name))
+    compare_frames(
+        raw_path,
+        reference_path,
+        ref_spec.get("precision", "exact"),
+        width,
+    )
+
+
 def check_ram(ram_path, elf_path, spec):
     checks = spec.get("ram") or []
     if not checks:
         return
-    ram = ram_path.read_bytes()
+    ram = read_bytes(ram_path, "RAM dump")
     if not elf_path.is_file():
         raise TestError("ELF {} does not exist after build".format(elf_path))
 
@@ -250,6 +338,12 @@ def check_ram(ram_path, elf_path, spec):
         if type(extra) is not int or extra < 0:
             problems.append("{}: offset must be a non-negative integer".format(symbol))
             continue
+        tolerance = check.get("tolerance", 0)
+        if type(tolerance) is not int or tolerance < 0:
+            problems.append(
+                "{}: tolerance must be a non-negative integer".format(symbol)
+            )
+            continue
         try:
             expected = parse_equals(check["equals"])
         except (TypeError, ValueError):
@@ -269,10 +363,12 @@ def check_ram(ram_path, elf_path, spec):
             )
             continue
         actual = int.from_bytes(ram[address : address + size], "little")
-        if actual != expected:
+        if abs(actual - expected) > tolerance:
+            suffix = " (+/- {})".format(tolerance) if tolerance else ""
             problems.append(
-                "{}+0x{:X} at RAM 0x{:04X} is 0x{:0{}X}, expected 0x{:0{}X}".format(
-                    symbol, extra, address, actual, size * 2, expected, size * 2
+                "{}+0x{:X} at RAM 0x{:04X} is 0x{:0{}X}, expected 0x{:0{}X}{}".format(
+                    symbol, extra, address, actual, size * 2, expected, size * 2,
+                    suffix,
                 )
             )
 
@@ -291,10 +387,11 @@ def run_test(test_json, update_golden):
             raise TestError("test.json is missing {}".format(key))
 
     build_test(spec)
-    raw_path, ram_path = run_wsrun(test_dir, out_dir, spec)
+    raw_path, ram_path, width, _height = run_wsrun(test_dir, out_dir, spec)
+    run_reference(test_dir, out_dir, spec, raw_path, width)
 
     if update_golden:
-        digest = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+        digest = hashlib.sha256(read_bytes(raw_path, "wsrun frame")).hexdigest()
         spec["frame_sha256"] = digest
         save_json(test_json, spec)
     else:

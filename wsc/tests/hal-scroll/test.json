@@ -1,0 +1,34 @@
+{
+  "rom": "halrom/halrom.wsc",
+  "elf": "halrom/build/halrom.elf",
+  "build": "halrom",
+  "frames": 60,
+  "input": "input.txt",
+  "reference": {
+    "script": "tools/ref_render.py",
+    "args": [
+      "--scroll",
+      "8"
+    ],
+    "precision": "exact"
+  },
+  "frame_sha256": "b2397c8d25f0c15500a0442b432a5c6cee027ff4252f97a96df06bc29b166d6c",
+  "ram": [
+    {
+      "symbol": "scroll_x",
+      "size": 1,
+      "equals": "0x08"
+    },
+    {
+      "symbol": "hal_input",
+      "size": 1,
+      "equals": "0x01"
+    },
+    {
+      "symbol": "hal_frames",
+      "size": 2,
+      "equals": 60,
+      "tolerance": 2
+    }
+  ]
+}
