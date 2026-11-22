@@ -1,0 +1,7 @@
+*/build/
+*/*.wsc
+*/compile_commands.json
+vblank/vblank.wsc
+
+__pycache__/
+*.pyc
