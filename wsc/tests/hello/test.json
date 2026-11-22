@@ -1,0 +1,14 @@
+{
+  "rom": "hello/hello.wsc",
+  "elf": "hello/build/hello.elf",
+  "build": "hello",
+  "frames": 60,
+  "frame_sha256": "fb1017b33145e11a8792c0ba780f7efab96db2e51f470966facd2797db32bece",
+  "ram": [
+    {
+      "symbol": "hello_magic",
+      "size": 2,
+      "equals": "0x1234"
+    }
+  ]
+}

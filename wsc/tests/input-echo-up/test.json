@@ -1,0 +1,15 @@
+{
+  "rom": "tests/input-echo-rom/input-echo.wsc",
+  "elf": "tests/input-echo-rom/build/input-echo.elf",
+  "build": "tests/input-echo-rom",
+  "frames": 60,
+  "input": "input.txt",
+  "frame_sha256": null,
+  "ram": [
+    {
+      "symbol": "echo_keys",
+      "size": 2,
+      "equals": "0x0010"
+    }
+  ]
+}
