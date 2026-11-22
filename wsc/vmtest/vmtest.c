@@ -168,6 +168,7 @@ static void emit_rand(Code *c, INT16 idx, UWORD min, UWORD limit) { const UBYTE 
 static void emit_join(Code *c, INT16 idx) { const UBYTE b[] = { VM_JOIN(idx) }; emit_bytes(c, b, (int)sizeof b); }
 static void emit_terminate(Code *c, INT16 idx) { const UBYTE b[] = { VM_TERMINATE(idx) }; emit_bytes(c, b, (int)sizeof b); }
 static void emit_invoke(Code *c, UBYTE bank, UWORD fn, UBYTE nparams, INT16 idx) { const UBYTE b[] = { VM_INVOKE(bank, fn, nparams, idx) }; emit_bytes(c, b, (int)sizeof b); }
+static void emit_get_far(Code *c, INT16 idx, UBYTE size, UBYTE bank, UWORD addr) { const UBYTE b[] = { VM_GET_FAR(idx, size, bank, addr) }; emit_bytes(c, b, (int)sizeof b); }
 
 static void emit_jump(Code *c, int label) {
     const UBYTE b[] = { VM_JUMP(0xAABB) };
@@ -517,6 +518,22 @@ static void test_call_far(void) {
     check_eq("call_far.remote_bank", script_memory[1], 2);
 }
 
+static void test_get_far(void) {
+    static const UBYTE far_data[] = { 0x9C, 0x34, 0x12 };
+    Code c;
+    code_init(&c);
+    host_banks[1] = far_data;
+    emit_get_far(&c, 0, 0, 1, 0);   /* byte from bank 1 offset 0 */
+    emit_get_far(&c, 1, 1, 1, 1);   /* word from bank 1 offset 1 */
+    emit_stop(&c);
+    code_finalize(&c);
+
+    UBYTE status = run_code(0, c.bytes, NULL);
+    check_true("get_far.run", status == RUNNER_DONE, "runner did not finish");
+    check_eq("get_far.byte", script_memory[0], 0x9C);
+    check_eq("get_far.word", script_memory[1], 0x1234);
+}
+
 static void test_loop(void) {
     Code c;
     code_init(&c);
@@ -730,6 +747,7 @@ int main(void) {
     test_stop_pc();
     test_branches();
     test_call_far();
+    test_get_far();
     test_loop();
     test_switch();
     test_threads();

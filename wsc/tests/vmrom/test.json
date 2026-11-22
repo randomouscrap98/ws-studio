@@ -150,6 +150,18 @@
       "equals": "0xbeef"
     },
     {
+      "symbol": "script_memory",
+      "offset": 48,
+      "size": 2,
+      "equals": "0x9c"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 50,
+      "size": 2,
+      "equals": "0x1234"
+    },
+    {
       "symbol": "vmrom_named_byte",
       "size": 2,
       "equals": "0x00A5"

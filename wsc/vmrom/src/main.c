@@ -113,12 +113,18 @@ const uint8_t __far vmrom_bank0[] = {
     VM_RPN, R_INT16(0xBEEF), R_REF_MEM_SET(VM_OP_MEM_I16, 0x1002), R_STOP,
     VM_RPN, R_REF_MEM(VM_OP_MEM_I16, 0x1002), R_REF_SET(23), R_STOP,
 
+    /* VM_GET_FAR from bank 1: byte at offset 7, word at offset 8. */
+    VM_GET_FAR(24, 0, 1, 7),
+    VM_GET_FAR(25, 1, 1, 8),
+
     VM_STOP,
 };
 
 const uint8_t __far vmrom_bank1[] = {
     VM_SET_CONST(7, 0x41),
     VM_RET_FAR,
+    /* Data read by the VM_GET_FAR instructions above. */
+    0x9C, 0x34, 0x12,
 };
 
 /* Fixed IRAM addresses used by the REF_MEM instructions above. */

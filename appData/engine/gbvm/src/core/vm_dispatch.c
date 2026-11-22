@@ -61,7 +61,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_size = vm_fetch8(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
-        UBYTE *a_addr = (UBYTE *)(vm_bank_base(a_bank) + a_addr_off);
+        UBYTE VM_FAR *a_addr = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_addr_off);
         CTX->PC = p;
         vm_get_far(0, 0, CTX, a_idxA, a_size, a_bank, a_addr);
         return 1;

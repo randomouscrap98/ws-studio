@@ -447,12 +447,12 @@ void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED {
 }
 
 // gets int8 or int16 by far address
-void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE * addr) OLDCALL NONBANKED {
+void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE VM_FAR * addr) OLDCALL NONBANKED {
     (void)dummy0; (void)dummy1;
     UINT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     SWITCH_ROM(bank);             // switch to bytecode bank
-    *A = (size == 0) ? *((UBYTE *)addr) : *((UINT16 *)addr);
+    *A = (size == 0) ? *((UBYTE VM_FAR *)addr) : *((UINT16 VM_FAR *)addr);
 }
 
 // initializes random number generator
