@@ -9,12 +9,14 @@
 #include "vm_bytecode.h"
 
 #define HOST_BANKS 4
+#define HOST_RAM_SIZE 0x10000
 #define MAX_CODE 2048
 #define MAX_LABELS 64
 #define MAX_FIXUPS 64
 #define MAX_UPDATES 1000
 
 static const UBYTE *host_banks[HOST_BANKS];
+static UBYTE host_ram[HOST_RAM_SIZE];
 
 const UBYTE *vm_bank_base(UBYTE bank) {
     if (bank >= HOST_BANKS || host_banks[bank] == NULL) {
@@ -22,6 +24,10 @@ const UBYTE *vm_bank_base(UBYTE bank) {
         abort();
     }
     return host_banks[bank];
+}
+
+UBYTE *vm_ram_ptr(UWORD addr) {
+    return host_ram + addr;
 }
 
 extern UBYTE vm_last_unimplemented_opcode;
@@ -208,6 +214,9 @@ static void rpn_ref(Code *c, INT16 idx) { UBYTE b[3] = { (UBYTE)VM_OP_REF, (UBYT
 static void rpn_ref_ind(Code *c, INT16 idx) { UBYTE b[3] = { (UBYTE)VM_OP_REF_IND, (UBYTE)idx, (UBYTE)((UWORD)idx >> 8) }; emit_bytes(c, b, 3); }
 static void rpn_ref_set(Code *c, INT16 idx) { UBYTE b[3] = { (UBYTE)VM_OP_REF_SET, (UBYTE)idx, (UBYTE)((UWORD)idx >> 8) }; emit_bytes(c, b, 3); }
 static void rpn_ref_set_ind(Code *c, INT16 idx) { UBYTE b[3] = { (UBYTE)VM_OP_REF_SET_IND, (UBYTE)idx, (UBYTE)((UWORD)idx >> 8) }; emit_bytes(c, b, 3); }
+static void rpn_mem(Code *c, UBYTE type, UWORD addr) { UBYTE b[4] = { (UBYTE)VM_OP_REF_MEM, type, (UBYTE)addr, (UBYTE)(addr >> 8) }; emit_bytes(c, b, 4); }
+static void rpn_mem_set(Code *c, UBYTE type, UWORD addr) { UBYTE b[4] = { (UBYTE)VM_OP_REF_MEM_SET, type, (UBYTE)addr, (UBYTE)(addr >> 8) }; emit_bytes(c, b, 4); }
+static void rpn_mem_ind(Code *c, UBYTE type, INT16 idx) { UBYTE b[4] = { (UBYTE)VM_OP_REF_MEM_IND, type, (UBYTE)idx, (UBYTE)((UWORD)idx >> 8) }; emit_bytes(c, b, 4); }
 static void rpn_op(Code *c, UBYTE op) { emit_byte(c, op); }
 static void rpn_stop(Code *c) { emit_byte(c, 0); }
 
@@ -357,6 +366,74 @@ static void test_rpn(void) {
     check_eq("rpn.ref", script_memory[19], 1236);
     check_eq("rpn.ref_ind", script_memory[21], 1234);
     check_eq("rpn.ref_set_ind", script_memory[23], 9);
+}
+
+static void test_rpn_memory(void) {
+    Code c;
+    UBYTE before[MAX_CODE];
+
+    code_init(&c);
+    memset(host_ram, 0, 0x40);
+    host_ram[0x10] = 0xFE;              /* INT8 -2 */
+    host_ram[0x11] = 0x9C;              /* UINT8 156 */
+    host_ram[0x12] = 0x34;              /* INT16 0x1234 */
+    host_ram[0x13] = 0x12;
+    host_ram[0x30] = 0x5A;
+
+    emit_set_const(&c, 3, 0x0030);      /* address used by REF_MEM_IND */
+    emit_rpn(&c);
+    rpn_mem(&c, VM_OP_MEM_I8, 0x0010);
+    rpn_ref_set(&c, 0);
+    rpn_stop(&c);
+    emit_rpn(&c);
+    rpn_mem(&c, VM_OP_MEM_U8, 0x0011);
+    rpn_ref_set(&c, 1);
+    rpn_stop(&c);
+    emit_rpn(&c);
+    rpn_mem(&c, VM_OP_MEM_I16, 0x0012);
+    rpn_ref_set(&c, 2);
+    rpn_stop(&c);
+    emit_rpn(&c);
+    rpn_i8(&c, -5);
+    rpn_mem_set(&c, VM_OP_MEM_I8, 0x0020);
+    rpn_stop(&c);
+    emit_rpn(&c);
+    rpn_i16(&c, 0xBEEF);
+    rpn_mem_set(&c, VM_OP_MEM_I16, 0x0022);
+    rpn_stop(&c);
+    emit_rpn(&c);
+    rpn_mem_ind(&c, VM_OP_MEM_U8, 3);
+    rpn_ref_set(&c, 4);
+    rpn_stop(&c);
+    emit_stop(&c);
+    code_finalize(&c);
+    memcpy(before, c.bytes, (size_t)c.len);
+
+    UBYTE status = run_code(0, c.bytes, NULL);
+    check_true("rpn.mem.run", status == RUNNER_DONE, "runner did not finish");
+    check_eq("rpn.mem_i8", (INT16)script_memory[0], -2);
+    check_eq("rpn.mem_u8", script_memory[1], 156);
+    check_eq("rpn.mem_i16", script_memory[2], 0x1234);
+    check_eq("rpn.mem_set_i8", host_ram[0x20], 0xFB);
+    check_eq("rpn.mem_set_i16", (UWORD)(host_ram[0x22] | (host_ram[0x23] << 8)), 0xBEEF);
+    check_eq("rpn.mem_ind", script_memory[4], 0x5A);
+    check_true("rpn.mem_bank_unchanged", memcmp(before, c.bytes, (size_t)c.len) == 0,
+               "RPN memory op modified the script bank");
+}
+
+static void test_stop_pc(void) {
+    Code c;
+    code_init(&c);
+    emit_push_const(&c, 0x1234);
+    emit_stop(&c);
+    code_finalize(&c);
+
+    host_banks[0] = c.bytes;
+    script_runner_init(1);
+    SCRIPT_CTX *ctx = script_execute(0, c.bytes, NULL, 0);
+    UBYTE status = script_runner_update();
+    check_true("stop.run", status == RUNNER_DONE, "runner did not finish");
+    check_eq("stop.pc", (long)(ctx->PC - c.bytes), 3);
 }
 
 static void test_branches(void) {
@@ -649,6 +726,8 @@ int main(void) {
     test_push_pop();
     test_indirect();
     test_rpn();
+    test_rpn_memory();
+    test_stop_pc();
     test_branches();
     test_call_far();
     test_loop();

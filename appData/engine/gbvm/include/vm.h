@@ -68,9 +68,11 @@ typedef struct SCRIPT_CTX {
 
 #if !(defined(__SDCC) && defined(NINTENDO))
 // Host platform hooks. A bank is a registered byte array; pointers on the VM
-// stack are stored as 16-bit offsets from the base of the bank.
+// stack are stored as 16-bit offsets from the base of the bank. RAM addresses
+// are resolved separately and are never bank-relative.
 extern SCRIPT_UPDATE_FN vm_native_fns[];
 const UBYTE * vm_bank_base(UBYTE bank);
+UBYTE * vm_ram_ptr(UWORD addr);
 UBYTE * vm_native_token(UWORD index);
 UBYTE vm_dispatch_step(SCRIPT_CTX * CTX);
 #endif

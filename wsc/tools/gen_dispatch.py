@@ -267,7 +267,6 @@ def generate_dispatch(entries, protos, host_handlers):
         "UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {",
         "    UBYTE op = *CTX->PC;",
         "    if (op == 0) {",
-        "        CTX->PC++;",
         "        return 0;",
         "    }",
         "    switch (op) {",

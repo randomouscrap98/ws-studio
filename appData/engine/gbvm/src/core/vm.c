@@ -57,24 +57,12 @@ static INT16 vm_read_word_le(const UBYTE ** pc) {
     *pc += 2;
     return (INT16)value;
 }
-static void * vm_stream_ptr(SCRIPT_CTX * THIS, const UBYTE ** pc) {
-    UWORD offset = (UWORD)((*pc)[0]) | ((UWORD)((*pc)[1]) << 8);
-    *pc += 2;
 #if defined(__SDCC) && defined(NINTENDO)
-    (void)THIS;
-    return (void *)offset;
-#else
-    return (void *)(vm_bank_base(THIS->bank) + offset);
-#endif
+// RAM addresses are near pointers on the Game Boy.
+UBYTE * vm_ram_ptr(UWORD addr) {
+    return (UBYTE *)addr;
 }
-static void * vm_index_to_ptr(SCRIPT_CTX * THIS, UWORD index) {
-#if defined(__SDCC) && defined(NINTENDO)
-    (void)THIS;
-    return (void *)index;
-#else
-    return (void *)(vm_bank_base(THIS->bank) + index);
 #endif
-}
 // Returns the VM stack/global slot for an index (negative = stack relative).
 static UWORD * vm_slot(INT16 * args, INT16 idx) {
     return (idx < 0) ? (UWORD *)(args + idx) : (script_memory + idx);
@@ -337,7 +325,7 @@ void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANK
                     op = *(THIS->PC++);
                     idx = vm_read_word_le(&THIS->PC);
                     ref = *vm_slot(ARGS, idx);
-                    addr = vm_index_to_ptr(THIS, ref);
+                    addr = vm_ram_ptr(ref);
                     switch ((UINT8)op) {
                         case VM_OP_MEM_I8  : *(THIS->stack_ptr) = *((INT8 *)addr);  break;
                         case VM_OP_MEM_U8  : *(THIS->stack_ptr) = *((UINT8 *)addr); break;
@@ -347,7 +335,7 @@ void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANK
                 // write memory
                 case VM_OP_REF_MEM_SET:
                     op = *(THIS->PC++);
-                    addr = vm_stream_ptr(THIS, &THIS->PC);
+                    addr = vm_ram_ptr((UWORD)vm_read_word_le(&THIS->PC));
                     switch ((UINT8)op) {
                         case VM_OP_MEM_I8  : *((INT8 *)addr)  = *(--(THIS->stack_ptr)); break;
                         case VM_OP_MEM_U8  : *((UINT8 *)addr) = *(--(THIS->stack_ptr)); break;
@@ -357,7 +345,7 @@ void vm_rpn(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANK
                 // read memory
                 case VM_OP_REF_MEM:
                     op = *(THIS->PC++);
-                    addr = vm_stream_ptr(THIS, &THIS->PC);
+                    addr = vm_ram_ptr((UWORD)vm_read_word_le(&THIS->PC));
                     switch ((UINT8)op) {
                         case VM_OP_MEM_I8  : *(THIS->stack_ptr) = *((INT8 *)addr);  break;
                         case VM_OP_MEM_U8  : *(THIS->stack_ptr) = *((UINT8 *)addr); break;

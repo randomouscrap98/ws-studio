@@ -21,7 +21,6 @@ static UBYTE vm_fetch8(const UBYTE **p) {
 UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UBYTE op = *CTX->PC;
     if (op == 0) {
-        CTX->PC++;
         return 0;
     }
     switch (op) {
