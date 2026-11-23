@@ -1,0 +1,6 @@
+# Wait for the scene to boot, then move down three tiles and right four
+# tiles.  The final position is tile (18, 44); both axes have scrolled well
+# past two tiles.
+40 X3
+64 X2
+96 -

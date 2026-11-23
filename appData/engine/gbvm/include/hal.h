@@ -48,7 +48,8 @@ void hal_display_off(void);
 void hal_wait_vblank(void);
 uint16_t hal_vblank_count(void);
 
-/* Returns a GB J_* mask. Select is not mapped yet. */
+/* Returns a GB J_* mask: X1-X4 -> up/right/down/left, A/B/Start,
+ * Y1 -> Select. */
 uint8_t hal_input_read(void);
 
 /* Load count GB 2bpp tiles at logical tile index first, converting each

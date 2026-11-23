@@ -34,12 +34,17 @@ BUILDDIR	:= $(CURDIR)/build
 OBJDIR		:= $(BUILDDIR)/obj
 ROM_LOGO	:= $(CURDIR)/gamerom.wsc
 ROM_TOWN	:= $(CURDIR)/gamerom_town.wsc
+ROM_TOWN_WALK	:= $(CURDIR)/gamerom_town_walk.wsc
 ELF_LOGO	:= $(BUILDDIR)/gamerom.elf
 ELF_TOWN	:= $(BUILDDIR)/gamerom_town.elf
+ELF_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk.elf
 STAGE_LOGO	:= $(BUILDDIR)/gamerom_stage1.elf
 STAGE_TOWN	:= $(BUILDDIR)/gamerom_town_stage1.elf
+STAGE_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk_stage1.elf
 RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
+RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
+RAM_WALK_WALL	:= $(BUILDDIR)/ram_walk_wall.json
 
 INCLUDEFLAGS	:= -I$(CURDIR)/include -I$(GEN_DIR)/include \
 		   -I$(S2C_DIR) -I$(WSC_DIR)/host/include \
@@ -84,6 +89,7 @@ ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
 
 BOOTSTRAP_LOGO	:= $(OBJDIR)/bootstrap_logo.o
 BOOTSTRAP_TOWN	:= $(OBJDIR)/bootstrap_town.o
+BOOTSTRAP_TOWN_WALK := $(OBJDIR)/bootstrap_town_walk.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 
@@ -96,7 +102,7 @@ COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 all: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
-all-rom: $(RAM_LOGO) $(RAM_TOWN)
+all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL)
 
 # Generated data sources only exist after d2c runs. The first make pass
 # creates them, then re-enters this Makefile so the source lists are complete.
@@ -107,6 +113,25 @@ $(RAM_TOWN): $(ROM_TOWN) $(ROM_LOGO) $(WSC_DIR)/tools/boot_oracle.py
 	$(PYTHON) $(WSC_DIR)/tools/boot_oracle.py --ram-out $@ \
 		--elf $(ELF_TOWN) --scene scene_sample_town \
 		--start-x 400 --start-y 400
+
+# The walking tests use the same town image with a start in the open area
+# around tile (14, 41).
+WALK_FREE_INPUT	:= $(WSC_DIR)/tests/walk-free/input.txt
+WALK_WALL_INPUT	:= $(WSC_DIR)/tests/walk-wall/input.txt
+
+$(RAM_WALK_FREE): $(ROM_TOWN_WALK) $(ELF_TOWN_WALK) \
+		$(WSC_DIR)/tools/walk_oracle.py $(WALK_FREE_INPUT)
+	$(PYTHON) $(WSC_DIR)/tools/walk_oracle.py --ram-out $@ \
+		--elf $(ELF_TOWN_WALK) --scene scene_sample_town \
+		--start-x 112 --start-y 328 --frames 140 \
+		--input $(WALK_FREE_INPUT)
+
+$(RAM_WALK_WALL): $(ROM_TOWN_WALK) $(ELF_TOWN_WALK) \
+		$(WSC_DIR)/tools/walk_oracle.py $(WALK_WALL_INPUT)
+	$(PYTHON) $(WSC_DIR)/tools/walk_oracle.py --ram-out $@ \
+		--elf $(ELF_TOWN_WALK) --scene scene_sample_town \
+		--start-x 112 --start-y 328 --frames 140 \
+		--input $(WALK_WALL_INPUT)
 
 export-data $(EXPORT_READY):
 	$(WSC_DIR)/export/run.sh
@@ -136,11 +161,19 @@ $(ROM_TOWN) $(ELF_TOWN): $(STAGE_TOWN)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_TOWN) --output-elf $(ELF_TOWN) $<
 
+$(ROM_TOWN_WALK) $(ELF_TOWN_WALK): $(STAGE_TOWN_WALK)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_TOWN_WALK) --output-elf $(ELF_TOWN_WALK) $<
+
 $(STAGE_LOGO): $(COMMON_OBJS) $(BOOTSTRAP_LOGO)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
 $(STAGE_TOWN): $(COMMON_OBJS) $(BOOTSTRAP_TOWN)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_TOWN_WALK): $(COMMON_OBJS) $(BOOTSTRAP_TOWN_WALK)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
@@ -179,9 +212,15 @@ $(BOOTSTRAP_TOWN): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
 	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_sample_town \
 		-DBOOT_START_X=12800 -DBOOT_START_Y=12800 -MMD -MP -c -o $@ $<
 
+$(BOOTSTRAP_TOWN_WALK): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (town walk)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_sample_town \
+		-DBOOT_START_X=3584 -DBOOT_START_Y=10496 -MMD -MP -c -o $@ $<
+
 clean:
 	@echo "  CLEAN"
-	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(BUILDDIR) $(GEN_DIR)
+	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(BUILDDIR) $(GEN_DIR)
 
 usage: $(ELF_LOGO)
 	$(ROMUSAGE) $< -g
