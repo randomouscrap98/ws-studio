@@ -26,20 +26,20 @@ void vm_timer_set(SCRIPT_CTX * THIS, UBYTE timer, UBYTE value) OLDCALL BANKED;
 void vm_timer_stop(SCRIPT_CTX * THIS, UBYTE timer) OLDCALL BANKED;
 void vm_timer_reset(SCRIPT_CTX * THIS, UBYTE timer) OLDCALL BANKED;
 void vm_get_tile_xy(SCRIPT_CTX * THIS, INT16 idx_tile, INT16 idx_x, INT16 idx_y) OLDCALL BANKED;
-void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_bank, const tileset_t * tileset, INT16 idx_start_tile, UBYTE length) OLDCALL BANKED;
+void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, INT16 idx_start_tile, UBYTE length) OLDCALL BANKED;
 
 #define POLL_EVENT_INPUT 0x01
 #define POLL_EVENT_MUSIC 0x02
 void vm_poll(SCRIPT_CTX * THIS, INT16 idx, INT16 res, UBYTE event_mask) OLDCALL BANKED;
 
 void vm_set_sprite_mode(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED;
-void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, const tileset_t * tileset, INT16 idx_start_tile) OLDCALL BANKED;
+void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, INT16 idx_start_tile) OLDCALL BANKED;
 
 #ifndef RUMBLE_ENABLE
 #define RUMBLE_ENABLE 0x20u
 #endif
 void vm_rumble(SCRIPT_CTX * THIS, UBYTE enable) OLDCALL BANKED;
 
-void vm_load_tileset(SCRIPT_CTX * THIS, INT16 idx, UBYTE bank, const background_t * background) OLDCALL BANKED;
+void vm_load_tileset(SCRIPT_CTX * THIS, INT16 idx, UBYTE bank, VM_C_DATA(background_t) background) OLDCALL BANKED;
 
 #endif

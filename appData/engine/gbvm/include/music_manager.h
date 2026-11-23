@@ -4,6 +4,12 @@
 #include "events.h"
 #include "sfx_player.h"
 
+#ifdef __ia16__
+#define MUSIC_DATA_PTR(T) const T __far *
+#else
+#define MUSIC_DATA_PTR(T) const T *
+#endif
+
 #ifdef GBT_PLAYER
 #undef HUGE_TRACKER
 #define TRACK_T uint8_t
@@ -12,9 +18,13 @@
 #define driver_reset_wave gbt_reset_ch3_instrument
 #define driver_update gbt_update
 
-inline void driver_init(uint8_t bank, const TRACK_T * track, uint8_t loop) {
+inline void driver_init(uint8_t bank, MUSIC_DATA_PTR(TRACK_T) track, uint8_t loop) {
+#ifdef __ia16__
+    (void)bank; (void)track; (void)loop;
+#else
     gbt_play(track, bank, 7);
     gbt_loop(loop);
+#endif
 }
 
 inline uint8_t driver_set_mute_mask(uint8_t mute_mask) {
@@ -23,7 +33,11 @@ inline uint8_t driver_set_mute_mask(uint8_t mute_mask) {
 }
 
 inline void music_setpos(UBYTE pattern, UBYTE row) {
+#ifdef __ia16__
+    (void)pattern; (void)row;
+#else
     pattern, row;
+#endif
 }
 #endif
 
@@ -35,9 +49,13 @@ inline void music_setpos(UBYTE pattern, UBYTE row) {
 #define driver_reset_wave hUGE_reset_wave
 #define driver_update hUGE_dosound
 
-inline void driver_init(uint8_t bank, const TRACK_T * track, uint8_t loop) {
+inline void driver_init(uint8_t bank, MUSIC_DATA_PTR(TRACK_T) track, uint8_t loop) {
+#ifdef __ia16__
+    (void)bank; (void)track; (void)loop;
+#else
     bank; loop;
     hUGE_init(track);
+#endif
 }
 
 inline uint8_t driver_set_mute_mask(uint8_t mute_mask) {
@@ -45,8 +63,12 @@ inline uint8_t driver_set_mute_mask(uint8_t mute_mask) {
 }
 
 inline void music_setpos(UBYTE pattern, UBYTE row) {
+#ifdef __ia16__
+    (void)pattern; (void)row;
+#else
     row;
     hUGE_set_position(pattern);
+#endif
 }
 #endif
 
@@ -83,20 +105,32 @@ inline void music_sound_cut(void) {
 #define MUSIC_CH_4 SFX_CH_4
 
 inline uint8_t music_sound_cut_mask(uint8_t mask) {
+#ifdef __ia16__
+    return mask;
+#else
     return sfx_sound_cut_mask(mask);
+#endif
 }
 
 void music_play_isr(void);
 
-inline void music_load(uint8_t bank, const TRACK_T * data) {
+inline void music_load(uint8_t bank, MUSIC_DATA_PTR(TRACK_T) data) {
+#ifdef __ia16__
+    (void)bank; (void)data;
+#else
     if ((bank == music_current_track_bank) && (data == music_current_track)) return;
     music_current_track_bank = MUSIC_STOP_BANK, music_current_track = data, music_next_track = data; music_current_track_bank = bank;
+#endif
 }
 
 void music_pause(uint8_t pause);
 
 inline void music_stop(void) {
+#ifdef __ia16__
+    return;
+#else
     music_current_track_bank = MUSIC_STOP_BANK, music_sound_cut();
+#endif
 }
 
 inline void music_setup_timer(void) {
@@ -114,13 +148,17 @@ inline void music_init(void) {
 #define MUTE_MASK_NONE 0
 #define MUTE_MASK_WAVE MUSIC_CH_3
 
-inline void music_play_sfx(uint8_t bank, const uint8_t * sample, uint8_t mute_mask, uint8_t priority) {
+inline void music_play_sfx(uint8_t bank, MUSIC_DATA_PTR(uint8_t) sample, uint8_t mute_mask, uint8_t priority) {
+#ifdef __ia16__
+    (void)bank; (void)sample; (void)mute_mask; (void)priority;
+#else
     if (priority < music_sfx_priority) return;
     sfx_play_bank = SFX_STOP_BANK;
     music_sfx_priority = priority;
     music_sound_cut_mask(music_mute_mask);
     music_mute_mask = mute_mask;
     sfx_set_sample(bank, sample);
+#endif
 }
 
 #endif

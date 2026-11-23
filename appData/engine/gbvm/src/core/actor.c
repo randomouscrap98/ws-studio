@@ -47,8 +47,10 @@
 static UBYTE actor_draw_metasprite(const metasprite_t __far *ms, UBYTE base_tile,
                                    UBYTE sprite_offset, UBYTE x, UBYTE y) {
     UBYTE first = (UBYTE)hal_sprite_count();
+    UBYTE mode = (LCDC_REG & LCDCF_OBJ16) ? HAL_SPRITE_MODE_8X16
+                                         : HAL_SPRITE_MODE_8X8;
     UBYTE count = (UBYTE)hal_draw_metasprite(ms, base_tile, 0, (int16_t)x,
-                                             (int16_t)y, HAL_SPRITE_MODE_8X16,
+                                             (int16_t)y, mode,
                                              HAL_FLIP_NONE);
     (void)sprite_offset;
     hal_sprite_offset_tiles(first, count, 256);

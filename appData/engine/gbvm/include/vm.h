@@ -16,8 +16,11 @@ BANKREF_EXTERN(VM_MAIN)
 // far pointers; the host and the Game Boy use ordinary near pointers.
 #if defined(__ia16__)
 #define VM_FAR __far
+/* C data operands are far ROM objects resolved through vm_far_data[]. */
+#define VM_C_DATA(T) const T __far *
 #else
 #define VM_FAR
+#define VM_C_DATA(T) const T *
 #endif
 
 #define FN_ARG0 -1

@@ -8,6 +8,18 @@
 
 #include "vm.h"
 
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+#include "vm_actor.h"
+#include "vm_camera.h"
+#include "vm_gameboy.h"
+#include "vm_load_save.h"
+#include "vm_math.h"
+#include "vm_music.h"
+#include "vm_palette.h"
+#include "vm_projectiles.h"
+#include "vm_scene.h"
+#endif
+
 UBYTE vm_last_unimplemented_opcode;
 
 static UWORD vm_fetch16(const UBYTE VM_FAR **p) {
@@ -307,6 +319,503 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         vm_push_reference(CTX, a_idx);
         return 1;
       }
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x2E: { /* vm_save_peek */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_slot = vm_fetch8(&p);
+    UWORD a_count = vm_fetch16(&p);
+    INT16 a_idxC = (INT16)vm_fetch16(&p);
+    INT16 a_idxB = (INT16)vm_fetch16(&p);
+    INT16 a_idxA = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_save_peek(CTX, a_idxA, a_idxB, a_idxC, a_count, a_slot);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x2F: { /* vm_save_clear */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_slot = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_save_clear(CTX, a_slot);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x30: { /* vm_actor_move_to */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x31: { /* vm_actor_activate */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_activate(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x32: { /* vm_actor_set_dir */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_dir = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_dir(CTX, a_idx, a_dir);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x33: { /* vm_actor_deactivate */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_deactivate(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x34: { /* vm_actor_set_anim */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx_anim = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_anim(CTX, a_idx, a_idx_anim);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x35: { /* vm_actor_set_pos */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_pos(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x36: { /* vm_actor_emote */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_emote_tiles_off = vm_fetch16(&p);
+    UBYTE a_emote_tiles_bank = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_emote_tiles = vm_far_data_ptr(0, a_emote_tiles_off);
+        CTX->PC = p;
+        vm_actor_emote(CTX, a_idx, a_emote_tiles_bank, a_emote_tiles);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x37: { /* vm_actor_set_bounds */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_bounds(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x38: { /* vm_actor_set_spritesheet */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_spritesheet_off = vm_fetch16(&p);
+    UBYTE a_spritesheet_bank = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_spritesheet = vm_far_data_ptr(0, a_spritesheet_off);
+        CTX->PC = p;
+        vm_actor_set_spritesheet(CTX, a_idx, a_spritesheet_bank, a_spritesheet);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x39: { /* vm_actor_replace_tile */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_length = vm_fetch8(&p);
+    UBYTE a_start_tile = vm_fetch8(&p);
+    UWORD a_tileset_off = vm_fetch16(&p);
+    UBYTE a_tileset_bank = vm_fetch8(&p);
+    UBYTE a_target_tile = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        CTX->PC = p;
+        vm_actor_replace_tile(CTX, a_idx, a_target_tile, a_tileset_bank, a_tileset, a_start_tile, a_length);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x3A: { /* vm_actor_get_pos */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_get_pos(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x3C: { /* vm_actor_get_dir */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_dest = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_get_dir(CTX, a_idx, a_dest);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x3D: { /* vm_actor_set_anim_tick */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_speed = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_anim_tick(CTX, a_idx, a_speed);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x3E: { /* vm_actor_set_move_speed */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_speed = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_move_speed(CTX, a_idx, a_speed);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x3F: { /* vm_actor_set_flags */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mask = vm_fetch8(&p);
+    UBYTE a_flags = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_flags(CTX, a_idx, a_flags, a_mask);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x50: { /* vm_load_tileset */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_background_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_background = vm_far_data_ptr(0, a_background_off);
+        CTX->PC = p;
+        vm_load_tileset(CTX, a_idx, a_bank, a_background);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x51: { /* vm_set_sprites_visible */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mode = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_set_sprites_visible(CTX, a_mode);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x52: { /* vm_input_wait */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mask = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_input_wait(CTX, a_mask);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x53: { /* vm_input_attach */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_slot = vm_fetch8(&p);
+    UBYTE a_mask = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_input_attach(CTX, a_mask, a_slot);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x54: { /* vm_input_get */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_joyid = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_input_get(CTX, a_idx, a_joyid);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x55: { /* vm_context_prepare */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_pc_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+    UBYTE a_slot = vm_fetch8(&p);
+        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        CTX->PC = p;
+        vm_context_prepare(CTX, a_slot, a_bank, a_pc);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x57: { /* vm_fade */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mode = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_fade(CTX, a_mode);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x58: { /* vm_timer_prepare */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_pc_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+    UBYTE a_timer = vm_fetch8(&p);
+        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        CTX->PC = p;
+        vm_timer_prepare(CTX, a_timer, a_bank, a_pc);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x59: { /* vm_timer_set */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_value = vm_fetch8(&p);
+    UBYTE a_timer = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_timer_set(CTX, a_timer, a_value);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5A: { /* vm_get_tile_xy */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx_y = (INT16)vm_fetch16(&p);
+    INT16 a_idx_x = (INT16)vm_fetch16(&p);
+    INT16 a_idx_tile = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_get_tile_xy(CTX, a_idx_tile, a_idx_x, a_idx_y);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5B: { /* vm_replace_tile */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_length = vm_fetch8(&p);
+    INT16 a_idx_start_tile = (INT16)vm_fetch16(&p);
+    UWORD a_tileset_off = vm_fetch16(&p);
+    UBYTE a_tileset_bank = vm_fetch8(&p);
+    INT16 a_idx_target_tile = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        CTX->PC = p;
+        vm_replace_tile(CTX, a_idx_target_tile, a_tileset_bank, a_tileset, a_idx_start_tile, a_length);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5C: { /* vm_poll */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_event_mask = vm_fetch8(&p);
+    INT16 a_res = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_poll(CTX, a_idx, a_res, a_event_mask);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5D: { /* vm_set_sprite_mode */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mode = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_set_sprite_mode(CTX, a_mode);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5E: { /* vm_replace_tile_xy */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx_start_tile = (INT16)vm_fetch16(&p);
+    UWORD a_tileset_off = vm_fetch16(&p);
+    UBYTE a_tileset_bank = vm_fetch8(&p);
+    UBYTE a_y = vm_fetch8(&p);
+    UBYTE a_x = vm_fetch8(&p);
+        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        CTX->PC = p;
+        vm_replace_tile_xy(CTX, a_x, a_y, a_tileset_bank, a_tileset, a_idx_start_tile);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x5F: { /* vm_input_detach */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_mask = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_input_detach(CTX, a_mask);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x60: { /* vm_music_play */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_track_off = vm_fetch16(&p);
+    UBYTE a_track_bank = vm_fetch8(&p);
+        const void VM_FAR *a_track = vm_far_data_ptr(0, a_track_off);
+        CTX->PC = p;
+        vm_music_play(CTX, a_track_bank, a_track);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x61: { /* vm_music_stop */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+        CTX->PC = p;
+        vm_music_stop();
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x62: { /* vm_music_mute */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_channels = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_music_mute(CTX, a_channels);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x63: { /* vm_sound_mastervol */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_volume = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_sound_mastervol(CTX, a_volume);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x65: { /* vm_music_routine */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_pc_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+    UBYTE a_routine = vm_fetch8(&p);
+        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        CTX->PC = p;
+        vm_music_routine(CTX, a_routine, a_bank, a_pc);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x66: { /* vm_sfx_play */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_priority = vm_fetch8(&p);
+    UBYTE a_channel_mask = vm_fetch8(&p);
+    UWORD a_offset_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+        const void VM_FAR *a_offset = vm_far_data_ptr(0, a_offset_off);
+        CTX->PC = p;
+        vm_sfx_play(CTX, a_bank, a_offset, a_channel_mask, a_priority);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x67: { /* vm_music_setpos */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_row = vm_fetch8(&p);
+    UBYTE a_pattern = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_music_setpos(CTX, a_pattern, a_row);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x68: { /* vm_scene_push */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+        CTX->PC = p;
+        vm_scene_push();
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x69: { /* vm_scene_pop */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+        CTX->PC = p;
+        vm_scene_pop();
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x6A: { /* vm_scene_pop_all */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+        CTX->PC = p;
+        vm_scene_pop_all();
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x6B: { /* vm_scene_stack_reset */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+        CTX->PC = p;
+        vm_scene_stack_reset();
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x70: { /* vm_camera_move_to */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_after_lock_camera = vm_fetch8(&p);
+    UBYTE a_speed = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_camera_move_to(CTX, a_idx, a_speed, a_after_lock_camera);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x71: { /* vm_camera_set_pos */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_camera_set_pos(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x72: { /* vm_timer_stop */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_timer = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_timer_stop(CTX, a_timer);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x73: { /* vm_timer_reset */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_timer = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_timer_reset(CTX, a_timer);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x74: { /* vm_actor_terminate_update */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_terminate_update(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x75: { /* vm_actor_set_anim_frame */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_anim_frame(CTX, a_idx);
+        return 1;
+      }
+#endif
       case 0x76: { /* vm_memset */
         const UBYTE VM_FAR *p = CTX->PC + 1;
     INT16 a_count = (INT16)vm_fetch16(&p);
@@ -325,6 +834,194 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         vm_memcpy(CTX, a_idxA, a_idxB, a_count);
         return 1;
       }
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x7C: { /* vm_load_palette */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_options = vm_fetch8(&p);
+    UBYTE a_mask = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_load_palette(CTX, a_mask, a_options);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x7F: { /* vm_rumble */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_enable = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_rumble(CTX, a_enable);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x80: { /* vm_projectile_launch */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+    UBYTE a_type = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_projectile_launch(CTX, a_type, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x81: { /* vm_projectile_load_type */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_projectile_def_off = vm_fetch16(&p);
+    UBYTE a_projectile_def_bank = vm_fetch8(&p);
+    UBYTE a_src_type = vm_fetch8(&p);
+    UBYTE a_dest_type = vm_fetch8(&p);
+        const void VM_FAR *a_projectile_def = vm_far_data_ptr(0, a_projectile_def_off);
+        CTX->PC = p;
+        vm_projectile_load_type(CTX, a_dest_type, a_src_type, a_projectile_def_bank, a_projectile_def);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x83: { /* vm_actor_get_anim_frame */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_get_anim_frame(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x84: { /* vm_actor_set_anim_set */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_offset = vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_anim_set(CTX, a_idx, a_offset);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x86: { /* vm_actor_get_angle */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_dest = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_get_angle(CTX, a_idx, a_dest);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x87: { /* vm_actor_set_spritesheet_by_ref */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idxB = (INT16)vm_fetch16(&p);
+    INT16 a_idxA = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_spritesheet_by_ref(CTX, a_idxA, a_idxB);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x88: { /* vm_actor_move_cancel */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_cancel(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x89: { /* vm_sin_scale */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_accuracy = vm_fetch8(&p);
+    INT16 a_idx_angle = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_sin_scale(CTX, a_idx, a_idx_angle, a_accuracy);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x8A: { /* vm_cos_scale */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_accuracy = vm_fetch8(&p);
+    INT16 a_idx_angle = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_cos_scale(CTX, a_idx, a_idx_angle, a_accuracy);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x8E: { /* vm_actor_begin_update */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_begin_update(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x8F: { /* vm_actor_move_to_init */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_attr = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_init(CTX, a_idx, a_attr);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x90: { /* vm_actor_move_to_x */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_attr = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_x(CTX, a_idx, a_attr);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x91: { /* vm_actor_move_to_y */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_attr = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_y(CTX, a_idx, a_attr);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x92: { /* vm_actor_move_to_xy */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_attr = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_xy(CTX, a_idx, a_attr);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x93: { /* vm_actor_move_to_set_dir_x */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_set_dir_x(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x94: { /* vm_actor_move_to_set_dir_y */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_move_to_set_dir_y(CTX, a_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x95: { /* vm_actor_set_anim_moving */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_actor_set_anim_moving(CTX, a_idx);
+        return 1;
+      }
+#endif
       default:
 #if !defined(__ia16__)
         fprintf(stderr, "vm: unimplemented opcode 0x%02X\n", op);

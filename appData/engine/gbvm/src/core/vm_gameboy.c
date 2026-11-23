@@ -16,6 +16,14 @@
 #include "data_manager.h"
 #include "interrupts.h"
 
+#ifdef __ia16__
+#define TILESET_PTR(p) ((const tileset_t __far *)(p))
+#define BACKGROUND_FIELD_PTR(p) ((const void __far *)(p))
+#else
+#define TILESET_PTR(p) ((tileset_t *)(p))
+#define BACKGROUND_FIELD_PTR(p) ((void *)(p))
+#endif
+
 BANKREF(VM_GAMEBOY)
 
 void vm_set_sprites_visible(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED {
@@ -111,7 +119,7 @@ void vm_get_tile_xy(SCRIPT_CTX * THIS, INT16 idx_tile, INT16 idx_x, INT16 idx_y)
     *res = target_tile;
 }
 
-void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_bank, const tileset_t * tileset, INT16 idx_start_tile, UBYTE length) OLDCALL BANKED {
+void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, INT16 idx_start_tile, UBYTE length) OLDCALL BANKED {
     INT16 * A = VM_REF_TO_PTR(idx_start_tile);
     INT16 * B = VM_REF_TO_PTR(idx_target_tile);
 #ifdef CGB
@@ -150,7 +158,7 @@ void vm_set_sprite_mode(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED {
     if (mode) SPRITES_8x16; else SPRITES_8x8;
 }
 
-void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, const tileset_t * tileset, INT16 idx_start_tile) OLDCALL BANKED {
+void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, INT16 idx_start_tile) OLDCALL BANKED {
     THIS;
 
     UWORD ofs = (image_tile_width * y) + x;
@@ -182,21 +190,21 @@ void vm_rumble(SCRIPT_CTX * THIS, UBYTE enable) OLDCALL BANKED {
     if (enable) SWITCH_RAM_BANK(RUMBLE_ENABLE, RUMBLE_ENABLE); else  SWITCH_RAM_BANK(0, RUMBLE_ENABLE);
 }
 
-void vm_load_tileset(SCRIPT_CTX * THIS, INT16 idx, UBYTE bank, const background_t * background) OLDCALL BANKED {
+void vm_load_tileset(SCRIPT_CTX * THIS, INT16 idx, UBYTE bank, VM_C_DATA(background_t) background) OLDCALL BANKED {
     UBYTE base_tile = *(INT16 *)(VM_REF_TO_PTR(idx));
     far_ptr_t tileset;
 #ifdef CGB
     if (_is_CGB) {
-        ReadBankedFarPtr(&tileset, (void *)&(background->cgb_tileset), bank);
+        ReadBankedFarPtr(&tileset, BACKGROUND_FIELD_PTR(&(background->cgb_tileset)), bank);
         if (tileset.bank) {
             VBK_REG = VBK_BANK_1;
-            UWORD n_tiles = ReadBankedUWORD(&((tileset_t *)(tileset.ptr))->n_tiles, tileset.bank);
-            SetBankedBkgData(base_tile, n_tiles, ((tileset_t *)(tileset.ptr))->tiles, tileset.bank);
+            UWORD n_tiles = ReadBankedUWORD(&(TILESET_PTR(tileset.ptr)->n_tiles), tileset.bank);
+            SetBankedBkgData(base_tile, n_tiles, TILESET_PTR(tileset.ptr)->tiles, tileset.bank);
             VBK_REG = VBK_BANK_0;
         }
     }
 #endif
-    ReadBankedFarPtr(&tileset, (void *)&(background->tileset), bank);
-    UWORD n_tiles = ReadBankedUWORD(&((tileset_t *)(tileset.ptr))->n_tiles, tileset.bank);
-    SetBankedBkgData(base_tile, n_tiles, ((tileset_t *)(tileset.ptr))->tiles, tileset.bank);
+    ReadBankedFarPtr(&tileset, BACKGROUND_FIELD_PTR(&(background->tileset)), bank);
+    UWORD n_tiles = ReadBankedUWORD(&(TILESET_PTR(tileset.ptr)->n_tiles), tileset.bank);
+    SetBankedBkgData(base_tile, n_tiles, TILESET_PTR(tileset.ptr)->tiles, tileset.bank);
 }

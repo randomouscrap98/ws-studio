@@ -53,7 +53,11 @@ typedef struct act_set_frame_t {
 
 typedef struct gbs_farptr_t {
     INT16 BANK;
+#ifdef __ia16__
+    const void __far * DATA;
+#else
     const void * DATA;
+#endif
 } gbs_farptr_t;
 
 static UWORD check_collision_horizontal(UWORD start_x, UWORD start_y, rect16_t *bounds, UWORD end_pos) {
@@ -463,7 +467,7 @@ void vm_actor_get_angle(SCRIPT_CTX * THIS, INT16 idx, INT16 dest) OLDCALL BANKED
     *A = dir_angle_lookup[actor->dir];
 }
 
-void vm_actor_emote(SCRIPT_CTX * THIS, INT16 idx, UBYTE emote_tiles_bank, const unsigned char *emote_tiles) OLDCALL BANKED {
+void vm_actor_emote(SCRIPT_CTX * THIS, INT16 idx, UBYTE emote_tiles_bank, VM_C_DATA(unsigned char) emote_tiles) OLDCALL BANKED {
 
     // on first call load emote sprite
     if (THIS->flags == 0) {
@@ -495,7 +499,7 @@ void vm_actor_set_bounds(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED {
     actor->bounds.bottom = params->BOTTOM;
 }
 
-void vm_actor_set_spritesheet(SCRIPT_CTX * THIS, INT16 idx, UBYTE spritesheet_bank, const spritesheet_t *spritesheet) OLDCALL BANKED {
+void vm_actor_set_spritesheet(SCRIPT_CTX * THIS, INT16 idx, UBYTE spritesheet_bank, VM_C_DATA(spritesheet_t) spritesheet) OLDCALL BANKED {
     UBYTE * n_actor = VM_REF_TO_PTR(idx);
     actor_t * actor = actors + *n_actor;
     load_sprite(actor->base_tile, spritesheet, spritesheet_bank);
@@ -506,7 +510,7 @@ void vm_actor_set_spritesheet(SCRIPT_CTX * THIS, INT16 idx, UBYTE spritesheet_ba
     actor_reset_anim(actor);
 }
 
-void vm_actor_replace_tile(SCRIPT_CTX * THIS, INT16 idx, UBYTE target_tile, UBYTE tileset_bank, const tileset_t * tileset, UBYTE start_tile, UBYTE length) OLDCALL BANKED {
+void vm_actor_replace_tile(SCRIPT_CTX * THIS, INT16 idx, UBYTE target_tile, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, UBYTE start_tile, UBYTE length) OLDCALL BANKED {
     UBYTE * n_actor = VM_REF_TO_PTR(idx);
     actor_t * actor = actors + *n_actor;
     SetBankedSpriteData(actor->base_tile + target_tile, length, tileset->tiles + (start_tile << 4), tileset_bank);
@@ -559,7 +563,7 @@ void vm_actor_set_spritesheet_by_ref(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) 
 
     gbs_farptr_t * params = VM_REF_TO_PTR(idxB);
     UBYTE spritesheet_bank = (UBYTE)(params->BANK);
-    const spritesheet_t *spritesheet = params->DATA;
+    DATA_PTR(spritesheet_t) spritesheet = params->DATA;
 
     load_sprite(actor->base_tile, spritesheet, spritesheet_bank);
     actor->sprite.bank = spritesheet_bank;

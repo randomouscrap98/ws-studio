@@ -16,6 +16,7 @@
 #include "parallax.h"
 #include "load_save.h"
 #include "sio.h"
+#include "events.h"
 #include "hal.h"
 
 /* ---- GB register names referenced by the shared engine sources ---- */
@@ -27,6 +28,9 @@ volatile UBYTE LYC_REG;
 volatile UBYTE WX_REG;
 volatile UBYTE WY_REG;
 volatile UBYTE IE_REG;
+volatile UBYTE BGP_REG;
+volatile UBYTE OBP0_REG;
+volatile UBYTE OBP1_REG;
 volatile UBYTE TMA_REG;
 volatile UBYTE TAC_REG;
 volatile UBYTE _current_bank;
@@ -100,6 +104,13 @@ void parallax_LCD_isr(void) {
 }
 
 /* ---- audio driver stub ---- */
+volatile UBYTE NR50_REG;
+volatile unsigned char hUGE_mute_mask;
+uint8_t music_mute_mask;
+uint8_t music_effective_mute;
+uint8_t music_global_mute_mask;
+script_event_t music_events[4];
+
 void music_init_driver(void) {
 }
 

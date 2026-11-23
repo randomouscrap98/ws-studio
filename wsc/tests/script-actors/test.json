@@ -1,0 +1,99 @@
+{
+  "rom": "gamerom/gamerom_c13.wsc",
+  "elf": "gamerom/build/gamerom_c13.elf",
+  "build": "gamerom",
+  "frames": 90,
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/c13_oracle.py",
+    "precision": "exact"
+  },
+  "ram": [
+    {
+      "symbol": "actors",
+      "offset": 68,
+      "size": 1,
+      "equals": "0x28"
+    },
+    {
+      "symbol": "actors",
+      "offset": 70,
+      "size": 2,
+      "equals": "0x0400"
+    },
+    {
+      "symbol": "actors",
+      "offset": 72,
+      "size": 2,
+      "equals": "0x0600"
+    },
+    {
+      "symbol": "actors",
+      "offset": 74,
+      "size": 1,
+      "equals": "0x00"
+    },
+    {
+      "symbol": "actors",
+      "offset": 85,
+      "size": 1,
+      "equals": "0x00"
+    },
+    {
+      "symbol": "actors",
+      "offset": 272,
+      "size": 1,
+      "equals": "0x28"
+    },
+    {
+      "symbol": "actors",
+      "offset": 274,
+      "size": 2,
+      "equals": "0x1000"
+    },
+    {
+      "symbol": "actors",
+      "offset": 276,
+      "size": 2,
+      "equals": "0x0A00"
+    },
+    {
+      "symbol": "actors",
+      "offset": 278,
+      "size": 1,
+      "equals": "0x03"
+    },
+    {
+      "symbol": "actors",
+      "offset": 289,
+      "size": 1,
+      "equals": "0x01"
+    },
+    {
+      "symbol": "actors",
+      "offset": 294,
+      "size": 1,
+      "equals": "0x03"
+    },
+    {
+      "symbol": "camera_x",
+      "size": 2,
+      "equals": "0x1200"
+    },
+    {
+      "symbol": "camera_y",
+      "size": 2,
+      "equals": "0x0B00"
+    },
+    {
+      "symbol": "camera_settings",
+      "size": 1,
+      "equals": "0x00"
+    },
+    {
+      "symbol": "vm_last_unimplemented_opcode",
+      "size": 1,
+      "equals": "0x00"
+    }
+  ]
+}

@@ -267,7 +267,7 @@ def clamp(value, low, high):
     return max(low, min(high, value))
 
 
-def expand_metasprite(entries, base_tile, screen_x, screen_y):
+def expand_metasprite(entries, base_tile, screen_x, screen_y, sprite_mode=16):
     sprites = []
     cur_x, cur_y = screen_x, screen_y
     for dy, dx, dtile, props in entries:
@@ -277,6 +277,9 @@ def expand_metasprite(entries, base_tile, screen_x, screen_y):
         palette = props & 0x07
         flip_h = bool(props & 0x20)
         flip_v = bool(props & 0x40)
+        if sprite_mode == 8:
+            sprites.append([tile, cur_x, cur_y, flip_h, flip_v, palette])
+            continue
         top = tile & 0xFFFE
         if flip_v:
             sprites.append([top | 1, cur_x, cur_y, flip_h, flip_v, palette])
@@ -288,7 +291,9 @@ def expand_metasprite(entries, base_tile, screen_x, screen_y):
 
 
 def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
-                frames):
+                frames, effects=None, final=None):
+    effects = effects or {}
+    final = final or {}
     scene = export.scene(scene_symbol)
     project_data = project_scene(project, scene_symbol)
     if (project_data.get("width") != scene["width"]
@@ -318,8 +323,19 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     # Rule 5: a small scene is centred on that axis.
     center_x = (screen_w - image_w) // 2 if image_w < screen_w else 0
     center_y = (screen_h - image_h) // 2 if image_h < screen_h else 0
+    if final:
+        source_x = final.get("source_x", source_x)
+        source_y = final.get("source_y", source_y)
     draw_x = source_x - center_x
     draw_y = source_y - center_y
+
+    player_x = final.get("player_x", start_x)
+    player_y = final.get("player_y", start_y)
+    sprite_mode = final.get("sprite_mode",
+                            effects.get("sprite_mode", 16))
+    hide_player = effects.get("hide_player", False)
+    deactivated = set(effects.get("deactivated_actors", ()))
+    actor_overrides = final.get("actor_overrides", {})
 
     blank_tile = 255
     cells = [[blank_tile, 0, False, False] for _ in range(32 * 32)]
@@ -363,7 +379,7 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
 
     actors = export.actors(scene["actors"]) if scene["actors"] else []
     actor_info = []
-    for actor in actors[:scene["n_actors"]]:
+    for actor_index, actor in enumerate(actors[:scene["n_actors"]]):
         sheet = export.spritesheet(actor["sprite"])
         if actor["reserve_tiles"]:
             base = allocated
@@ -372,7 +388,8 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
         else:
             base = scene_sprite_base.get(actor["sprite"], 0)
         frame = sheet["animations"][actor["dir"]][0] if sheet["animations"] else 0
-        actor_info.append({
+        info = {
+            "index": actor_index,
             "tile_x": actor["x"] >> 8,
             "tile_y": actor["y"] >> 8,
             "px": actor["x"] >> 5,
@@ -380,13 +397,26 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
             "base": base,
             "frame": frame,
             "sheet": sheet,
-        })
+        }
+        override = actor_overrides.get(actor_index)
+        if override:
+            if "x" in override:
+                info["px"] = override["x"] >> 5
+                info["tile_x"] = override["x"] >> 8
+            if "y" in override:
+                info["py"] = override["y"] >> 5
+                info["tile_y"] = override["y"] >> 8
+            if "frame" in override:
+                info["frame"] = override["frame"]
+        actor_info.append(info)
 
     player_frame = (player_sheet["animations"][start_dir][0]
                     if player_sheet["animations"] else 0)
-    sprites = expand_metasprite(
-        player_sheet["metasprites"][player_frame], 0,
-        start_x - draw_x, start_y - draw_y)
+    sprites = []
+    if not hide_player:
+        sprites = expand_metasprite(
+            player_sheet["metasprites"][player_frame], 0,
+            player_x - draw_x, player_y - draw_y, sprite_mode)
 
     # activate_actors_in_row() runs for each rendered row, walking the
     # inactive list from its head (actors in reverse scene order).
@@ -397,6 +427,8 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
         if row >= background["height"]:
             break
         for actor in list(inactive):
+            if actor["index"] in deactivated:
+                continue
             if actor["tile_y"] == row and x0 <= actor["tile_x"] < x0 + refresh_w:
                 active.append(actor)
                 inactive.remove(actor)
@@ -404,7 +436,7 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     for actor in active:
         sprites.extend(expand_metasprite(
             actor["sheet"]["metasprites"][actor["frame"]], actor["base"],
-            actor["px"] - draw_x, actor["py"] - draw_y))
+            actor["px"] - draw_x, actor["py"] - draw_y, sprite_mode))
 
     scenario = {
         "width": screen_w,
@@ -419,10 +451,10 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
         "sprites": sprites,
     }
     return scene, background, actor_info, scenario, {
-        "camera_x": (start_x + 8) * 32,
-        "camera_y": (start_y + 8) * 32,
-        "player_x": start_x * 32,
-        "player_y": start_y * 32,
+        "camera_x": final.get("camera_x", (start_x + 8) * 32),
+        "camera_y": final.get("camera_y", (start_y + 8) * 32),
+        "player_x": player_x * 32,
+        "player_y": player_y * 32,
     }
 
 
@@ -455,12 +487,20 @@ def parse_dispatch(export_dir):
     return {int(v, 16) for v in re.findall(r"case 0x([0-9A-Fa-f]+):", path.read_text())}
 
 
-def stop_opcode(export_dir, script_symbol):
+def parse_init_script(export_dir, script_symbol):
+    """Return the executed prefix effects and its first unsupported opcode."""
     macros = parse_vm_macros(export_dir)
     supported = parse_dispatch(export_dir)
     path = Path(export_dir) / "src" / "data" / (script_symbol + ".s")
     if not path.is_file():
         raise OracleError("scene init script {} not found".format(path))
+    result = {
+        "stop_opcode": 0,
+        "hide_player": False,
+        "deactivated_actors": set(),
+        "sprite_mode": 16,
+    }
+    last_actor = None
     in_script = False
     for line in path.read_text().splitlines():
         stripped = line.strip()
@@ -469,15 +509,48 @@ def stop_opcode(export_dir, script_symbol):
             continue
         if not in_script:
             continue
-        match = re.match(r"(VM_[A-Z0-9_]+)", stripped)
+        match = re.match(r"(VM_[A-Z0-9_]+)\s*(.*)", stripped)
         if not match:
             continue
-        opcode = macros.get(match.group(1))
+        macro, rest = match.group(1), match.group(2)
+        opcode = macros.get(macro)
         if opcode is None:
             continue
         if opcode != 0 and opcode not in supported:
-            return opcode
-    return 0
+            result["stop_opcode"] = opcode
+            break
+        if macro == "VM_SET_CONST":
+            args = [part.strip() for part in rest.split(",")]
+            if len(args) >= 2 and args[0] == ".LOCAL_ACTOR":
+                try:
+                    last_actor = int(args[1], 0)
+                except ValueError:
+                    last_actor = None
+        elif macro in ("VM_ACTOR_DEACTIVATE", "VM_ACTOR_ACTIVATE"):
+            arg = rest.split(",")[0].strip()
+            if arg == ".LOCAL_ACTOR":
+                actor_index = last_actor
+            else:
+                try:
+                    actor_index = int(arg, 0)
+                except ValueError:
+                    actor_index = None
+            if actor_index is None:
+                continue
+            deactivate = macro == "VM_ACTOR_DEACTIVATE"
+            if actor_index == 0:
+                result["hide_player"] = deactivate
+            elif deactivate:
+                result["deactivated_actors"].add(actor_index - 1)
+            else:
+                result["deactivated_actors"].discard(actor_index - 1)
+        elif macro == "VM_SET_SPRITE_MODE":
+            result["sprite_mode"] = 8 if ".MODE_8X8" in rest else 16
+    return result
+
+
+def stop_opcode(export_dir, script_symbol):
+    return parse_init_script(export_dir, script_symbol)["stop_opcode"]
 
 
 def elf_symbol_address(elf, symbol):
@@ -560,9 +633,12 @@ def main(argv=None):
     try:
         export = ExportData(args.export)
         start_dir = parse_start_dir(args.export)
+        scene_meta = export.scene(args.scene)
+        effects = (parse_init_script(args.export, scene_meta["script_init"])
+                   if scene_meta["script_init"] else {})
         scene, _background, actor_info, scenario, expected = build_scene(
             export, args.project_dir, args.scene, args.start_x, args.start_y,
-            start_dir, args.frames)
+            start_dir, args.frames, effects=effects)
 
         if args.scenario_out:
             Path(args.scenario_out).write_text(json.dumps(scenario))
