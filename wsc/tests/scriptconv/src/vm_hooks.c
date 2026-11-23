@@ -20,8 +20,14 @@ const uint8_t __far *vm_bank_base(UBYTE bank) {
     return vm_banks[bank];
 }
 
-UBYTE *vm_ram_ptr(UWORD addr) {
-    return (UBYTE *)addr;
+/* C objects referenced by the converted test script's index tables. */
+UBYTE s2c_ram_i8;
+UWORD s2c_ram_i16;
+UBYTE s2c_ram_bytes[2] = { 0x11, 0x22 };
+const UBYTE __far s2c_far_data[] __attribute__((aligned(2))) = { 0x9C, 0x34, 0x12 };
+
+UBYTE *vm_ram_ptr(UWORD idx) {
+    return vm_ram_syms[idx];
 }
 
 UWORD sys_time;

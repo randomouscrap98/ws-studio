@@ -195,6 +195,50 @@ def expression_symbols(text):
     return [tok[1] for tok in ExprParser._tokenize(_normalize_symbols(text)) if tok[0] == "sym"]
 
 
+_INDEX_EXPR_RE = re.compile(
+    r"^(_[A-Za-z0-9_]+)([+-](?:0[xX][0-9A-Fa-f]+|\d+))?$"
+)
+
+
+def canonical_expr(text):
+    """Whitespace-free expression with redundant enclosing parentheses removed."""
+    text = re.sub(r"\s+", "", text)
+    while text.startswith("(") and text.endswith(")"):
+        depth = 0
+        enclosed = True
+        for index, ch in enumerate(text):
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    if index != len(text) - 1:
+                        enclosed = False
+                    break
+        if not enclosed:
+            break
+        text = text[1:-1]
+    return text
+
+
+def parse_index_expr(text):
+    """Split a RAM/data expression into (canonical key, symbol, byte offset).
+
+    An index table entry can only name one object. The generated scripts use
+    expressions such as `_joypads + 1`; give those their own entry.
+    """
+    key = canonical_expr(text)
+    match = _INDEX_EXPR_RE.match(key)
+    if not match:
+        raise ConversionError(
+            "{} cannot be expressed as a table index; expected SYM or SYM+offset"
+            .format(text.strip())
+        )
+    symbol, offset_text = match.groups()
+    offset = int(offset_text, 0) if offset_text else 0
+    return key, symbol, offset
+
+
 # ---------------------------------------------------------------------------
 # Source cleanup and sdas directives
 
@@ -710,7 +754,17 @@ class Converter:
         self.scripts = []
         self.skipped = []
         self.externals = {}
-        self._placeholder_names = {}
+        self.ram_symbols = []
+        self.far_bank_symbols = []
+        self.far_addr_symbols = []
+        self.native_addr_symbols = []
+        self.other_symbols = []
+        self.ram_expr_index = {}
+        self.ram_symbol_index = {}
+        self.far_expr_index = {}
+        self.far_symbol_index = {}
+        self.ram_table = []
+        self.far_table = []
 
     def parse(self):
         for path in self.files:
@@ -792,23 +846,112 @@ class Converter:
                 self.symbol_kinds[sym] = ("other", sym)
                 other.append(sym)
 
+        self.ram_symbols = ram
+        self.far_bank_symbols = far_bank
+        self.far_addr_symbols = far_addr
+        self.native_addr_symbols = native_addr
+        self.native_bank_symbols = [
+            sym for sym, kind in self.symbol_kinds.items() if kind[0] == "native_bank"
+        ]
+        self.other_symbols = other
+
+    def build_tables(self):
+        """Assign indexes for RAM pointers and far-data pointers.
+
+        Every expression that reaches a RAM address becomes one index table
+        entry. Offset expressions (`_joypads + 1`) get their own entry; the
+        base object is always present too.
+        """
+        ram_entries = {}
+        far_entries = {}
+
+        def add(entries, expr):
+            key, symbol, offset = parse_index_expr(expr)
+            entries.setdefault(key, (symbol, offset))
+            if offset:
+                entries.setdefault(symbol, (symbol, 0))
+
+        for script in self.scripts:
+            for em in script.emissions:
+                if not em.expr:
+                    continue
+                try:
+                    symbols = expression_symbols(em.expr)
+                except ExprError as exc:
+                    raise ConversionError(str(exc))
+                kind = self.pointer_kind(symbols, script)
+                if kind == "ram":
+                    add(ram_entries, em.expr)
+                elif kind == "far":
+                    if any(
+                        self.symbol_kinds.get(sym, ("",))[0] == "far_bank"
+                        for sym in symbols
+                    ):
+                        # ___bank_<object> is always the constant zero.
+                        continue
+                    add(far_entries, em.expr)
+
+        for sym in self.ram_symbols:
+            ram_entries.setdefault(sym, (sym, 0))
+        for sym in self.far_addr_symbols:
+            far_entries.setdefault(sym, (sym, 0))
+
+        def order_for(entries):
+            return lambda key: (entries[key][0].lower(), entries[key][1])
+
+        self.ram_table = sorted(ram_entries, key=order_for(ram_entries))
+        self.far_table = sorted(far_entries, key=order_for(far_entries))
+        for index, key in enumerate(self.ram_table):
+            self.ram_expr_index[key] = index
+        for index, key in enumerate(self.far_table):
+            self.far_expr_index[key] = index
+        for key in self.ram_table:
+            symbol, offset = ram_entries[key]
+            if offset == 0:
+                self.ram_symbol_index[symbol[1:]] = self.ram_expr_index[key]
+        for key in self.far_table:
+            symbol, offset = far_entries[key]
+            if offset == 0:
+                self.far_symbol_index[symbol[1:]] = self.far_expr_index[key]
+
+        self.ram_table_entries = ram_entries
+        self.far_table_entries = far_entries
+
         externals = {}
-        for idx, sym in enumerate(ram):
-            externals[sym] = ("ram", 0x1000 + idx * 0x10, sym)
-        for idx, sym in enumerate(far_bank):
-            externals[sym] = ("far_bank", 0x80 + idx, sym)
-        for idx, sym in enumerate(far_addr):
-            externals[sym] = ("far_addr", 0x8000 + idx * 0x10, sym)
-        ordered_native = sorted(native_addr, key=lambda s: (s != "_wait_frames", s))
+        for sym in self.ram_symbols:
+            base = sym[1:]
+            externals[sym] = ("ram", self.ram_symbol_index[base], sym)
+        for sym in self.far_bank_symbols:
+            externals[sym] = ("far_bank", 0, sym)
+        for sym in self.far_addr_symbols:
+            base = sym[1:]
+            externals[sym] = ("far_addr", self.far_symbol_index[base], sym)
+        ordered_native = sorted(
+            self.native_addr_symbols, key=lambda s: (s != "_wait_frames", s)
+        )
         for idx, sym in enumerate(ordered_native):
             externals[sym] = ("native_addr", idx, sym)
-        for sym in sorted(set(re.findall(r"\bb_([A-Za-z0-9_]+)", all_text))):
-            bank_sym = "b_" + sym
-            if bank_sym in symbols:
-                externals[bank_sym] = ("native_bank", 0, bank_sym)
-        for idx, sym in enumerate(other):
+        for bank_sym in self.native_bank_symbols:
+            externals[bank_sym] = ("native_bank", 0, bank_sym)
+        for idx, sym in enumerate(self.other_symbols):
             externals[sym] = ("other", 0x4000 + idx, sym)
         self.externals = externals
+
+    def ram_expr_value(self, expr):
+        key = canonical_expr(expr)
+        if key not in self.ram_expr_index:
+            raise ConversionError("unknown RAM index expression {!r}".format(expr))
+        return self.ram_expr_index[key]
+
+    def far_expr_value(self, expr):
+        key = canonical_expr(expr)
+        if key in self.far_expr_index:
+            return self.far_expr_index[key]
+        for sym in expression_symbols(expr):
+            kind = self.symbol_kinds.get(sym)
+            if kind and kind[0] == "far_bank":
+                return 0
+        raise ConversionError("unknown far-data index expression {!r}".format(expr))
 
     def layout(self):
         banks = []
@@ -919,7 +1062,18 @@ class Converter:
                     pos += len(em.literal)
                     continue
                 lookup = lambda sym, s=script: self.resolve_symbol(sym, s)
-                value = eval_expression(em.expr, lookup)
+                symbols = []
+                try:
+                    symbols = expression_symbols(em.expr)
+                except ExprError:
+                    pass
+                kind = self.pointer_kind(symbols, script)
+                if kind == "ram":
+                    value = self.ram_expr_value(em.expr)
+                elif kind == "far":
+                    value = self.far_expr_value(em.expr)
+                else:
+                    value = eval_expression(em.expr, lookup)
                 if em.mode == "word":
                     byte = (value >> (8 * em.byte_index)) & 0xFF
                 elif em.mode == "high":
@@ -927,12 +1081,6 @@ class Converter:
                 else:
                     byte = value & 0xFF
                 data[pos] = byte
-                symbols = []
-                try:
-                    symbols = expression_symbols(em.expr)
-                except ExprError:
-                    pass
-                kind = self.pointer_kind(symbols, script)
                 if kind:
                     script.refs[pos] = PointerRef(
                         expr=em.expr,
@@ -952,6 +1100,7 @@ class Converter:
     def run(self):
         self.parse()
         self.classify_symbols()
+        self.build_tables()
         self.layout()
         self.emit()
 
@@ -967,26 +1116,12 @@ def sanitize(name):
     return name.upper()
 
 
-def external_macro(sym, kind):
-    base = sym
-    if kind == "far_bank" and base.startswith("___bank_"):
-        base = base[len("___bank_"):]
-        prefix = "S2C_EXT_FAR_BANK_"
-    elif kind == "far_addr" and base.startswith("_"):
-        base = base[1:]
-        prefix = "S2C_EXT_FAR_ADDR_"
-    elif kind == "ram" and base.startswith("_"):
-        base = base[1:]
-        prefix = "S2C_EXT_RAM_"
-    elif kind == "native_addr" and base.startswith("_"):
-        base = base[1:]
-        prefix = "S2C_EXT_NATIVE_ADDR_"
-    elif kind == "native_bank" and base.startswith("b_"):
-        base = base[2:]
-        prefix = "S2C_EXT_NATIVE_BANK_"
-    else:
-        prefix = "S2C_EXT_OTHER_"
-    return prefix + sanitize(base)
+def table_c_expr(entries, key):
+    symbol, offset = entries[key]
+    c_name = symbol[1:]
+    if offset == 0:
+        return c_name
+    return "{} {:+d}".format(c_name, offset)
 
 
 def write_output(model, out_dir, name):
@@ -1009,11 +1144,19 @@ def write_output(model, out_dir, name):
         "#endif",
         "",
         "#define S2C_BANK_COUNT {}".format(len(model.banks)),
+        "#define S2C_RAM_SYMBOL_COUNT {}".format(len(model.ram_table)),
+        "#define S2C_FAR_DATA_COUNT {}".format(len(model.far_table)),
         "",
     ]
     for bank_index in range(len(model.banks)):
         lines.append("extern const uint8_t S2C_FAR s2c_bank{}[];".format(bank_index))
-    lines.append("")
+    lines.extend([
+        "",
+        "/* Index tables consumed by vm_ram_ptr() and vm_far_data_ptr(). */",
+        "extern uint8_t *const vm_ram_syms[];",
+        "extern const uint8_t S2C_FAR *const vm_far_data[];",
+        "",
+    ])
     for script in model.scripts:
         base = sanitize(script.name)
         lines.append("#define S2C_SCRIPT_{}_BANK {}".format(base, script.bank))
@@ -1025,18 +1168,6 @@ def write_output(model, out_dir, name):
                 lines.append("#define S2C_SCRIPT_{}_BANK {}".format(label_base, script.bank))
                 lines.append("#define S2C_SCRIPT_{}_OFFSET 0x{:04X}".format(label_base, script.offset))
                 lines.append("#define S2C_SCRIPT_{}_SIZE 0x{:04X}".format(label_base, script.size))
-    if model.externals:
-        lines.append("")
-        lines.append("/* External symbols the engine side must provide. Values below are")
-        lines.append(" * stable converter placeholders; replace them with real addresses")
-        lines.append(" * or table indexes when linking against the engine. */")
-        for sym in sorted(model.externals, key=lambda s: (model.externals[s][0], s)):
-            kind, value, original = model.externals[sym]
-            lines.append(
-                "#define {} 0x{:04X} /* {}: {} */".format(
-                    external_macro(sym, kind), value & 0xFFFF, kind, original
-                )
-            )
     lines.extend(["", "#endif", ""])
     header.write_text("\n".join(lines))
 
@@ -1045,6 +1176,43 @@ def write_output(model, out_dir, name):
         '#include "{}"'.format(header.name),
         "",
     ]
+    ram_entries = model.ram_table_entries
+    far_entries = model.far_table_entries
+    ram_bases = sorted({ram_entries[key][0][1:] for key in model.ram_table})
+    far_bases = sorted({far_entries[key][0][1:] for key in model.far_table})
+    if ram_bases:
+        c_lines.append("/* C RAM symbols reached through vm_ram_syms[]. */")
+        for base in ram_bases:
+            c_lines.append("extern uint8_t {}[];".format(base))
+        c_lines.append("")
+    if far_bases:
+        c_lines.append("/* C data objects reached through vm_far_data[]. */")
+        for base in far_bases:
+            c_lines.append("extern const uint8_t S2C_FAR {}[];".format(base))
+        c_lines.append("")
+    if model.ram_table:
+        c_lines.append("uint8_t *const vm_ram_syms[] = {")
+        for key in model.ram_table:
+            c_lines.append("    {}, /* {} */".format(
+                table_c_expr(ram_entries, key), key
+            ))
+        c_lines.append("};")
+    else:
+        c_lines.append("uint8_t *const vm_ram_syms[1] = { (uint8_t *)0 };")
+    c_lines.append("")
+    if model.far_table:
+        c_lines.append("const uint8_t S2C_FAR *const vm_far_data[] = {")
+        for key in model.far_table:
+            c_lines.append("    {}, /* {} */".format(
+                table_c_expr(far_entries, key), key
+            ))
+        c_lines.append("};")
+    else:
+        c_lines.append(
+            "const uint8_t S2C_FAR *const vm_far_data[1] = "
+            "{ (const uint8_t S2C_FAR *)0 };"
+        )
+    c_lines.append("")
     for bank_index, items in enumerate(model.banks):
         total = sum(script.size for script in items)
         c_lines.append("/* bank {}: {} bytes, {} script(s) */".format(
@@ -1076,6 +1244,8 @@ def make_census(model):
         "banks {}".format(len(model.banks)),
         "pointer_bytes {}".format(model.pointer_bytes),
         "externals {}".format(len(model.externals)),
+        "ram_symbols {}".format(len(model.ram_table)),
+        "far_data {}".format(len(model.far_table)),
     ]
     for kind in ("ram", "far_bank", "far_addr", "native_addr", "native_bank", "other"):
         lines.append("external_{} {}".format(kind, counts.get(kind, 0)))
@@ -1087,6 +1257,12 @@ def make_census(model):
     lines.append("skipped {}".format(len(model.skipped)))
     for path, reason in model.skipped:
         lines.append("skipped_file {} {}".format(path.name, reason))
+    for key in model.ram_table:
+        symbol, offset = model.ram_table_entries[key]
+        lines.append("ram_entry {} {:+d}".format(symbol, offset))
+    for key in model.far_table:
+        symbol, offset = model.far_table_entries[key]
+        lines.append("far_entry {} {:+d}".format(symbol, offset))
     return "\n".join(lines) + "\n"
 
 
@@ -1121,12 +1297,15 @@ def main(argv=None):
             Path(args.census).write_text(make_census(converter))
         if not args.quiet:
             print(
-                "s2c: {} scripts, {} bytes, {} banks, {} pointer bytes, {} externals, {} skipped".format(
+                "s2c: {} scripts, {} bytes, {} banks, {} pointer bytes, {} externals, "
+                "{} ram symbols, {} far data, {} skipped".format(
                     len(converter.scripts),
                     sum(script.size for script in converter.scripts),
                     len(converter.banks),
                     converter.pointer_bytes,
                     len(converter.externals),
+                    len(converter.ram_table),
+                    len(converter.far_table),
                     len(converter.skipped),
                 )
             )

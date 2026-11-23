@@ -5,13 +5,92 @@
   "frames": 60,
   "frame_sha256": null,
   "ram": [
-    { "symbol": "script_memory", "offset": 0, "size": 2, "equals": "0x000a" },
-    { "symbol": "script_memory", "offset": 2, "size": 2, "equals": "0x000c" },
-    { "symbol": "script_memory", "offset": 4, "size": 2, "equals": "0x00de" },
-    { "symbol": "script_memory", "offset": 6, "size": 2, "equals": "0x0000" },
-    { "symbol": "script_memory", "offset": 8, "size": 2, "equals": "0x0003" },
-    { "symbol": "script_memory", "offset": 10, "size": 2, "equals": "0x0001" },
-    { "symbol": "script_memory", "offset": 12, "size": 2, "equals": "0x0042" },
-    { "symbol": "scriptconv_done", "size": 2, "equals": "0x0001" }
+    {
+      "symbol": "script_memory",
+      "offset": 0,
+      "size": 2,
+      "equals": 10
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 2,
+      "size": 2,
+      "equals": 12
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 4,
+      "size": 2,
+      "equals": 222
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 6,
+      "size": 2,
+      "equals": 0
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 8,
+      "size": 2,
+      "equals": 3
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 10,
+      "size": 2,
+      "equals": 1
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 12,
+      "size": 2,
+      "equals": 66
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 14,
+      "size": 2,
+      "equals": 90
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 16,
+      "size": 2,
+      "equals": 4660
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 18,
+      "size": 2,
+      "equals": 17
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 20,
+      "size": 2,
+      "equals": 34
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 22,
+      "size": 2,
+      "equals": 4660
+    },
+    {
+      "symbol": "s2c_ram_i8",
+      "size": 1,
+      "equals": "0x5a"
+    },
+    {
+      "symbol": "s2c_ram_i16",
+      "size": 2,
+      "equals": "0x1234"
+    },
+    {
+      "symbol": "scriptconv_done",
+      "size": 2,
+      "equals": "0x0001"
+    }
   ]
 }

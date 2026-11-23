@@ -8,6 +8,11 @@
 
 UWORD sys_time;
 
+/* Converted scripts reach C RAM through the generated pointer table. */
+UBYTE *vm_ram_ptr(UWORD idx) {
+    return vm_ram_syms[idx];
+}
+
 void wait_vbl_done(void) {
 }
 

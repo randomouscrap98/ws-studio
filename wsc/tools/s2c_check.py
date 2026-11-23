@@ -155,6 +155,10 @@ def expected_pointer_byte(converter, script, ref):
                     break
         if value is None:
             raise CheckError("script pointer {} has no script symbol".format(ref.expr))
+    elif ref.kind == "ram":
+        value = converter.ram_expr_value(ref.expr)
+    elif ref.kind == "far":
+        value = converter.far_expr_value(ref.expr)
     else:
         value = s2c.eval_expression(ref.expr, make_lookup(converter, script))
     if ref.mode == "word":
@@ -284,13 +288,15 @@ def main(argv=None):
 
     print(
         "s2c_check: {} scripts, {} bytes, {} pointer operands ({} pointer bytes), "
-        "{} banks, {} externals, {} skipped: OK".format(
+        "{} banks, {} externals, {} ram symbols, {} far data, {} skipped: OK".format(
             len(converter.scripts),
             total_bytes,
             total_operands,
             total_pointers,
             len(converter.banks),
             len(converter.externals),
+            len(converter.ram_table),
+            len(converter.far_table),
             len(converter.skipped),
         )
     )

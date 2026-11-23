@@ -10,14 +10,18 @@
 #include "s2c_test.h"
 
 #define HOST_BANKS 4
-#define HOST_RAM_SIZE 0x10000
 #define MAX_CODE 2048
 #define MAX_LABELS 64
 #define MAX_FIXUPS 64
 #define MAX_UPDATES 1000
 
 static const UBYTE *host_banks[HOST_BANKS];
-static UBYTE host_ram[HOST_RAM_SIZE];
+
+/* C objects referenced by the converted test script's index tables. */
+UBYTE s2c_ram_i8;
+UWORD s2c_ram_i16;
+UBYTE s2c_ram_bytes[2] = { 0x11, 0x22 };
+const UBYTE s2c_far_data[] __attribute__((aligned(2))) = { 0x9C, 0x34, 0x12 };
 
 const UBYTE *vm_bank_base(UBYTE bank) {
     if (bank >= HOST_BANKS || host_banks[bank] == NULL) {
@@ -27,8 +31,20 @@ const UBYTE *vm_bank_base(UBYTE bank) {
     return host_banks[bank];
 }
 
-UBYTE *vm_ram_ptr(UWORD addr) {
-    return host_ram + addr;
+static UWORD ram_index(const void *ptr) {
+    for (UWORD i = 0; i < S2C_RAM_SYMBOL_COUNT; i++) {
+        if ((const void *)vm_ram_syms[i] == ptr) return i;
+    }
+    fprintf(stderr, "vmtest: pointer is not in vm_ram_syms[]\n");
+    abort();
+}
+
+static UWORD far_index(const void *ptr) {
+    for (UWORD i = 0; i < S2C_FAR_DATA_COUNT; i++) {
+        if ((const void *)vm_far_data[i] == ptr) return i;
+    }
+    fprintf(stderr, "vmtest: pointer is not in vm_far_data[]\n");
+    abort();
 }
 
 extern UBYTE vm_last_unimplemented_opcode;
@@ -375,33 +391,31 @@ static void test_rpn_memory(void) {
     UBYTE before[MAX_CODE];
 
     code_init(&c);
-    memset(host_ram, 0, 0x40);
-    host_ram[0x10] = 0xFE;              /* INT8 -2 */
-    host_ram[0x11] = 0x9C;              /* UINT8 156 */
-    host_ram[0x12] = 0x34;              /* INT16 0x1234 */
-    host_ram[0x13] = 0x12;
-    host_ram[0x30] = 0x5A;
+    s2c_ram_i8 = 0xFE;
+    s2c_ram_i16 = 0x1234;
+    s2c_ram_bytes[0] = 0x9C;
+    s2c_ram_bytes[1] = 0x22;
 
-    emit_set_const(&c, 3, 0x0030);      /* address used by REF_MEM_IND */
+    emit_set_const(&c, 3, ram_index(&s2c_ram_bytes[1])); /* index for REF_MEM_IND */
     emit_rpn(&c);
-    rpn_mem(&c, VM_OP_MEM_I8, 0x0010);
+    rpn_mem(&c, VM_OP_MEM_I8, ram_index(&s2c_ram_i8));
     rpn_ref_set(&c, 0);
     rpn_stop(&c);
     emit_rpn(&c);
-    rpn_mem(&c, VM_OP_MEM_U8, 0x0011);
+    rpn_mem(&c, VM_OP_MEM_U8, ram_index(&s2c_ram_bytes));
     rpn_ref_set(&c, 1);
     rpn_stop(&c);
     emit_rpn(&c);
-    rpn_mem(&c, VM_OP_MEM_I16, 0x0012);
+    rpn_mem(&c, VM_OP_MEM_I16, ram_index(&s2c_ram_i16));
     rpn_ref_set(&c, 2);
     rpn_stop(&c);
     emit_rpn(&c);
     rpn_i8(&c, -5);
-    rpn_mem_set(&c, VM_OP_MEM_I8, 0x0020);
+    rpn_mem_set(&c, VM_OP_MEM_I8, ram_index(&s2c_ram_bytes));
     rpn_stop(&c);
     emit_rpn(&c);
     rpn_i16(&c, 0xBEEF);
-    rpn_mem_set(&c, VM_OP_MEM_I16, 0x0022);
+    rpn_mem_set(&c, VM_OP_MEM_I16, ram_index(&s2c_ram_i16));
     rpn_stop(&c);
     emit_rpn(&c);
     rpn_mem_ind(&c, VM_OP_MEM_U8, 3);
@@ -416,9 +430,9 @@ static void test_rpn_memory(void) {
     check_eq("rpn.mem_i8", (INT16)script_memory[0], -2);
     check_eq("rpn.mem_u8", script_memory[1], 156);
     check_eq("rpn.mem_i16", script_memory[2], 0x1234);
-    check_eq("rpn.mem_set_i8", host_ram[0x20], 0xFB);
-    check_eq("rpn.mem_set_i16", (UWORD)(host_ram[0x22] | (host_ram[0x23] << 8)), 0xBEEF);
-    check_eq("rpn.mem_ind", script_memory[4], 0x5A);
+    check_eq("rpn.mem_set_i8", s2c_ram_bytes[0], 0xFB);
+    check_eq("rpn.mem_set_i16", s2c_ram_i16, 0xBEEF);
+    check_eq("rpn.mem_ind", script_memory[4], 0x22);
     check_true("rpn.mem_bank_unchanged", memcmp(before, c.bytes, (size_t)c.len) == 0,
                "RPN memory op modified the script bank");
 }
@@ -524,6 +538,10 @@ static void test_converted_scripts(void) {
                              S2C_SCRIPT_S2C_MAIN_BANK == 1 ? s2c_bank1 : NULL;
     const UBYTE *far_bank = S2C_SCRIPT_S2C_FAR_BANK == 0 ? s2c_bank0 :
                             S2C_SCRIPT_S2C_FAR_BANK == 1 ? s2c_bank1 : NULL;
+    s2c_ram_i8 = 0;
+    s2c_ram_i16 = 0;
+    s2c_ram_bytes[0] = 0x11;
+    s2c_ram_bytes[1] = 0x22;
     check_true("script_conv.banks", main_bank != NULL && far_bank != NULL,
                "generated bank index out of range");
     if (!main_bank || !far_bank) return;
@@ -541,15 +559,20 @@ static void test_converted_scripts(void) {
     check_eq("script_conv.loop_body", script_memory[4], 3);
     check_eq("script_conv.far_return", script_memory[5], 1);
     check_eq("script_conv.far_body", script_memory[6], 0x42);
+    check_eq("script_conv.c_ram_i8", s2c_ram_i8, 0x5A);
+    check_eq("script_conv.c_ram_i16", s2c_ram_i16, 0x1234);
+    check_eq("script_conv.get_int8", script_memory[7], 0x5A);
+    check_eq("script_conv.get_int16", script_memory[8], 0x1234);
+    check_eq("script_conv.rpn_mem", script_memory[9], 0x11);
+    check_eq("script_conv.rpn_mem_offset", script_memory[10], 0x22);
+    check_eq("script_conv.far_data_word", script_memory[11], 0x1234);
 }
 
 static void test_get_far(void) {
-    static const UBYTE far_data[] = { 0x9C, 0x34, 0x12 };
     Code c;
     code_init(&c);
-    host_banks[1] = far_data;
-    emit_get_far(&c, 0, 0, 1, 0);   /* byte from bank 1 offset 0 */
-    emit_get_far(&c, 1, 1, 1, 1);   /* word from bank 1 offset 1 */
+    emit_get_far(&c, 0, 0, 0, far_index(&s2c_far_data[0]));
+    emit_get_far(&c, 1, 1, 0, far_index(&s2c_far_data[1]));
     emit_stop(&c);
     code_finalize(&c);
 

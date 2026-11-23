@@ -107,15 +107,16 @@ const uint8_t __far vmrom_bank0[] = {
     VM_INVOKE(0, 0, 0, 20),
     VM_SET_CONST(21, 1),
 
-    /* RPN REF_MEM: write/read a byte at IRAM 0x1000 and a word at 0x1002. */
+    /* RPN REF_MEM: write/read a byte at IRAM 0x1000 and a word at 0x1002.
+     * This ROM's platform hook keeps direct near RAM addresses. */
     VM_RPN, R_INT8(0xA5), R_REF_MEM_SET(VM_OP_MEM_U8, 0x1000), R_STOP,
     VM_RPN, R_REF_MEM(VM_OP_MEM_U8, 0x1000), R_REF_SET(22), R_STOP,
     VM_RPN, R_INT16(0xBEEF), R_REF_MEM_SET(VM_OP_MEM_I16, 0x1002), R_STOP,
     VM_RPN, R_REF_MEM(VM_OP_MEM_I16, 0x1002), R_REF_SET(23), R_STOP,
 
-    /* VM_GET_FAR from bank 1: byte at offset 7, word at offset 8. */
-    VM_GET_FAR(24, 0, 1, 7),
-    VM_GET_FAR(25, 1, 1, 8),
+    /* VM_GET_FAR through vm_far_data[]: byte and unaligned word. */
+    VM_GET_FAR(24, 0, 0, 0),
+    VM_GET_FAR(25, 1, 0, 1),
 
     VM_STOP,
 };
@@ -123,13 +124,18 @@ const uint8_t __far vmrom_bank0[] = {
 const uint8_t __far vmrom_bank1[] = {
     VM_SET_CONST(7, 0x41),
     VM_RET_FAR,
-    /* Data read by the VM_GET_FAR instructions above. */
-    0x9C, 0x34, 0x12,
 };
 
 /* Fixed IRAM addresses used by the REF_MEM instructions above. */
 volatile uint8_t __attribute__((section(".iram_1000"))) vmrom_mem_byte;
 volatile uint16_t __attribute__((section(".iram_1002"))) vmrom_mem_word;
+
+/* Data read by the VM_GET_FAR instructions above. */
+const uint8_t __far vmrom_far_data[] = { 0x9C, 0x34, 0x12 };
+const uint8_t __far *const vm_far_data[] = {
+    vmrom_far_data,
+    vmrom_far_data + 1,
+};
 
 /* Named RAM results checked by wsrun. */
 volatile UWORD vmrom_done;

@@ -45,4 +45,23 @@ _s2c_main::
         ; far call into a different bank, then continue here
         VM_CALL_FAR             ___bank_s2c_far, _s2c_far
         VM_SET_CONST            5, 1
+
+        ; C RAM symbols are reached through vm_ram_syms[]
+        VM_SET_CONST_INT8       _s2c_ram_i8, 0x5A
+        VM_SET_CONST_INT16      _s2c_ram_i16, 0x1234
+        VM_GET_INT8             7, _s2c_ram_i8
+        VM_GET_INT16            8, _s2c_ram_i16
+
+        ; direct RPN memory refs, including an offset RAM operand
+        VM_RPN
+            .R_REF_MEM          .MEM_U8, _s2c_ram_bytes
+            .R_REF_SET          9
+            .R_STOP
+        VM_RPN
+            .R_REF_MEM          .MEM_U8, ^/(_s2c_ram_bytes + 1)/
+            .R_REF_SET          10
+            .R_STOP
+
+        ; far C data through vm_far_data[], reading a word at an odd offset
+        VM_GET_FAR             11, .GET_WORD, ___bank_s2c_far_data, ^/(_s2c_far_data + 1)/
         VM_STOP

@@ -59,8 +59,15 @@ static INT16 vm_read_word_le(const UBYTE VM_FAR ** pc) {
 }
 #if defined(__SDCC) && defined(NINTENDO)
 // RAM addresses are near pointers on the Game Boy.
-UBYTE * vm_ram_ptr(UWORD addr) {
-    return (UBYTE *)addr;
+UBYTE * vm_ram_ptr(UWORD idx) {
+    return (UBYTE *)idx;
+}
+#else
+// C data operands are indexes into the converter-generated far-data table.
+// vm_ram_ptr() is supplied by the portable platform hook (host or WSC).
+const UBYTE VM_FAR * vm_far_data_ptr(UBYTE bank, UWORD idx) {
+    (void)bank;
+    return vm_far_data[idx];
 }
 #endif
 // Returns the VM stack/global slot for an index (negative = stack relative).
@@ -446,13 +453,20 @@ void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED {
     THIS->waitable = TRUE;
 }
 
-// gets int8 or int16 by far address
-void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE VM_FAR * addr) OLDCALL NONBANKED {
+// gets int8 or int16 from the far-data index table
+void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UWORD addr) OLDCALL NONBANKED {
     (void)dummy0; (void)dummy1;
     UINT16 * A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
-    SWITCH_ROM(bank);             // switch to bytecode bank
-    *A = (size == 0) ? *((UBYTE VM_FAR *)addr) : *((UINT16 VM_FAR *)addr);
+#if defined(__SDCC) && defined(NINTENDO)
+    // The Game Boy keeps the original raw bank/address behaviour.
+    UBYTE VM_FAR * data = (UBYTE VM_FAR *)addr;
+    SWITCH_ROM(bank);             // switch to data bank
+#else
+    const UBYTE VM_FAR * data = vm_far_data_ptr(bank, addr);
+#endif
+    // Read bytewise so an unaligned 16-bit object is safe.
+    *A = (size == 0) ? data[0] : ((UINT16)data[0] | ((UINT16)data[1] << 8));
 }
 
 // initializes random number generator

@@ -79,12 +79,16 @@ typedef struct SCRIPT_CTX {
 } SCRIPT_CTX;
 
 #if !(defined(__SDCC) && defined(NINTENDO))
-// Host platform hooks. A bank is a registered byte array; pointers on the VM
-// stack are stored as 16-bit offsets from the base of the bank. RAM addresses
-// are resolved separately and are never bank-relative.
+// Host/WonderSwan platform hooks. A bank is a registered byte array; pointers
+// on the VM stack are stored as 16-bit offsets from the base of the bank. RAM
+// operands are indexes into vm_ram_syms[] and C data operands are indexes into
+// vm_far_data[]. The GB/SDCC build keeps direct near RAM addresses.
 extern SCRIPT_UPDATE_FN vm_native_fns[];
+extern UBYTE *const vm_ram_syms[];
+extern const UBYTE VM_FAR *const vm_far_data[];
 const UBYTE VM_FAR * vm_bank_base(UBYTE bank);
-UBYTE * vm_ram_ptr(UWORD addr);
+UBYTE * vm_ram_ptr(UWORD idx);
+const UBYTE VM_FAR * vm_far_data_ptr(UBYTE bank, UWORD idx);
 UBYTE * vm_native_token(UWORD index);
 UBYTE vm_dispatch_step(SCRIPT_CTX * CTX);
 #endif
@@ -195,7 +199,7 @@ void vm_join(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_idle(SCRIPT_CTX * THIS) OLDCALL BANKED;
 void vm_get_tlocal(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB) OLDCALL BANKED;
-void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UBYTE VM_FAR * addr) OLDCALL NONBANKED;
+void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA, UBYTE size, UBYTE bank, UWORD addr) OLDCALL NONBANKED;
 void vm_init_rng(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_rand(SCRIPT_CTX * THIS, INT16 idx, UINT16 min, UINT16 limit) OLDCALL BANKED;
 void vm_lock(SCRIPT_CTX * THIS) OLDCALL BANKED;
