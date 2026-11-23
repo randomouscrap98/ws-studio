@@ -37,7 +37,7 @@ void vm_input_wait(SCRIPT_CTX * THIS, UBYTE mask) OLDCALL BANKED {
     THIS->PC -= INSTRUCTION_SIZE + sizeof(mask);
 }
 
-void vm_context_prepare(SCRIPT_CTX * THIS, UBYTE slot, UBYTE bank, UBYTE * pc) OLDCALL BANKED {
+void vm_context_prepare(SCRIPT_CTX * THIS, UBYTE slot, UBYTE bank, const UBYTE VM_FAR * pc) OLDCALL BANKED {
     THIS;
     script_event_t * event = &input_events[(slot - 1) & 7];
     event->script_bank = bank;
@@ -74,7 +74,7 @@ void vm_fade(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED {
     }
 }
 
-void vm_timer_prepare(SCRIPT_CTX * THIS, UBYTE timer, UBYTE bank, UBYTE * pc) OLDCALL BANKED {
+void vm_timer_prepare(SCRIPT_CTX * THIS, UBYTE timer, UBYTE bank, const UBYTE VM_FAR * pc) OLDCALL BANKED {
     THIS;
     script_event_t * event = &timer_events[(timer - 1) & 3];
     event->script_bank = bank;

@@ -290,8 +290,88 @@ def expand_metasprite(entries, base_tile, screen_x, screen_y, sprite_mode=16):
     return sprites
 
 
+def parse_timer_tile_updates(export, scene, timer_runs):
+    """Return [(x, y, tileset symbol, tile index)] after timer_runs ticks.
+
+    The exported scene init script attaches a timer script; that script cycles
+    a few VM globals and replaces the graphics of a map tile.  Simulate the
+    simple "clamp, replace, increment, wrap" pattern used by those scripts so
+    the reference frame includes the animation the engine really plays.
+    """
+    if timer_runs <= 0 or not scene.get("script_init"):
+        return []
+    data_dir = Path(export.export_dir) / "src" / "data"
+    init_path = data_dir / (scene["script_init"] + ".s")
+    try:
+        init_text = init_path.read_text()
+    except OSError:
+        return []
+    match = re.search(
+        r"VM_TIMER_PREPARE\s+\d+\s*,\s*\w+\s*,\s*_?(\w+)", init_text)
+    if not match:
+        return []
+    script_path = data_dir / (match.group(1) + ".s")
+    try:
+        lines = script_path.read_text().splitlines()
+    except OSError:
+        return []
+
+    chunks = []
+    pending = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("VM_REPLACE_TILE_XY"):
+            args = [part.strip() for part in stripped.split(None, 1)[1].split(",")]
+            if len(args) >= 4:
+                chunks.append((args, pending))
+            pending = []
+        else:
+            pending.append(line)
+
+    updates = []
+    for args, chunk in chunks:
+        chunk_text = "\n".join(chunk)
+        variable = re.findall(r"\.R_REF\s+(\w+)", chunk_text)
+        if not variable:
+            continue
+        base_match = re.search(
+            r"VM_IF_CONST\s+\.LT\s*,\s*" + re.escape(variable[-1])
+            + r"\s*,\s*(-?\d+)", chunk_text)
+        base = int(base_match.group(1), 0) if base_match else 0
+        max_match = re.search(
+            r"VM_SET_CONST\s+\.LOCAL_TMP\w*_TO_VAR\s*,\s*(-?\d+)",
+            chunk_text)
+        if not max_match:
+            continue
+        maximum = int(max_match.group(1), 0)
+        span = maximum - base + 1
+        if span <= 0:
+            continue
+        tile_index = base + ((timer_runs - 1) % span)
+        try:
+            x, y = int(args[0], 0), int(args[1], 0)
+        except ValueError:
+            continue
+        updates.append((x, y, args[3].lstrip("_"), tile_index))
+    return updates
+
+
+def apply_timer_tiles(export, scene, scenario, background, timer_runs):
+    updates = parse_timer_tile_updates(export, scene, timer_runs)
+    if not updates:
+        return
+    tilemap = ints(array_body(export.text(background["tilemap"]),
+                              background["tilemap"]))
+    width = background["width"]
+    for x, y, tileset_symbol, tile_index in updates:
+        target = tilemap[y * width + x]
+        tileset = export.tileset(tileset_symbol)
+        if target < len(scenario["bg_tiles"]) and tile_index < len(tileset):
+            scenario["bg_tiles"][target] = tileset[tile_index]
+
+
 def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
-                frames, effects=None, final=None):
+                frames, effects=None, final=None, timer_runs=0):
     effects = effects or {}
     final = final or {}
     scene = export.scene(scene_symbol)
@@ -457,6 +537,7 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
         "sprites": sprites,
         "sprite_groups": sprite_groups,
     }
+    apply_timer_tiles(export, scene, scenario, background, timer_runs)
     return scene, background, actor_info, scenario, {
         "camera_x": final.get("camera_x", (start_x + 8) * 32),
         "camera_y": final.get("camera_y", (start_y + 8) * 32),
@@ -631,6 +712,8 @@ def main(argv=None):
     parser.add_argument("--start-y", type=int, default=0,
                         help="player start y in pixels")
     parser.add_argument("--frames", type=int, default=60)
+    parser.add_argument("--timer-runs", type=int, default=0,
+                        help="number of timer script ticks to include")
     parser.add_argument("--out", help="write the expected RGB24 frame")
     parser.add_argument("--scenario-out", help="write the scenario JSON")
     parser.add_argument("--ram-out", help="write the RAM checks JSON")
@@ -645,7 +728,8 @@ def main(argv=None):
                    if scene_meta["script_init"] else {})
         scene, _background, actor_info, scenario, expected = build_scene(
             export, args.project_dir, args.scene, args.start_x, args.start_y,
-            start_dir, args.frames, effects=effects)
+            start_dir, args.frames, effects=effects,
+            timer_runs=args.timer_runs)
 
         if args.scenario_out:
             Path(args.scenario_out).write_text(json.dumps(scenario))

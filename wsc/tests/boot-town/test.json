@@ -6,7 +6,16 @@
   "frame_sha256": null,
   "reference": {
     "script": "tools/boot_oracle.py",
-    "args": ["--scene", "scene_sample_town", "--start-x", "400", "--start-y", "400"],
+    "args": [
+      "--scene",
+      "scene_sample_town",
+      "--start-x",
+      "400",
+      "--start-y",
+      "400",
+      "--timer-runs",
+      "2"
+    ],
     "precision": "exact"
   },
   "ram": "gamerom/build/ram_town.json"

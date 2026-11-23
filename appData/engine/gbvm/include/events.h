@@ -6,7 +6,7 @@
 typedef struct script_event_t {
     UWORD handle;
     UBYTE script_bank;
-    void * script_addr;
+    const UBYTE VM_FAR * script_addr;
 } script_event_t;
 
 extern script_event_t input_events[8];

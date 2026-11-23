@@ -697,7 +697,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_slot = vm_fetch8(&p);
-        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_context_prepare(CTX, a_slot, a_bank, a_pc);
         return 1;
@@ -732,7 +732,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_timer = vm_fetch8(&p);
-        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_timer_prepare(CTX, a_timer, a_bank, a_pc);
         return 1;
@@ -859,7 +859,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_routine = vm_fetch8(&p);
-        UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_music_routine(CTX, a_routine, a_bank, a_pc);
         return 1;

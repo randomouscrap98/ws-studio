@@ -1,0 +1,22 @@
+{
+  "rom": "gamerom/gamerom_town_pad.wsc",
+  "elf": "gamerom/build/gamerom_town_pad.elf",
+  "build": "gamerom",
+  "frames": 60,
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/boot_oracle.py",
+    "args": [
+      "--scene",
+      "scene_sample_town",
+      "--start-x",
+      "400",
+      "--start-y",
+      "400",
+      "--timer-runs",
+      "2"
+    ],
+    "precision": "exact"
+  },
+  "ram": "gamerom/build/ram_town_pad.json"
+}

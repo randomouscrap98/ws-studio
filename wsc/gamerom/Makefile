@@ -28,6 +28,10 @@ S2C_DIR		:= $(GEN_DIR)/s2c
 S2C_NAME	:= gamerom
 S2C_H		:= $(S2C_DIR)/$(S2C_NAME).h
 S2C_C		:= $(S2C_DIR)/$(S2C_NAME).c
+S2C_PAD_DIR	:= $(GEN_DIR)/s2c_pad
+S2C_PAD_NAME	:= gamerom_pad
+S2C_PAD_H	:= $(S2C_PAD_DIR)/$(S2C_PAD_NAME).h
+S2C_PAD_C	:= $(S2C_PAD_DIR)/$(S2C_PAD_NAME).c
 D2C_STAMP	:= $(GEN_DIR)/d2c.stamp
 C13_TEST_SCRIPT	:= $(CURDIR)/src/script_c13_test.s
 C14_TEST_SCRIPT	:= $(CURDIR)/src/script_c14_test.s
@@ -35,12 +39,14 @@ C15_TEST_SCRIPTS	:= $(CURDIR)/src/script_c15_instant.s \
 			   $(CURDIR)/src/script_c15_speed.s \
 			   $(CURDIR)/src/script_c15_var.s
 C16_TEST_SCRIPT	:= $(CURDIR)/src/script_c16_choice.s
+LAYOUT_PAD_SCRIPT := $(CURDIR)/src/script_layout_pad.s
 
 BUILDDIR	:= $(CURDIR)/build
 OBJDIR		:= $(BUILDDIR)/obj
 ROM_LOGO	:= $(CURDIR)/gamerom.wsc
 ROM_TOWN	:= $(CURDIR)/gamerom_town.wsc
 ROM_TOWN_WALK	:= $(CURDIR)/gamerom_town_walk.wsc
+ROM_TOWN_PAD	:= $(CURDIR)/gamerom_town_pad.wsc
 ROM_C13		:= $(CURDIR)/gamerom_c13.wsc
 ROM_C14		:= $(CURDIR)/gamerom_c14.wsc
 ROM_C15_INSTANT	:= $(CURDIR)/gamerom_c15_instant.wsc
@@ -50,6 +56,7 @@ ROM_C16		:= $(CURDIR)/gamerom_c16_choice.wsc
 ELF_LOGO	:= $(BUILDDIR)/gamerom.elf
 ELF_TOWN	:= $(BUILDDIR)/gamerom_town.elf
 ELF_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk.elf
+ELF_TOWN_PAD	:= $(BUILDDIR)/gamerom_town_pad.elf
 ELF_C13		:= $(BUILDDIR)/gamerom_c13.elf
 ELF_C14		:= $(BUILDDIR)/gamerom_c14.elf
 ELF_C15_INSTANT	:= $(BUILDDIR)/gamerom_c15_instant.elf
@@ -59,6 +66,7 @@ ELF_C16		:= $(BUILDDIR)/gamerom_c16_choice.elf
 STAGE_LOGO	:= $(BUILDDIR)/gamerom_stage1.elf
 STAGE_TOWN	:= $(BUILDDIR)/gamerom_town_stage1.elf
 STAGE_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk_stage1.elf
+STAGE_TOWN_PAD	:= $(BUILDDIR)/gamerom_town_pad_stage1.elf
 STAGE_C13	:= $(BUILDDIR)/gamerom_c13_stage1.elf
 STAGE_C14	:= $(BUILDDIR)/gamerom_c14_stage1.elf
 STAGE_C15_INSTANT := $(BUILDDIR)/gamerom_c15_instant_stage1.elf
@@ -69,6 +77,7 @@ RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
 RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
 RAM_WALK_WALL	:= $(BUILDDIR)/ram_walk_wall.json
+RAM_TOWN_PAD	:= $(BUILDDIR)/ram_town_pad.json
 
 INCLUDEFLAGS	:= -I$(CURDIR)/include -I$(GEN_DIR)/include \
 		   -I$(S2C_DIR) -I$(WSC_DIR)/host/include \
@@ -132,6 +141,7 @@ BOOTSTRAP_C15_VAR := $(OBJDIR)/bootstrap_c15_var.o
 BOOTSTRAP_C16	:= $(OBJDIR)/bootstrap_c16.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
+S2C_PAD_OBJ	:= $(OBJDIR)/$(S2C_PAD_NAME).o
 
 COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 
@@ -142,10 +152,10 @@ COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 all: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
-all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL) \
+all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_TOWN_PAD) $(RAM_WALK_FREE) $(RAM_WALK_WALL) \
 	 $(ROM_C13) $(ROM_C14) $(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) \
 	 $(ROM_C16) \
-	 $(ELF_LOGO) $(ELF_TOWN) $(ELF_TOWN_WALK) $(ELF_C13) $(ELF_C14) \
+	 $(ELF_LOGO) $(ELF_TOWN) $(ELF_TOWN_PAD) $(ELF_TOWN_WALK) $(ELF_C13) $(ELF_C14) \
 	 $(ELF_C15_INSTANT) $(ELF_C15_SPEED) $(ELF_C15_VAR) $(ELF_C16)
 
 # Generated data sources only exist after d2c runs. The first make pass
@@ -156,6 +166,11 @@ $(RAM_LOGO): $(ROM_LOGO) $(ROM_TOWN) $(WSC_DIR)/tools/boot_oracle.py
 $(RAM_TOWN): $(ROM_TOWN) $(ROM_LOGO) $(WSC_DIR)/tools/boot_oracle.py
 	$(PYTHON) $(WSC_DIR)/tools/boot_oracle.py --ram-out $@ \
 		--elf $(ELF_TOWN) --scene scene_sample_town \
+		--start-x 400 --start-y 400
+
+$(RAM_TOWN_PAD): $(ROM_TOWN_PAD) $(ELF_TOWN_PAD) $(WSC_DIR)/tools/boot_oracle.py
+	$(PYTHON) $(WSC_DIR)/tools/boot_oracle.py --ram-out $@ \
+		--elf $(ELF_TOWN_PAD) --scene scene_sample_town \
 		--start-x 400 --start-y 400
 
 # The walking tests use the same town image with a start in the open area
@@ -180,9 +195,6 @@ $(RAM_WALK_WALL): $(ROM_TOWN_WALK) $(ELF_TOWN_WALK) \
 export-data $(EXPORT_READY):
 	$(WSC_DIR)/export/run.sh
 
-# Keep the C16-only script out of bank 0: growing that far array moves the
-# whole far-data layout and the town boot no longer centres its camera (a
-# linker/far-segment sensitivity outside this task).
 $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
@@ -192,10 +204,25 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 	@$(if $(EXPORT_SCRIPTS),,test -f $(EXPORT_READY) || $(WSC_DIR)/export/run.sh)
 	$(PYTHON) $(WSC_DIR)/tools/s2c.py --include $(EXPORT_DIR)/include \
 		--out $(S2C_DIR) --name $(S2C_NAME) \
-		--bank script_c16_choice=1 \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
 		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS) \
 		$(C16_TEST_SCRIPT)
+
+# Guard build: the same scripts plus a padding script at the end of bank 0.
+# The extra bytes move s2c_bank0 and the far code/data sections, which is the
+# layout shift that exposed the near script-callback pointer bug.
+$(S2C_PAD_H) $(S2C_PAD_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
+		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) $(LAYOUT_PAD_SCRIPT) \
+		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
+		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
+	@echo "  S2C     $(S2C_PAD_DIR)"
+	@mkdir -p $(S2C_PAD_DIR)
+	@$(if $(EXPORT_SCRIPTS),,test -f $(EXPORT_READY) || $(WSC_DIR)/export/run.sh)
+	$(PYTHON) $(WSC_DIR)/tools/s2c.py --include $(EXPORT_DIR)/include \
+		--out $(S2C_PAD_DIR) --name $(S2C_PAD_NAME) \
+		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
+		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS) \
+		$(C16_TEST_SCRIPT) $(LAYOUT_PAD_SCRIPT)
 
 $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 	@echo "  D2C     $(GEN_DIR)"
@@ -220,6 +247,14 @@ $(ROM_TOWN): $(STAGE_TOWN)
 $(ELF_TOWN): $(ROM_TOWN)
 	@echo "  ROM     $(ROM_TOWN) (ELF rebuilt)"
 	$(BUILDROM) -o $(ROM_TOWN) --output-elf $(ELF_TOWN) $(STAGE_TOWN)
+
+$(ROM_TOWN_PAD): $(STAGE_TOWN_PAD)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_TOWN_PAD) --output-elf $(ELF_TOWN_PAD) $<
+
+$(ELF_TOWN_PAD): $(ROM_TOWN_PAD)
+	@echo "  ROM     $(ROM_TOWN_PAD) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_TOWN_PAD) --output-elf $(ELF_TOWN_PAD) $(STAGE_TOWN_PAD)
 
 $(ROM_TOWN_WALK): $(STAGE_TOWN_WALK)
 	@echo "  ROM     $@"
@@ -289,6 +324,10 @@ $(STAGE_TOWN_WALK): $(COMMON_OBJS) $(BOOTSTRAP_TOWN_WALK)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
+$(STAGE_TOWN_PAD): $(filter-out $(S2C_OBJ),$(COMMON_OBJS)) $(S2C_PAD_OBJ) $(BOOTSTRAP_TOWN)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
 $(STAGE_C13): $(COMMON_OBJS) $(BOOTSTRAP_C13)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
@@ -333,6 +372,11 @@ $(STATES_OBJ): $(GEN_DIR)/states.c $(D2C_STAMP)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
 $(S2C_OBJ): $(S2C_C) $(S2C_H)
+	@echo "  CC      $<"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
+
+$(S2C_PAD_OBJ): $(S2C_PAD_C) $(S2C_PAD_H)
 	@echo "  CC      $<"
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
@@ -392,7 +436,8 @@ $(BOOTSTRAP_C16): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
 
 clean:
 	@echo "  CLEAN"
-	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_C13) $(ROM_C14) \
+	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_TOWN_PAD) \
+		$(ROM_C13) $(ROM_C14) \
 		$(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) $(ROM_C16) \
 		$(BUILDDIR) $(GEN_DIR)
 

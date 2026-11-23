@@ -22,7 +22,7 @@ void vm_music_mute(SCRIPT_CTX * THIS, UBYTE channels) OLDCALL BANKED {
     music_effective_mute = driver_set_mute_mask(music_sound_cut_mask(music_global_mute_mask = channels) | music_mute_mask);
 }
 
-void vm_music_routine(SCRIPT_CTX * THIS, UBYTE routine, UBYTE bank, UBYTE * pc) OLDCALL BANKED {
+void vm_music_routine(SCRIPT_CTX * THIS, UBYTE routine, UBYTE bank, const UBYTE VM_FAR * pc) OLDCALL BANKED {
     THIS;
     script_event_t * event = &music_events[routine & 0x03];
     event->script_bank = bank;
