@@ -5,6 +5,7 @@
 #include <ws.h>
 #include "hal.h"
 #include "hal_wsc_internal.h"
+#include "wsc_tiles.h"
 
 uint8_t hal_screen_w;
 uint8_t hal_screen_h;
@@ -142,9 +143,9 @@ void hal_window_flush(void) {
         uint8_t attr = hal_win_attrs[i];
         uint16_t index = hal_win_tiles[i];
 
-        if (attr & HAL_WIN_BANK1)
-            index += 256;
         uint16_t cell = WS_SCREEN_ATTR_TILE_EX(index);
+        if (attr & HAL_WIN_BANK1)
+            cell |= WS_SCREEN_ATTR_BANK(1);
 
         if (attr & HAL_WIN_UI_ATTR) {
             cell |= WS_SCREEN_ATTR_PALETTE(hal_win_palette);

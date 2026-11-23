@@ -417,7 +417,9 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     deactivated = set(effects.get("deactivated_actors", ()))
     actor_overrides = final.get("actor_overrides", {})
 
-    blank_tile = 255
+    # WSC layout: the blank cell lives outside the GB-addressable 0..767
+    # range so no background or UI text tile can cover it.
+    blank_tile = 1023
     cells = [[blank_tile, 0, False, False] for _ in range(32 * 32)]
     refresh_w = (screen_w // 8) + 1
     refresh_h = (screen_h // 8) + 1

@@ -181,3 +181,15 @@ The keypad values used by the input tests correspond to the libws
   A; the result is 2 and the script moves the overlay to y=18 tiles, so the
   frame is the town without the window. `choice-cancel` presses B; the
   result is 0. All three check `vm_last_unimplemented_opcode == 0`.
+
+- `tiles-big`: runs `gamerom_c18_big`, a generated 16x18 background with
+  264 unique bank-0 tiles, a 4-tile `cgb_tileset` and attribute-bit-3
+  cells. The reference (`c18_oracle.py --mode big`) has its own copy of the
+  WSC tile layout and puts the bank-0 overflow and cgb tiles at bank-1
+  0..7, so the exact frame proves the overflow used the background
+  conversion and the bank-1 window.
+- `blank-border`: runs `gamerom_c18_blank`, the exported logo background
+  (20x18, centred on the 224-px screen) with a long dialogue box at
+  (64, 32). Eight lines walk the text tile buffer from `0xCC` to `0xFF`;
+  the 32-px border on each side must stay blank. `c18_oracle.py --mode blank`
+  renders the background, frame and glyph tiles from the exported data.

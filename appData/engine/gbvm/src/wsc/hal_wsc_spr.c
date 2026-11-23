@@ -4,6 +4,7 @@
 #include <ws.h>
 #include "hal.h"
 #include "hal_wsc_internal.h"
+#include "wsc_tiles.h"
 
 /* The hardware reads the sprite table from a 512-byte aligned IRAM address;
  * .iramx_sprite tells wf-wswantool about both requirements. */
@@ -99,7 +100,7 @@ uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
 
         tile = (uint16_t)((base_tile + ms->dtile) & 0xFF);
         if (entry_props & 0x08)
-            tile += 256;
+            tile += WSC_TILE_SPRITE_BASE;
 
         attr = WS_SPRITE_ATTR_PALETTE(entry_props & 0x07);
         if (flip_h)

@@ -39,6 +39,9 @@ typedef struct far_ptr_t {
 } far_ptr_t;
 
 void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
+/* Same, but into the GB background bank 1 window (WSC tiles 512..767). */
+void SetBankedBkgDataBank1(UBYTE i, UBYTE l, const unsigned char __far *ptr,
+                           UBYTE bank);
 void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
 void SetBankedBkgTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
                        const unsigned char __far *tiles, UBYTE bank);

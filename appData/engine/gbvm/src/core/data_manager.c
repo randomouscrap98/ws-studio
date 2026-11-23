@@ -19,6 +19,7 @@
 
 #ifdef __ia16__
 #include "hal.h"
+#include "wsc_tiles.h"
 #endif
 
 #define ALLOC_BKG_TILES_TOWARDS_SPR
@@ -111,9 +112,51 @@ void load_bkg_tileset(DATA_PTR(tileset_t) tiles, UBYTE bank) BANKED {
     SetBankedBkgData(128, 128, data, bank);
     n_tiles -= 128; data += 128 * 16;
 
-    // if more than 256 - then it's a 360-tile logo, load rest to sprite area
-    if ((UBYTE)n_tiles) SetBankedSpriteData(0, n_tiles, data, bank);
+    // if more than 256 - then it's a 360-tile logo.  On WSC the remaining
+    // background tiles go to bank 1 as GB background data, not sprite data.
+    if ((UBYTE)n_tiles) {
+#ifdef __ia16__
+        hal_load_bkg_tiles(WSC_TILE_BG_BANK1_BASE, n_tiles, data, 2);
+#else
+        SetBankedSpriteData(0, n_tiles, data, bank);
+#endif
+    }
 }
+
+#ifdef __ia16__
+/* The cgb_tileset is the GB background bank 1 half of a colour background.
+ * Its tile indices follow the same chunk layout as a mono tileset, but all
+ * writes go to the bank-1 tile window. */
+static void load_bkg_tileset_cgb(DATA_PTR(tileset_t) tiles, UBYTE bank) BANKED {
+    if ((!bank) && (!tiles)) return;
+
+    UWORD n_tiles = ReadBankedUWORD(&(tiles->n_tiles), bank);
+    const UBYTE __far *data = tiles->tiles;
+    UWORD base = WSC_TILE_BG_BANK1_BASE;
+
+    if (n_tiles < 128) {
+        if ((UBYTE)n_tiles) hal_load_bkg_tiles(base, n_tiles, data, 2);
+        return;
+    }
+    hal_load_bkg_tiles(base, 128, data, 2);
+    n_tiles -= 128; data += 128 * 16;
+
+    if (n_tiles < 128) {
+        if (n_tiles < 65) {
+            if ((UBYTE)n_tiles)
+                hal_load_bkg_tiles(base + (192 - n_tiles), n_tiles, data, 2);
+        } else {
+            if ((UBYTE)n_tiles) hal_load_bkg_tiles(base + 128, n_tiles, data, 2);
+        }
+        return;
+    }
+    hal_load_bkg_tiles(base + 128, 128, data, 2);
+    n_tiles -= 128; data += 128 * 16;
+
+    if ((UBYTE)n_tiles)
+        hal_load_bkg_tiles(base + WSC_TILE_BG_BANK1_SIZE, n_tiles, data, 2);
+}
+#endif
 
 void load_background(DATA_PTR(background_t) background, UBYTE bank) BANKED {
     background_t bkg;
@@ -133,7 +176,11 @@ void load_background(DATA_PTR(background_t) background, UBYTE bank) BANKED {
     image_height_subpx = PX_TO_SUBPX(image_height);
 
     load_bkg_tileset(bkg.tileset.ptr, bkg.tileset.bank);
-#ifdef CGB
+#ifdef __ia16__
+    if (bkg.cgb_tileset.ptr) {
+        load_bkg_tileset_cgb(bkg.cgb_tileset.ptr, bkg.cgb_tileset.bank);
+    }
+#elif defined(CGB)
     if ((_is_CGB) && (bkg.cgb_tileset.ptr)) {
         VBK_REG = VBK_BANK_1;
         load_bkg_tileset(bkg.cgb_tileset.ptr, bkg.cgb_tileset.bank);

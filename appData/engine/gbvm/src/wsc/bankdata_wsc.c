@@ -15,20 +15,28 @@
 #include "bankdata.h"
 #include "hal.h"
 #include "hal_wsc_internal.h"
+#include "wsc_tiles.h"
 
 void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char __far *ptr,
                       UBYTE bank) {
     (void)bank;
-    hal_load_bkg_tiles(i, l, ptr, 2);
+    hal_load_bkg_tiles((uint16_t)(WSC_TILE_BG_BANK0_BASE + i), l, ptr, 2);
+}
+
+void SetBankedBkgDataBank1(UBYTE i, UBYTE l, const unsigned char __far *ptr,
+                           UBYTE bank) {
+    (void)bank;
+    hal_load_bkg_tiles((uint16_t)(WSC_TILE_BG_BANK1_BASE + i), l, ptr, 2);
 }
 
 void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char __far *ptr,
                          UBYTE bank) {
     (void)bank;
-    /* GB sprites live at 0x8000 while unsigned background tiles use 0x9000.
-     * WSC has one tile store, so sprite tiles start at 256 and the engine
-     * passes props bit 3 when drawing them. */
-    hal_load_sprite_tiles((uint16_t)(256 + i), l, ptr, 2);
+    /* GB sprite tiles live in their own VRAM area; the WSC port keeps the
+     * engine's sprite-tile numbers disjoint from background bank 0 by
+     * loading them at WSC_TILE_SPRITE_BASE.  The engine passes props bit 3
+     * when drawing them. */
+    hal_load_sprite_tiles((uint16_t)(WSC_TILE_SPRITE_BASE + i), l, ptr, 2);
 }
 
 void SetBankedBkgTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,

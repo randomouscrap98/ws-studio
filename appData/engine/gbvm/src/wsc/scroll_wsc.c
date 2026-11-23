@@ -16,15 +16,11 @@
 #include "data_manager.h"
 #include "hal.h"
 #include "hal_wsc_internal.h"
-
-/* Tile 255 is reserved as the blank cell: the scene backgrounds use far
- * fewer tiles, and it lets cells outside a centred scene show palette 0
- * colour 0 without disturbing the scene's own tile 0. */
-#define WSC_BLANK_TILE 255
+#include "wsc_tiles.h"
 
 void hal_clear_bkg(void) {
     volatile uint8_t *tile =
-        (volatile uint8_t *)WS_TILE_4BPP_MEM(WSC_BLANK_TILE);
+        (volatile uint8_t *)WS_TILE_4BPP_MEM(WSC_TILE_BLANK);
     uint16_t i;
 
     /* Pixel index 1 is GB background colour 0 (hal_load_bkg_tiles shifts
@@ -34,7 +30,7 @@ void hal_clear_bkg(void) {
         tile[i] = (i % 4 == 0) ? 0xFF : 0x00;
 
     for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES; i++)
-        hal_screen.cell[i] = WS_SCREEN_ATTR_TILE_EX(WSC_BLANK_TILE);
+        hal_screen.cell[i] = WS_SCREEN_ATTR_TILE_EX(WSC_TILE_BLANK);
 }
 
 void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
@@ -60,7 +56,7 @@ void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
 
             index = (UINT16)tile;
             if (attr & 0x08)
-                index += 256;
+                index += WSC_TILE_BG_BANK1_BASE;
 
             cell = WS_SCREEN_ATTR_TILE_EX(index)
                  | WS_SCREEN_ATTR_PALETTE(attr & 0x07)

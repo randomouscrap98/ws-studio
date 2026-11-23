@@ -93,9 +93,9 @@ void hal_window_reset(void);
 void hal_window_flush(void);
 void hal_window_set_palette(uint8_t palette);
 
-/* Fill screen 1 with the WSC blank tile (tile 255, BG palette 0) and clear
- * that tile's pixels. The engine calls this on scene load so areas outside a
- * scene smaller than the screen show BG palette 0 colour 0. */
+/* Fill screen 1 with WSC_TILE_BLANK (BG palette 0) and clear that tile's
+ * pixels. The engine calls this on scene load so areas outside a scene
+ * smaller than the screen show BG palette 0 colour 0. */
 void hal_clear_bkg(void);
 
 /* Sprite tiles are plain GB 2bpp, converted without an index shift. Index 0
@@ -121,7 +121,8 @@ void hal_set_sprite_palette(uint8_t first, uint8_t count,
  * palette, bit 3 adds 256 to the tile index, bits 5/6 flip the tile. The GB
  * behind-BG priority bit (7) is ignored because screen 1 has no equivalent
  * priority bit on WSC. Pass bit 3 to put an actor's sprite tiles in the
- * 256..511 half; this is the only sprite-tile offset mechanism.
+ * sprite-tile window (WSC_TILE_SPRITE_BASE..+255); this is the only
+ * sprite-tile offset mechanism.
  *
  * mode is HAL_SPRITE_MODE_8X8 or HAL_SPRITE_MODE_8X16. In 8x16 mode the low
  * tile bit is ignored, the top half is tile & 0xFE, the bottom tile | 1, and

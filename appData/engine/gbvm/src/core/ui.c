@@ -21,6 +21,7 @@
 
 #ifdef __ia16__
 #include "hal.h"
+#include "wsc_tiles.h"
 #endif
 
 #define ui_frame_tl_tiles 0xC0u
@@ -206,7 +207,7 @@ inline void ui_load_tile(ui_font_bitmap_t tiledata, UBYTE bank) {
      * index up by one.  The bank bit selects the same 256-tile window as the
      * GB's two VRAM banks. */
     hal_load_bkg_tiles((uint16_t)ui_current_tile +
-                       ((ui_current_tile_bank) ? 256u : 0u),
+                       ((ui_current_tile_bank) ? WSC_TILE_BG_BANK1_BASE : WSC_TILE_BG_BANK0_BASE),
                        1, (const uint8_t __far *)tiledata, 2);
 #else
 #ifdef CGB
@@ -222,7 +223,7 @@ inline void ui_load_tile(ui_font_bitmap_t tiledata, UBYTE bank) {
 inline void ui_load_wram_tile(const UBYTE * tiledata) {
 #ifdef __ia16__
     hal_load_bkg_tiles_ram((uint16_t)ui_current_tile +
-                           ((ui_current_tile_bank) ? 256u : 0u),
+                           ((ui_current_tile_bank) ? WSC_TILE_BG_BANK1_BASE : WSC_TILE_BG_BANK0_BASE),
                            1, tiledata);
 #else
 #ifdef CGB

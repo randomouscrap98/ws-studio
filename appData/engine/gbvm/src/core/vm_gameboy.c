@@ -17,6 +17,10 @@
 #include "interrupts.h"
 
 #ifdef __ia16__
+#include "wsc_tiles.h"
+#endif
+
+#ifdef __ia16__
 #define TILESET_PTR(p) ((const tileset_t __far *)(p))
 #define BACKGROUND_FIELD_PTR(p) ((const void __far *)(p))
 #else
@@ -122,12 +126,19 @@ void vm_get_tile_xy(SCRIPT_CTX * THIS, INT16 idx_tile, INT16 idx_x, INT16 idx_y)
 void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, INT16 idx_start_tile, UBYTE length) OLDCALL BANKED {
     INT16 * A = VM_REF_TO_PTR(idx_start_tile);
     INT16 * B = VM_REF_TO_PTR(idx_target_tile);
+#ifdef __ia16__
+    if (*B & 0x0800)
+        SetBankedBkgDataBank1((UBYTE)(*B), length, tileset->tiles + (*A << 4), tileset_bank);
+    else
+        SetBankedBkgData((UBYTE)(*B), length, tileset->tiles + (*A << 4), tileset_bank);
+#else
 #ifdef CGB
     if (_is_CGB) VBK_REG =  (*B & 0x0800) ? VBK_BANK_1 : VBK_BANK_0;
 #endif
     SetBankedBkgData((UBYTE)(*B), length, tileset->tiles + (*A << 4), tileset_bank);
 #ifdef CGB
     VBK_REG = VBK_BANK_0;
+#endif
 #endif
 }
 
@@ -174,6 +185,14 @@ void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank,
         return;
     }
 
+#ifdef __ia16__
+    if (image_attr_ptr &&
+        (ReadBankedUBYTE(image_attr_ptr + ofs, image_attr_bank) & 0x08)) {
+        SetBankedBkgDataBank1(target_tile, 1, tileset->tiles + (*(UINT8 *)(VM_REF_TO_PTR(idx_start_tile)) << 4), tileset_bank);
+    } else {
+        SetBankedBkgData(target_tile, 1, tileset->tiles + (*(UINT8 *)(VM_REF_TO_PTR(idx_start_tile)) << 4), tileset_bank);
+    }
+#else
 #ifdef CGB
     if (_is_CGB) {
         if (ReadBankedUBYTE(image_attr_ptr + ofs, image_attr_bank) & 0x08) VBK_REG = VBK_BANK_1;
@@ -182,6 +201,7 @@ void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank,
     SetBankedBkgData(target_tile, 1, tileset->tiles + (*(UINT8 *)(VM_REF_TO_PTR(idx_start_tile)) << 4), tileset_bank);
 #ifdef CGB
     VBK_REG = VBK_BANK_0;
+#endif
 #endif
 }
 
@@ -193,7 +213,13 @@ void vm_rumble(SCRIPT_CTX * THIS, UBYTE enable) OLDCALL BANKED {
 void vm_load_tileset(SCRIPT_CTX * THIS, INT16 idx, UBYTE bank, VM_C_DATA(background_t) background) OLDCALL BANKED {
     UBYTE base_tile = *(INT16 *)(VM_REF_TO_PTR(idx));
     far_ptr_t tileset;
-#ifdef CGB
+#ifdef __ia16__
+    ReadBankedFarPtr(&tileset, BACKGROUND_FIELD_PTR(&(background->cgb_tileset)), bank);
+    if (tileset.ptr) {
+        UWORD n_tiles = ReadBankedUWORD(&(TILESET_PTR(tileset.ptr)->n_tiles), tileset.bank);
+        SetBankedBkgDataBank1(base_tile, n_tiles, TILESET_PTR(tileset.ptr)->tiles, tileset.bank);
+    }
+#elif defined(CGB)
     if (_is_CGB) {
         ReadBankedFarPtr(&tileset, BACKGROUND_FIELD_PTR(&(background->cgb_tileset)), bank);
         if (tileset.bank) {
