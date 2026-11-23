@@ -10,11 +10,11 @@
       "--scroll",
       "8",
       "--player-x",
-      "64"
+      "65"
     ],
     "precision": "exact"
   },
-  "frame_sha256": "cc569df6fa3c02653526a2f2cc23fcb8f7542e7525e7495e2a5df07e09d5411a",
+  "frame_sha256": "24dfcb075bb3a669c3ec7aa2173a62a31081eb2a4fbb6fc8b5358a8c5e9ca32f",
   "ram": [
     {
       "symbol": "scroll_x",

@@ -12,11 +12,11 @@
       "--player-x",
       "36",
       "--player-y",
-      "52"
+      "53"
     ],
     "precision": "exact"
   },
-  "frame_sha256": "e558bc65021a70839371fbc378e7aaacffc242efb99abf6ec5b377d565a59e17",
+  "frame_sha256": "1ddbc158e1a45ea918aeae643d5b17c8059dafcb796b854144aada1b0713ed5b",
   "ram": [
     {
       "symbol": "player_x",
