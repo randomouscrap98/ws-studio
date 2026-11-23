@@ -14,6 +14,9 @@
 #include "vm.h"
 #include "macro.h"
 #include "data/states_defines.h"
+#ifdef __ia16__
+#include "hal.h"
+#endif
 
 #define SPREAD_4 3
 #define SPREAD_2 1
@@ -154,6 +157,19 @@ void projectiles_render(void) NONBANKED {
         UINT8 screen_y = SUBPX_TO_PX(projectile->pos.y) - draw_scroll_y;
 
         SWITCH_ROM(projectile->def.sprite.bank);
+#ifdef __ia16__
+        const spritesheet_t __far *sprite = projectile->def.sprite.ptr;
+
+        {
+            UBYTE first = (UBYTE)hal_sprite_count();
+            UBYTE count = (UBYTE)hal_draw_metasprite(
+                *(sprite->metasprites + projectile->frame),
+                projectile->def.base_tile, 0, (int16_t)screen_x,
+                (int16_t)screen_y, HAL_SPRITE_MODE_8X16, HAL_FLIP_NONE);
+            hal_sprite_offset_tiles(first, count, 256);
+            allocated_hardware_sprites += count;
+        }
+#else
         spritesheet_t *sprite = projectile->def.sprite.ptr;
 
         allocated_hardware_sprites += move_metasprite(
@@ -163,6 +179,7 @@ void projectiles_render(void) NONBANKED {
             screen_x,
             screen_y
         );
+#endif
 
         projectile = projectile->next;
     }

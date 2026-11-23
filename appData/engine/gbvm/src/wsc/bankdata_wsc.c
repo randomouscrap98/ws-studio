@@ -25,7 +25,10 @@ void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char __far *ptr,
 void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char __far *ptr,
                          UBYTE bank) {
     (void)bank;
-    hal_load_sprite_tiles(i, l, ptr, 2);
+    /* GB sprites live at 0x8000 while unsigned background tiles use 0x9000.
+     * WSC has one tile store, so sprite tiles start at 256 and the engine
+     * passes props bit 3 when drawing them. */
+    hal_load_sprite_tiles((uint16_t)(256 + i), l, ptr, 2);
 }
 
 void SetBankedBkgTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,

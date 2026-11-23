@@ -14,8 +14,16 @@
 #include "parallax.h"
 #include "palette.h"
 
+#ifdef __ia16__
+#include "hal.h"
+#endif
+
 // put submap of a large map to screen
+#ifdef __ia16__
+void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h, const unsigned char __far *map, UINT8 map_w) OLDCALL;
+#else
 void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h, const unsigned char *map, UINT8 map_w) OLDCALL;
+#endif
 
 void scroll_queue_row(UBYTE x, UBYTE y);
 void scroll_queue_col(UBYTE x, UBYTE y);
@@ -43,6 +51,11 @@ UBYTE pending_w_i;
 INT16 current_row, new_row;
 INT16 current_col, new_col;
 
+#ifdef __ia16__
+INT16 scroll_center_x;
+INT16 scroll_center_y;
+#endif
+
 static FASTUBYTE _save_bank;
 
 void scroll_init(void) BANKED {
@@ -54,8 +67,38 @@ void scroll_init(void) BANKED {
     scroll_y_max    = 0;
     scroll_offset_x = 0;
     scroll_offset_y = 0;
+#ifdef __ia16__
+    scroll_center_x = 0;
+    scroll_center_y = 0;
+#endif
     scroll_reset();
 }
+
+#ifdef __ia16__
+/* Rule 4/5: derive camera limits from the scene size and the HAL screen size.
+ * A scene smaller than the screen is centred; its source origin stays at 0
+ * and scroll_center_* holds the distance to the hardware scroll position. */
+void scroll_set_bounds(UINT16 image_w, UINT16 image_h) {
+    if (image_w >= hal_screen_w_px) {
+        scroll_x_min = 0;
+        scroll_x_max = image_w - hal_screen_w_px;
+        scroll_center_x = 0;
+    } else {
+        scroll_x_min = 0;
+        scroll_x_max = 0;
+        scroll_center_x = (INT16)((hal_screen_w_px - image_w) >> 1);
+    }
+    if (image_h >= hal_screen_h_px) {
+        scroll_y_min = 0;
+        scroll_y_max = image_h - hal_screen_h_px;
+        scroll_center_y = 0;
+    } else {
+        scroll_y_min = 0;
+        scroll_y_max = 0;
+        scroll_center_y = (INT16)((hal_screen_h_px - image_h) >> 1);
+    }
+}
+#endif
 
 void scroll_reset(void) BANKED {
     pending_w_i     = 0;
@@ -91,8 +134,18 @@ void scroll_update(void) BANKED {
 
     scroll_x = x;
     scroll_y = y;
+#ifdef __ia16__
+    draw_scroll_x = x + scroll_offset_x - scroll_center_x;
+    draw_scroll_y = y + scroll_offset_y - scroll_center_y;
+#else
     draw_scroll_x = x + scroll_offset_x;
     draw_scroll_y = y + scroll_offset_y;
+#endif
+
+#ifdef __ia16__
+    /* Set the hardware scroll before the viewport early-returns. */
+    hal_scroll_to(draw_scroll_x, draw_scroll_y);
+#endif
 
     if (scroll_viewport(parallax_rows)) return;
     if (scroll_viewport(parallax_rows + 1)) return;
@@ -190,8 +243,13 @@ void scroll_render_rows(INT16 scroll_x, INT16 scroll_y, BYTE row_offset, BYTE n_
     pending_w_i = 0;
     pending_h_i = 0;
 
+#ifdef __ia16__
+    UBYTE x = MAX(0, PX_TO_TILE(scroll_x + scroll_center_x) - SCREEN_PAD_LEFT);
+    UBYTE y = MAX(0, PX_TO_TILE(scroll_y + scroll_center_y) + row_offset);
+#else
     UBYTE x = MAX(0, PX_TO_TILE(scroll_x) - SCREEN_PAD_LEFT);
     UBYTE y = MAX(0, PX_TO_TILE(scroll_y) + row_offset);
+#endif
 
     for (BYTE i = 0; i != n_rows && y != image_tile_height; ++i, y++) {
         scroll_load_row(x, y);

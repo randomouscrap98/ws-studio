@@ -2,6 +2,9 @@
 
 #include <string.h>
 #include "input.h"
+#ifdef __ia16__
+#include "hal.h"
+#endif
 
 joypads_t joypads;
 UBYTE frame_joy;
@@ -27,7 +30,11 @@ void input_update(void) NONBANKED {
     joypad_ex(&joypads);
     joy = joypads.joy0;
 #else
+#ifdef __ia16__
+    joypads.joy0 = joy = hal_input_read();
+#else
     joypads.joy0 = joy = joypad();
+#endif
 #endif
     if ((joy ^ last_joy) & INPUT_DPAD)
         recent_joy = ((joy & ~last_joy) & INPUT_DPAD);

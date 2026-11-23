@@ -98,7 +98,7 @@ uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
             attr |= WS_SPRITE_ATTR_FLIP_V;
 
         if (mode == HAL_SPRITE_MODE_8X16) {
-            uint16_t top = (uint16_t)(tile & 0xFE);
+            uint16_t top = (uint16_t)(tile & 0xFFFE);
 
             if (flip_v) {
                 /* The hardware swaps the halves as well as flipping them. */
@@ -117,6 +117,19 @@ uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
     }
 
     return (uint16_t)(hal_sprite_entries - first);
+}
+
+void hal_sprite_offset_tiles(uint16_t first, uint16_t count, uint16_t offset) {
+    uint16_t i;
+
+    for (i = 0; i < count && first + i < WS_SPRITE_MAX_COUNT; i++) {
+        volatile ws_sprite_t *sprite = &hal_sprite_table.entry[first + i];
+        uint16_t attr = sprite->attr;
+        uint16_t tile = (uint16_t)(((attr & WS_SPRITE_ATTR_TILE_MASK) + offset)
+                                   & WS_SPRITE_ATTR_TILE_MASK);
+
+        sprite->attr = (uint16_t)((attr & ~WS_SPRITE_ATTR_TILE_MASK) | tile);
+    }
 }
 
 void hal_sprites_end(void) {

@@ -70,6 +70,11 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
 /* Scroll the background to the given logical pixel position. */
 void hal_scroll_to(int16_t x, int16_t y);
 
+/* Fill screen 1 with the WSC blank tile (tile 255, BG palette 0) and clear
+ * that tile's pixels. The engine calls this on scene load so areas outside a
+ * scene smaller than the screen show BG palette 0 colour 0. */
+void hal_clear_bkg(void);
+
 /* Sprite tiles are plain GB 2bpp, converted without an index shift. Index 0
  * stays transparent. */
 void hal_load_sprite_tiles(uint16_t first, uint16_t count,
@@ -109,6 +114,9 @@ void hal_sprites_begin(void);
 uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
                              uint8_t props, int16_t x, int16_t y,
                              uint8_t mode, uint8_t flip);
+/* Add offset to the tile field of sprite entries [first, first+count). The
+ * engine keeps sprite tiles in the 256..511 half of WSC tile memory. */
+void hal_sprite_offset_tiles(uint16_t first, uint16_t count, uint16_t offset);
 void hal_sprites_end(void);
 uint16_t hal_sprite_count(void);
 

@@ -214,6 +214,93 @@ def render_sprites(out, sprite_data, tile_first, sprites):
                 out[pos:pos + 3] = bytes(colour)
 
 
+
+def render_scenario(scenario, out_path):
+    """Render a scenario produced by boot_oracle.py.
+
+    The scenario already describes the WSC screen-1 cell map (32x32), the
+    background tile data and final 8x8 sprite entries, so this follows the
+    hardware rather than the engine's loaders.
+    """
+    width = int(scenario.get("width", WIDTH))
+    height = int(scenario.get("height", HEIGHT))
+    bg_tiles = scenario["bg_tiles"]
+    bg_palettes = scenario["bg_palettes"]
+    cells = scenario["screen"]
+    spr_tiles = scenario.get("spr_tiles", [])
+    sprites = scenario.get("sprites", [])
+    scroll_x = int(scenario.get("scroll_x", 0)) & 0xFF
+    scroll_y = int(scenario.get("scroll_y", 0)) & 0xFF
+
+    palettes = [ [(0, 0, 0)] + [
+        convert_palette(c) for c in bg_palettes[p * 4:p * 4 + 4]
+    ] for p in range(len(bg_palettes) // 4) ]
+
+    out = bytearray(width * height * 3)
+    pos = 0
+    for y in range(height):
+        map_row = ((y + scroll_y) >> 3) & 31
+        for x in range(width):
+            map_col = ((x + scroll_x) >> 3) & 31
+            tile, palette, flip_h, flip_v = cells[map_row * 32 + map_col]
+            data = bg_tiles[tile] if tile < len(bg_tiles) else None
+            index = 0
+            if data is not None:
+                tx = x & 7
+                ty = y & 7
+                if flip_h:
+                    tx = 7 - tx
+                if flip_v:
+                    ty = 7 - ty
+                base = ty * 2
+                bit = 7 - tx
+                index = ((data[base] >> bit) & 1) | (
+                    ((data[base + 1] >> bit) & 1) << 1)
+            if palette < len(palettes):
+                colour = palettes[palette][index + 1]
+            else:
+                colour = (0, 0, 0)
+            out[pos:pos + 3] = bytes(colour)
+            pos += 3
+
+    sprite_palettes = [
+        [convert_palette(c) for c in scenario.get("spr_palettes", [])[p * 4:p * 4 + 4]]
+        for p in range(len(scenario.get("spr_palettes", [])) // 4)
+    ]
+
+    def sprite_pixel(tile, row, col):
+        index = tile - 256
+        if index < 0 or index >= len(spr_tiles):
+            return 0
+        data = spr_tiles[index]
+        base = row * 2
+        bit = 7 - col
+        return ((data[base] >> bit) & 1) | (((data[base + 1] >> bit) & 1) << 1)
+
+    for tile, x, y, flip_h, flip_v, palette in reversed(sprites):
+        for row in range(8):
+            ty = 7 - row if flip_v else row
+            py = y + row
+            if py < 0 or py >= height:
+                continue
+            for col in range(8):
+                tx = 7 - col if flip_h else col
+                index = sprite_pixel(tile, ty, tx)
+                if index == 0:
+                    continue
+                px = x + col
+                if px < 0 or px >= width:
+                    continue
+                if palette < len(sprite_palettes):
+                    colour = sprite_palettes[palette][index]
+                else:
+                    colour = (0, 0, 0)
+                pos = (py * width + px) * 3
+                out[pos:pos + 3] = bytes(colour)
+
+    Path(out_path).write_bytes(out)
+
+
 def main():
     base_data = Path(__file__).resolve().parent.parent / "halrom" / "src"
     parser = argparse.ArgumentParser(description=__doc__)
@@ -233,8 +320,24 @@ def main():
                         help="8x8 flip demo x (default: ACCENT_X)")
     parser.add_argument("--accent-y", type=int, default=None,
                         help="8x8 flip demo y (default: ACCENT_Y)")
+    parser.add_argument("--scenario", default=None,
+                        help="JSON scenario from boot_oracle.py")
     parser.add_argument("--out", required=True, help="output RGB24 file")
     args = parser.parse_args()
+
+    if args.scenario is not None:
+        import json
+        try:
+            scenario = json.loads(Path(args.scenario).read_text())
+        except (OSError, ValueError) as exc:
+            print("ref_render: cannot read scenario: {}".format(exc), file=sys.stderr)
+            return 2
+        try:
+            render_scenario(scenario, args.out)
+        except (KeyError, TypeError, ValueError) as exc:
+            print("ref_render: invalid scenario: {}".format(exc), file=sys.stderr)
+            return 2
+        return 0
 
     try:
         arrays = parse_arrays(Path(args.data))

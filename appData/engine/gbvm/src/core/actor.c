@@ -18,6 +18,10 @@
 #include "vm.h"
 #include "macro.h"
 
+#ifdef __ia16__
+#include "hal.h"
+#endif
+
 #ifdef STRICT
     #include <gb/bgb_emu.h>
     #include <gb/crash_handler.h>
@@ -27,10 +31,35 @@
 #define ANIM_PAUSED                255
 
 #define TILE16_OFFSET              64u
+#ifdef __ia16__
+#define SCREEN_TILE16_W            ((hal_screen_w_px + 15) >> 4)
+#define SCREEN_TILE16_H            ((hal_screen_h_px + 15) >> 4)
+#else
 #define SCREEN_TILE16_W            10u
 #define SCREEN_TILE16_H            9u
+#endif
 #define ACTOR_BOUNDS_TILE16        6u
 #define ACTOR_BOUNDS_TILE16_HALF   3u
+
+#ifdef __ia16__
+/* Sprite tiles are stored from tile 256 on WSC so they cannot overlap the
+ * background tiles; props bit 3 selects that range in hal_draw_metasprite. */
+static UBYTE actor_draw_metasprite(const metasprite_t __far *ms, UBYTE base_tile,
+                                   UBYTE sprite_offset, UBYTE x, UBYTE y) {
+    UBYTE first = (UBYTE)hal_sprite_count();
+    UBYTE count = (UBYTE)hal_draw_metasprite(ms, base_tile, 0, (int16_t)x,
+                                             (int16_t)y, HAL_SPRITE_MODE_8X16,
+                                             HAL_FLIP_NONE);
+    (void)sprite_offset;
+    hal_sprite_offset_tiles(first, count, 256);
+    return count;
+}
+#define ACTOR_META_PTR(ms) ((const metasprite_t __far *)(ms))
+#else
+#define actor_draw_metasprite(ms, base_tile, sprite_offset, x, y) \
+    move_metasprite((ms), (base_tile), (sprite_offset), (x), (y))
+#define ACTOR_META_PTR(ms) (ms)
+#endif
 
 BANKREF(ACTOR)
 
@@ -172,7 +201,11 @@ void actors_render(void) NONBANKED {
 
     if (emote_actor) {
         SWITCH_ROM(emote_actor->sprite.bank);
+#ifdef __ia16__
+        const spritesheet_t __far *sprite = emote_actor->sprite.ptr;
+#else
         spritesheet_t *sprite = emote_actor->sprite.ptr;
+#endif
         screen_x = SUBPX_TO_PX(emote_actor->pos.x) - scroll_x + sprite->emote_origin.x;
         screen_y = SUBPX_TO_PX(emote_actor->pos.y) - scroll_y + sprite->emote_origin.y;
 
@@ -182,8 +215,8 @@ void actors_render(void) NONBANKED {
         }
 
         const metasprite_t * emote_metasprite = ((LCDC_REG & LCDCF_OBJ16) ? emote_metasprite_8_16 : emote_metasprite_8_8);
-        allocated_hardware_sprites += move_metasprite(
-            emote_metasprite,
+        allocated_hardware_sprites += actor_draw_metasprite(
+            ACTOR_META_PTR(emote_metasprite),
             allocated_sprite_tiles,
             allocated_hardware_sprites,
             screen_x,
@@ -211,9 +244,13 @@ void actors_render(void) NONBANKED {
 
         if (!(window_hide_actors && (screen_x + 8 > WX_REG) && (screen_y - 8 > WY_REG))) {
             SWITCH_ROM(PLAYER.sprite.bank);
+#ifdef __ia16__
+            const spritesheet_t __far *sprite = PLAYER.sprite.ptr;
+#else
             spritesheet_t *sprite = PLAYER.sprite.ptr;
+#endif
 
-            allocated_hardware_sprites += move_metasprite(
+            allocated_hardware_sprites += actor_draw_metasprite(
                 *(sprite->metasprites + PLAYER.frame),
                 PLAYER.base_tile,
                 allocated_hardware_sprites,
@@ -241,9 +278,13 @@ void actors_render(void) NONBANKED {
             continue;
         }
         SWITCH_ROM(actor->sprite.bank);
+#ifdef __ia16__
+        const spritesheet_t __far *sprite = actor->sprite.ptr;
+#else
         spritesheet_t *sprite = actor->sprite.ptr;
+#endif
 
-        allocated_hardware_sprites += move_metasprite(
+        allocated_hardware_sprites += actor_draw_metasprite(
             *(sprite->metasprites + actor->frame),
             actor->base_tile,
             allocated_hardware_sprites,

@@ -16,7 +16,11 @@ UBYTE tile_col_test_range_y(UBYTE tile_mask, UBYTE tx, UBYTE ty_start, UBYTE ty_
     UBYTE _save = CURRENT_BANK;
     UBYTE inc = UBYTE_LESS_THAN(ty_start, ty_end);
     SWITCH_ROM(collision_bank);
+#ifdef __ia16__
+    const UBYTE __far *tile_ptr = collision_ptr + (ty_start * (UINT16)image_tile_width) + tx;
+#else
     UBYTE* tile_ptr = collision_ptr + (ty_start * (UINT16)image_tile_width) + tx;
+#endif
     while (TRUE) {
         UBYTE tile = *tile_ptr;
         if (tile & tile_mask) {
@@ -53,7 +57,11 @@ UBYTE tile_col_test_range_x(UBYTE tile_mask, UBYTE ty, UBYTE tx_start, UBYTE tx_
     UBYTE _save = CURRENT_BANK;
     UBYTE inc = UBYTE_LESS_THAN(tx_start, tx_end);
     SWITCH_ROM(collision_bank);
+#ifdef __ia16__
+    const UBYTE __far *tile_ptr = collision_ptr + (ty * (UINT16)image_tile_width) + tx_start;
+#else
     UBYTE* tile_ptr = collision_ptr + (ty * (UINT16)image_tile_width) + tx_start;
+#endif
     while (TRUE) {
         UBYTE tile = *tile_ptr;
         if (tile & tile_mask) {

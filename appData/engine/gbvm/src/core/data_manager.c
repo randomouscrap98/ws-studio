@@ -17,6 +17,10 @@
 #include "data/data_bootstrap.h"
 #include "macro.h"
 
+#ifdef __ia16__
+#include "hal.h"
+#endif
+
 #define ALLOC_BKG_TILES_TOWARDS_SPR
 
 #define EMOTE_SPRITE_SIZE       4
@@ -24,13 +28,25 @@
 far_ptr_t current_scene;
 
 UBYTE image_bank;
+#ifdef __ia16__
+const unsigned char __far *image_ptr;
+#else
 unsigned char* image_ptr;
+#endif
 
 UBYTE image_attr_bank;
+#ifdef __ia16__
+const unsigned char __far *image_attr_ptr;
+#else
 unsigned char* image_attr_ptr;
+#endif
 
 UBYTE collision_bank;
+#ifdef __ia16__
+const unsigned char __far *collision_ptr;
+#else
 unsigned char* collision_ptr;
+#endif
 
 UBYTE image_tile_width;
 UBYTE image_tile_height;
@@ -58,13 +74,17 @@ void load_init(void) BANKED {
     scene_stack_ptr = scene_stack;
 }
 
-void load_bkg_tileset(const tileset_t* tiles, UBYTE bank) BANKED {
+void load_bkg_tileset(DATA_PTR(tileset_t) tiles, UBYTE bank) BANKED {
     if ((!bank) && (!tiles)) return;
 
     UWORD n_tiles = ReadBankedUWORD(&(tiles->n_tiles), bank);
 
     // load first background chunk, align to zero tile
+#ifdef __ia16__
+    const UBYTE __far *data = tiles->tiles;
+#else
     UBYTE * data = tiles->tiles;
+#endif
     if (n_tiles < 128) {
         if ((UBYTE)n_tiles) SetBankedBkgData(0, n_tiles, data, bank);
         return;
@@ -95,7 +115,7 @@ void load_bkg_tileset(const tileset_t* tiles, UBYTE bank) BANKED {
     if ((UBYTE)n_tiles) SetBankedSpriteData(0, n_tiles, data, bank);
 }
 
-void load_background(const background_t* background, UBYTE bank) BANKED {
+void load_background(DATA_PTR(background_t) background, UBYTE bank) BANKED {
     background_t bkg;
     MemcpyBanked(&bkg, background, sizeof(bkg), bank);
 
@@ -122,20 +142,28 @@ void load_background(const background_t* background, UBYTE bank) BANKED {
 #endif
 }
 
-inline UBYTE load_sprite_tileset(UBYTE base_tile, const tileset_t * tileset, UBYTE bank) {
+inline UBYTE load_sprite_tileset(UBYTE base_tile, DATA_PTR(tileset_t) tileset, UBYTE bank) {
     if ((!bank) && (!tileset)) return 0;
     UBYTE n_tiles = ReadBankedUBYTE(&(tileset->n_tiles), bank);
     if (n_tiles) SetBankedSpriteData(base_tile, n_tiles, tileset->tiles, bank);
     return n_tiles;
 }
 
-UBYTE load_sprite(UBYTE sprite_offset, const spritesheet_t * sprite, UBYTE bank) BANKED {
+UBYTE load_sprite(UBYTE sprite_offset, DATA_PTR(spritesheet_t) sprite, UBYTE bank) BANKED {
     far_ptr_t data;
+#ifdef __ia16__
+    ReadBankedFarPtr(&data, (const void __far *)&sprite->tileset, bank);
+#else
     ReadBankedFarPtr(&data, (void *)&sprite->tileset, bank);
+#endif
     UBYTE n_tiles = load_sprite_tileset(sprite_offset, data.ptr, data.bank);
 #ifdef CGB
     if (_is_CGB) {
+#ifdef __ia16__
+        ReadBankedFarPtr(&data, (const void __far *)&sprite->cgb_tileset, bank);
+#else
         ReadBankedFarPtr(&data, (void *)&sprite->cgb_tileset, bank);
+#endif
         if (data.ptr) {
             VBK_REG = VBK_BANK_1;
             UBYTE n_cgb_tiles = load_sprite_tileset(sprite_offset, data.ptr, data.bank);
@@ -147,20 +175,30 @@ UBYTE load_sprite(UBYTE sprite_offset, const spritesheet_t * sprite, UBYTE bank)
     return n_tiles;
 }
 
-void load_animations(const spritesheet_t *sprite, UBYTE bank, UWORD animation_set, animation_t * res_animations) NONBANKED {
+void load_animations(DATA_PTR(spritesheet_t) sprite, UBYTE bank, UWORD animation_set, animation_t * res_animations) NONBANKED {
+#ifdef __ia16__
+    MemcpyBanked(res_animations,
+                 sprite->animations + sprite->animations_lookup[animation_set],
+                 sizeof(animation_t) * 8, bank);
+#else
     UBYTE _save = CURRENT_BANK;
     SWITCH_ROM(bank);
     memcpy(res_animations, sprite->animations + sprite->animations_lookup[animation_set], sizeof(animation_t) * 8);
     SWITCH_ROM(_save);
+#endif
 }
 
-void load_bounds(const spritesheet_t *sprite, UBYTE bank, rect16_t * res_bounds) BANKED {
+void load_bounds(DATA_PTR(spritesheet_t) sprite, UBYTE bank, rect16_t * res_bounds) BANKED {
     MemcpyBanked(res_bounds, &sprite->bounds, sizeof(sprite->bounds), bank);
 }
 
-UBYTE do_load_palette(palette_entry_t * dest, const palette_t * palette, UBYTE bank) BANKED {
+UBYTE do_load_palette(palette_entry_t * dest, DATA_PTR(palette_t) palette, UBYTE bank) BANKED {
     UBYTE mask = ReadBankedUBYTE(&palette->mask, bank);
+#ifdef __ia16__
+    const palette_entry_t __far * sour = palette->cgb_palette;
+#else
     palette_entry_t * sour = palette->cgb_palette;
+#endif
     for (UBYTE i = mask; (i); i >>= 1, dest++) {
         if ((i & 1) == 0) continue;
         MemcpyBanked(dest, sour, sizeof(palette_entry_t), bank);
@@ -169,8 +207,11 @@ UBYTE do_load_palette(palette_entry_t * dest, const palette_t * palette, UBYTE b
     return mask;
 }
 
-inline void load_bkg_palette(const palette_t * palette, UBYTE bank) {
+inline void load_bkg_palette(DATA_PTR(palette_t) palette, UBYTE bank) {
     UBYTE mask = do_load_palette(BkgPalette, palette, bank);
+#ifdef __ia16__
+    hal_set_bkg_palette(0, 8, (const uint16_t __far *)BkgPalette);
+#endif
     DMG_palette[0] = ReadBankedUBYTE(palette->palette, bank);
 #ifdef SGB
     if (_is_SGB) {
@@ -182,21 +223,28 @@ inline void load_bkg_palette(const palette_t * palette, UBYTE bank) {
 #endif
 }
 
-inline void load_sprite_palette(const palette_t * palette, UBYTE bank) {
+inline void load_sprite_palette(DATA_PTR(palette_t) palette, UBYTE bank) {
     do_load_palette(SprPalette, palette, bank);
+#ifdef __ia16__
+    hal_set_sprite_palette(0, 8, (const uint16_t __far *)SprPalette);
+#endif
     UWORD data = ReadBankedUWORD(palette->palette, bank);
     DMG_palette[1] = (UBYTE)data;
     DMG_palette[2] = (UBYTE)(data >> 8);
 }
 
-UBYTE load_scene(const scene_t * scene, UBYTE bank, UBYTE init_data) BANKED {
+UBYTE load_scene(DATA_PTR(scene_t) scene, UBYTE bank, UBYTE init_data) BANKED {
     UBYTE i;
     scene_t scn;
 
     MemcpyBanked(&scn, scene, sizeof(scn), bank);
 
     current_scene.bank  = bank;
+#ifdef __ia16__
+    current_scene.ptr   = (const void __far *)scene;
+#else
     current_scene.ptr   = (void *)scene;
+#endif
 
     // Load scene
     scene_type      = scn.type;
@@ -225,10 +273,15 @@ UBYTE load_scene(const scene_t * scene, UBYTE bank, UBYTE init_data) BANKED {
         scene_LCD_type = LCD_parallax;
     }
 
+#ifdef __ia16__
+    hal_clear_bkg();
+    scroll_set_bounds(image_width, image_height);
+#else
     scroll_x_min = scn.scroll_bounds.left;
     scroll_x_max = scn.scroll_bounds.right;
     scroll_y_min = scn.scroll_bounds.top;
     scroll_y_max = scn.scroll_bounds.bottom;
+#endif
     scroll_offset_x = scroll_offset_y = 0;
 
     if (scene_type != SCENE_TYPE_LOGO) {
@@ -247,11 +300,19 @@ UBYTE load_scene(const scene_t * scene, UBYTE bank, UBYTE init_data) BANKED {
 
     // Load sprites
     if (sprites_len != 0) {
+#ifdef __ia16__
+        const far_ptr_t __far * scene_sprite_ptrs = scn.sprites.ptr;
+#else
         far_ptr_t * scene_sprite_ptrs = scn.sprites.ptr;
+#endif
         far_ptr_t tmp_ptr;
         for (i = 0; i != sprites_len; i++) {
             if (i == MAX_SCENE_SPRITES) break;
+#ifdef __ia16__
+            ReadBankedFarPtr(&tmp_ptr, (const void __far *)scene_sprite_ptrs, scn.sprites.bank);
+#else
             ReadBankedFarPtr(&tmp_ptr, (UBYTE *)scene_sprite_ptrs, scn.sprites.bank);
+#endif
             scene_sprites_base_tiles[i] = allocated_sprite_tiles;
             allocated_sprite_tiles += load_sprite(allocated_sprite_tiles, tmp_ptr.ptr, tmp_ptr.bank);
             scene_sprite_ptrs++;
@@ -291,7 +352,11 @@ UBYTE load_scene(const scene_t * scene, UBYTE bank, UBYTE init_data) BANKED {
                     UBYTE idx = IndexOfFarPtr(scn.sprites.ptr, scn.sprites.bank, sprites_len, &actor->sprite);
                     actor->base_tile = (idx < sprites_len) ? scene_sprites_base_tiles[idx] : 0;
                 }
+#ifdef __ia16__
+                load_animations(actor->sprite.ptr, actor->sprite.bank, ANIM_SET_DEFAULT, actor->animations);
+#else
                 load_animations((void *)actor->sprite.ptr, actor->sprite.bank, ANIM_SET_DEFAULT, actor->animations);
+#endif
                 // add to inactive list by default
                 CLR_FLAG(actor->flags, ACTOR_FLAG_ACTIVE);
                 DL_PUSH_HEAD(actors_inactive_head, actor);
@@ -358,6 +423,10 @@ void load_player(void) BANKED {
     SET_FLAG(PLAYER.flags, ACTOR_FLAG_COLLISION);
 }
 
+#ifdef __ia16__
+void load_emote(const unsigned char __far *tiles, UBYTE bank) BANKED {
+#else
 void load_emote(const unsigned char *tiles, UBYTE bank) BANKED {
+#endif
     SetBankedSpriteData(allocated_sprite_tiles, EMOTE_SPRITE_SIZE, tiles + 0, bank);
 }

@@ -3,6 +3,20 @@
 
 #include "actor.h"
 
+#ifdef __ia16__
+#include "hal.h"
+
+/* The WSC HAL owns the sprite table; these engine hooks just reset the
+ * allocation counter and latch the table once per frame. */
+inline void toggle_shadow_OAM(void) {
+    hal_sprites_begin();
+    allocated_hardware_sprites = 0;
+}
+inline void activate_shadow_OAM(void) {
+    hal_sprites_end();
+}
+#else
+
 extern volatile OAM_item_t shadow_OAM2[40];
 
 inline void toggle_shadow_OAM(void) {
@@ -17,5 +31,7 @@ inline void activate_shadow_OAM(void) {
     hide_sprites_range(allocated_hardware_sprites, MAX_HARDWARE_SPRITES);
     _shadow_OAM_base = __render_shadow_OAM;
 }
+
+#endif /* __ia16__ */
 
 #endif

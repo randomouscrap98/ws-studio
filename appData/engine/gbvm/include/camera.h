@@ -3,10 +3,20 @@
 
 #include <gbdk/platform.h>
 
+#ifdef __ia16__
+/* The visible size comes from the WSC HAL so a vertical mode can change it
+ * at runtime. */
+#include "hal.h"
+#define SCREEN_WIDTH      (hal_screen_w_px)
+#define SCREEN_HEIGHT     (hal_screen_h_px)
+#define SCREEN_WIDTH_HALF ((hal_screen_w_px) >> 1)
+#define SCREEN_HEIGHT_HALF ((hal_screen_h_px) >> 1)
+#else
 #define SCREEN_WIDTH 160
 #define SCREEN_HEIGHT 144
 #define SCREEN_WIDTH_HALF 80
 #define SCREEN_HEIGHT_HALF 72
+#endif
 
 #define CAMERA_UNLOCKED 0x00
 #define CAMERA_LOCK_X_FLAG 0x01

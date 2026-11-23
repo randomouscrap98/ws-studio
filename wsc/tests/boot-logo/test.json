@@ -1,0 +1,13 @@
+{
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
+  "build": "gamerom",
+  "frames": 60,
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/boot_oracle.py",
+    "args": ["--scene", "scene_logo"],
+    "precision": "exact"
+  },
+  "ram": "gamerom/build/ram_logo.json"
+}

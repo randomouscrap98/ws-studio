@@ -6,6 +6,22 @@
 #include "compat.h"
 #include "parallax.h"
 
+#ifdef __ia16__
+#include "hal.h"
+/* WSC screen 1 is a 32x32 cell map and the visible size is a HAL variable.
+ * No padding is needed because the hardware map itself wraps; the refresh
+ * size has one extra row/column for a partially scrolled edge. */
+#define SCROLL_BANK 1
+#define SCREEN_TILES_W (hal_screen_w)
+#define SCREEN_TILES_H (hal_screen_h)
+#define SCREEN_PAD_LEFT 0
+#define SCREEN_PAD_RIGHT 0
+#define SCREEN_PAD_TOP 0
+#define SCREEN_PAD_BOTTOM 0
+#define SCREEN_TILE_REFRES_W ((hal_screen_w) + 1)
+#define SCREEN_TILE_REFRES_H ((hal_screen_h) + 1)
+#define PENDING_BATCH_SIZE 11
+#else
 #define SCROLL_BANK 1
 #define SCREEN_TILES_W 20  // 160 >> 3 = 20
 #define SCREEN_TILES_H 18  // 144 >> 3 = 18
@@ -16,6 +32,7 @@
 #define SCREEN_TILE_REFRES_W (SCREEN_TILES_W + SCREEN_PAD_LEFT + SCREEN_PAD_RIGHT)
 #define SCREEN_TILE_REFRES_H (SCREEN_TILES_H + SCREEN_PAD_TOP + SCREEN_PAD_BOTTOM)
 #define PENDING_BATCH_SIZE 11
+#endif
 
 extern INT16 scroll_x;
 extern INT16 scroll_y;
@@ -29,6 +46,17 @@ extern BYTE scroll_offset_x;
 extern BYTE scroll_offset_y;
 extern UINT8 pending_w_i;
 extern UINT8 pending_h_i;
+
+#ifdef __ia16__
+/* Distance between the source-map origin and the hardware scroll position
+ * when the scene is smaller than the screen (rule 5). */
+extern INT16 scroll_center_x;
+extern INT16 scroll_center_y;
+void scroll_set_bounds(UINT16 image_w, UINT16 image_h);
+UINT8 * GetWinAddr(void);
+UINT8 * GetBkgAddr(void);
+void scroll_rect(UBYTE * base_addr, UBYTE w, UBYTE h, UBYTE fill);
+#endif
 
 /**
  * Resets scroll settings on engine start

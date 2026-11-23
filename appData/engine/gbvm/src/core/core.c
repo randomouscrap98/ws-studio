@@ -34,6 +34,12 @@
 #include "shadow.h"
 #include "data/data_bootstrap.h"
 
+#ifdef __ia16__
+#include "hal.h"
+/* Set by the generated bootstrap C: start scene and platform globals. */
+void bootstrap_init(void);
+#endif
+
 extern void __bank_bootstrap_script;
 extern const UBYTE bootstrap_script[];
 
@@ -188,6 +194,9 @@ void process_VM(void) {
 }
 
 void core_run(void) BANKED {
+#ifdef __ia16__
+    hal_display_init();
+#endif
 #ifdef SGB
     for (UBYTE i = 4; i != 0; i--) wait_vbl_done(); // this delay is required for PAL SNES
     _is_SGB = sgb_check();
@@ -198,7 +207,11 @@ void core_run(void) BANKED {
     _is_CGB = ((!_is_SGB) && (_cpu == CGB_TYPE) && (*(UBYTE *)0x0143 & 0x80));
 #else
     _is_SGB = FALSE;
+#ifdef __ia16__
+    _is_CGB = TRUE;
+#else
     _is_CGB = ((_cpu == CGB_TYPE) && (*(UBYTE *)0x0143 & 0x80));
+#endif
 #endif
     // GBA features only available together with CGB
     _is_GBA = (_is_GBA && _is_CGB);
@@ -207,7 +220,9 @@ void core_run(void) BANKED {
     if (_is_CGB) cpu_fast();
 #endif
 
+#ifndef __ia16__
     memset(shadow_OAM2, 0, sizeof(shadow_OAM2));
+#endif
 
     data_init();
 
@@ -219,7 +234,11 @@ void core_run(void) BANKED {
     WX_REG = DEVICE_WINDOW_PX_OFFSET_X;
     WY_REG = MENU_CLOSED_Y;
 
+#ifdef __ia16__
+    initrand(hal_vblank_count());
+#else
     initrand(DIV_REG);
+#endif
 
     // reset everything (before init interrupts below!)
     core_reset_hook();
@@ -236,6 +255,9 @@ void core_run(void) BANKED {
         music_setup_timer();
         IE_REG |= (TIM_IFLAG | LCD_IFLAG | SIO_IFLAG);
     }
+#ifdef __ia16__
+    bootstrap_init();
+#endif
     DISPLAY_ON;
 
     // execute bootstrap script that just raises RESET exception
