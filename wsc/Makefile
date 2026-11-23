@@ -10,13 +10,19 @@ HOST_CFLAGS := -std=gnu99 -Wall -Wextra -Werror=pointer-to-int-cast \
 	-Werror=int-to-pointer-cast -fsanitize=address,undefined \
 	-fno-omit-frame-pointer -fno-builtin -Wno-unknown-pragmas \
 	-Wno-pointer-sign -DNINTENDO
-HOST_INCLUDES := -I$(WSC_DIR)host/include -I$(GBVM_INCLUDE)
+S2C := $(WSC_DIR)tools/s2c.py
+S2C_TEST_SRCS := $(WSC_DIR)tests/scripts/s2c_main.s $(WSC_DIR)tests/scripts/s2c_far.s
+S2C_TEST_DIR := $(WSC_DIR)build/scripts_test
+S2C_TEST_C := $(S2C_TEST_DIR)/s2c_test.c
+S2C_TEST_H := $(S2C_TEST_DIR)/s2c_test.h
+
+HOST_INCLUDES := -I$(WSC_DIR)host/include -I$(GBVM_INCLUDE) -I$(S2C_TEST_DIR)
 HOST_BIN := $(WSC_DIR)build/vmtest
 HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
-	$(WSC_DIR)host/vm_host.c $(WSC_DIR)vmtest/vmtest.c
+	$(WSC_DIR)host/vm_host.c $(WSC_DIR)vmtest/vmtest.c $(S2C_TEST_C)
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
-.PHONY: test test-negative wsrun host-test gen-dispatch
+.PHONY: test test-negative wsrun host-test gen-dispatch s2c-check
 
 wsrun:
 	$(MAKE) -C $(WSC_DIR)tools/wsrun
@@ -29,6 +35,14 @@ test-negative: wsrun
 
 gen-dispatch:
 	$(PYTHON) $(WSC_DIR)tools/gen_dispatch.py --check
+
+s2c-check:
+	$(PYTHON) $(WSC_DIR)tools/s2c_check.py
+
+$(S2C_TEST_C) $(S2C_TEST_H): $(S2C_TEST_SRCS) $(S2C) $(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
+	@mkdir -p $(S2C_TEST_DIR)
+	$(PYTHON) $(S2C) --include $(GBVM_INCLUDE) --out $(S2C_TEST_DIR) \
+		--name s2c_test --bank s2c_far=1 $(S2C_TEST_SRCS)
 
 $(HOST_BIN): $(HOST_DEPS)
 	@mkdir -p $(dir $@)

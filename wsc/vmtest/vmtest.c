@@ -7,6 +7,7 @@
 
 #include "vm.h"
 #include "vm_bytecode.h"
+#include "s2c_test.h"
 
 #define HOST_BANKS 4
 #define HOST_RAM_SIZE 0x10000
@@ -518,6 +519,30 @@ static void test_call_far(void) {
     check_eq("call_far.remote_bank", script_memory[1], 2);
 }
 
+static void test_converted_scripts(void) {
+    const UBYTE *main_bank = S2C_SCRIPT_S2C_MAIN_BANK == 0 ? s2c_bank0 :
+                             S2C_SCRIPT_S2C_MAIN_BANK == 1 ? s2c_bank1 : NULL;
+    const UBYTE *far_bank = S2C_SCRIPT_S2C_FAR_BANK == 0 ? s2c_bank0 :
+                            S2C_SCRIPT_S2C_FAR_BANK == 1 ? s2c_bank1 : NULL;
+    check_true("script_conv.banks", main_bank != NULL && far_bank != NULL,
+               "generated bank index out of range");
+    if (!main_bank || !far_bank) return;
+    host_banks[S2C_SCRIPT_S2C_FAR_BANK] = far_bank;
+    UBYTE status = run_code(
+        S2C_SCRIPT_S2C_MAIN_BANK,
+        (UBYTE *)(main_bank + S2C_SCRIPT_S2C_MAIN_OFFSET),
+        NULL
+    );
+    check_true("script_conv.run", status == RUNNER_DONE, "runner did not finish");
+    check_eq("script_conv.const", script_memory[0], 10);
+    check_eq("script_conv.rpn", script_memory[1], 12);
+    check_eq("script_conv.if", script_memory[2], 222);
+    check_eq("script_conv.loop_counter", script_memory[3], 0);
+    check_eq("script_conv.loop_body", script_memory[4], 3);
+    check_eq("script_conv.far_return", script_memory[5], 1);
+    check_eq("script_conv.far_body", script_memory[6], 0x42);
+}
+
 static void test_get_far(void) {
     static const UBYTE far_data[] = { 0x9C, 0x34, 0x12 };
     Code c;
@@ -747,6 +772,7 @@ int main(void) {
     test_stop_pc();
     test_branches();
     test_call_far();
+    test_converted_scripts();
     test_get_far();
     test_loop();
     test_switch();

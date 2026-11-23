@@ -37,6 +37,10 @@ flamegraph.html
 !.yarn/sdks
 !.yarn/versions
 
+# Python caches
+__pycache__/
+*.pyc
+
 # Wonderful / WSC build outputs
 wsc/build/
 wsc/hello/build/
