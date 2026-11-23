@@ -23,10 +23,9 @@ const uint8_t __far *vm_bank_base(UBYTE bank) {
     return vm_banks[bank];
 }
 
-/* IRAM is the default data segment on the WonderSwan, so near addresses are
- * already system-RAM offsets. */
-UBYTE *vm_ram_ptr(UWORD addr) {
-    return (UBYTE *)addr;
+/* C RAM operands are indexes into the converter-generated symbol table. */
+UBYTE *vm_ram_ptr(UWORD idx) {
+    return vm_ram_syms[idx];
 }
 
 UWORD sys_time;
