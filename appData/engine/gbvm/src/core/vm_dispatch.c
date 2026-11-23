@@ -497,6 +497,25 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x40: { /* vm_load_text */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_nargs = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_load_text(0, 0, CTX, a_nargs);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x41: { /* vm_display_text */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_start_tile = vm_fetch8(&p);
+    UBYTE a_options = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_display_text(CTX, a_options, a_start_tile);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x42: { /* vm_overlay_setpos */
         const UBYTE VM_FAR *p = CTX->PC + 1;
     UBYTE a_pos_y = vm_fetch8(&p);
@@ -550,6 +569,15 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     UBYTE a_x = vm_fetch8(&p);
         CTX->PC = p;
         vm_overlay_clear(CTX, a_x, a_y, a_w, a_h, a_color, a_options);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x4B: { /* vm_set_font */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_font_index = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_set_font(CTX, a_font_index);
         return 1;
       }
 #endif
@@ -1017,6 +1045,15 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x85: { /* vm_switch_text_layer */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_target = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_switch_text_layer(CTX, a_target);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x86: { /* vm_actor_get_angle */
         const UBYTE VM_FAR *p = CTX->PC + 1;
     INT16 a_dest = (INT16)vm_fetch16(&p);
@@ -1064,6 +1101,18 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_cos_scale(CTX, a_idx, a_idx_angle, a_accuracy);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x8B: { /* vm_set_text_sound */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_channel_mask = vm_fetch8(&p);
+    UWORD a_offset_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+        UBYTE VM_FAR *a_offset = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_offset_off);
+        CTX->PC = p;
+        vm_set_text_sound(CTX, a_bank, a_offset, a_channel_mask);
         return 1;
       }
 #endif

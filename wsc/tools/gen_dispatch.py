@@ -11,9 +11,10 @@ Every handler declared in engine/gbvm/include/vm*.h is parsed and checked
 against script_cmds[] and vm.i.  The dispatcher emits all of them for the
 WonderSwan build.  The host build only links the core vm.h handlers, so the
 engine handler cases are compiled under __ia16__.  Handlers for hardware the
-WSC does not have (SGB, SIO/link, GB Printer, RTC) and the text/menu/font
-handlers in vm_ui.h stay "unimplemented opcode"; see EXCLUDED_HEADERS and
-EXCLUDED_HANDLERS.  The overlay-window handlers in vm_ui.h are emitted.
+WSC does not have (SGB, SIO/link, GB Printer, RTC) stay "unimplemented
+opcode"; menu and the indirect text loader in vm_ui.h are also excluded.  See
+EXCLUDED_HEADERS and EXCLUDED_HANDLERS.  The overlay-window and direct text
+handlers in vm_ui.h are emitted.
 """
 
 import argparse
@@ -39,16 +40,11 @@ EXCLUDED_HEADERS = {
     "vm_sio.h": "SIO/link",
 }
 
-# Text, menu and font opcodes in vm_ui.h stay excluded until the dialogue
-# chunk.  The overlay-window opcodes in the same header are ported.
+# Menu opcodes in vm_ui.h stay excluded.  The indirect text loader is not
+# emitted by the gbs2 compiler; its stack layout is GB-specific.
 EXCLUDED_HANDLERS = {
-    "vm_load_text",
     "vm_load_text_ex",
-    "vm_display_text",
-    "vm_switch_text_layer",
     "vm_choice",
-    "vm_set_font",
-    "vm_set_text_sound",
 }
 
 # Pointer operands that are (bank, C data) pairs, not script bytecode.  They

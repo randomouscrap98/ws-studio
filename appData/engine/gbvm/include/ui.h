@@ -69,7 +69,11 @@ extern UBYTE text_scroll_fill;
 
 extern UBYTE text_sound_mask;
 extern UBYTE text_sound_bank;
+#ifdef __ia16__
+extern const UBYTE __far * text_sound_data;
+#else
 extern const UBYTE * text_sound_data;
+#endif
 
 extern const UBYTE ui_time_masks[];
 

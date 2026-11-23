@@ -158,3 +158,17 @@ The keypad values used by the input tests correspond to the libws
   renders the window cells and applies the same GB actor-hiding rule as the
   engine. `boot-logo` now waits until its own overlay has moved off-screen
   again (frame 200).
+- `text-instant` / `text-wait` / `text-wait-a`: run `gamerom_c15_instant`,
+  which opens the overlay at (8, 8) and prints `Wow! Found\nGOLD COIN.` at
+  text speed index 0. `wsc/tools/text_oracle.py` composes the glyph tiles
+  from the exported variable-width font and renders the window. `text-wait`
+  holds no buttons and checks that the script is still in its modal wait
+  (`VAR_QUEST10 == 0`); `text-wait-a` holds A from frame 30 and checks that
+  it continued (`VAR_QUEST10 == 1`).
+- `text-speed`: `gamerom_c15_speed` prints the same text at speed index 2
+  (`\001\003`). `ui_time_masks[2]` is 1, so one character is rendered every
+  other game frame; frame 40 shows the first eight characters. The oracle
+  uses `max(0, (frames - 23) // 2)` render calls for that speed.
+- `text-var`: `gamerom_c15_var` sets `VAR_QUEST10 = -42` and
+  `VAR_TURNIP_COUNTER = 1234`, then prints `Var: %d and %d.` at instant
+  speed. The frame pins the `-` sign and multi-digit formatting.

@@ -18,6 +18,10 @@
 
 UBYTE vwf_tile_data[16 * 2];
 
+extern UBYTE vwf_current_mask;
+extern UBYTE vwf_current_rotate;
+extern UBYTE vwf_inverse_map;
+
 /* ui_a.s _ui_time_masks */
 const UBYTE ui_time_masks[] = {
     0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F
@@ -39,10 +43,10 @@ UINT8 *GetWinAddr(void) {
     return hal_win_tiles;
 }
 
-/* Text rendering on the background layer is not ported yet; the code that
- * uses this returns through the excluded text opcodes. */
+/* The WSC dialogue layer is screen 2.  There is no byte-wide background
+ * shadow map, so both VM_SWITCH_TEXT_LAYER selections address the overlay. */
 UINT8 *GetBkgAddr(void) {
-    return (UINT8 *)(void *)hal_screen.cell;
+    return hal_win_tiles;
 }
 
 void scroll_rect(UBYTE *base_addr, UBYTE w, UBYTE h, UBYTE fill) {
@@ -117,6 +121,94 @@ void set_vram_byte(void *dest, UINT8 value) {
         return;
     hal_win_tiles[offset] = value;
     hal_win_attrs[offset] = HAL_WIN_UI_ATTR;
+}
+
+/* ui_a.s _ui_swap_tiles: promote the pending tile and refill the next one. */
+void ui_swap_tiles(void) {
+    UBYTE i;
+
+    for (i = 0; i < 16; i++)
+        vwf_tile_data[i] = vwf_tile_data[i + 16];
+    for (i = 16; i < 32; i++)
+        vwf_tile_data[i] = text_bkg_fill;
+}
+
+/* ui_a.s _ui_print_make_mask_lr/_rl.  The low byte masks the pixels of the
+ * current tile that the glyph does not cover, the high byte the next tile. */
+UWORD ui_print_make_mask_lr(UBYTE width, UBYTE ofs) {
+    UWORD cur, next;
+    UBYTE here, rem;
+
+    if (width == 0)
+        return 0xFFFFu;
+    if ((UBYTE)(ofs + width) <= 8u) {
+        cur = (UWORD)~((UWORD)((1u << width) - 1u) << (8u - ofs - width));
+        return (cur & 0xFFu) | 0xFF00u;
+    }
+    here = 8u - ofs;
+    rem = width - here;
+    cur = (UWORD)(0xFFu << here);
+    next = (UWORD)~((UWORD)((1u << rem) - 1u) << (8u - rem));
+    return (cur & 0xFFu) | ((next & 0xFFu) << 8);
+}
+
+UWORD ui_print_make_mask_rl(UBYTE width, UBYTE ofs) {
+    UWORD cur, next;
+    UBYTE here, rem;
+
+    if (width == 0)
+        return 0xFFFFu;
+    if ((UBYTE)(ofs + width) <= 8u) {
+        cur = (UWORD)~((UWORD)((1u << width) - 1u) << ofs);
+        return (cur & 0xFFu) | 0xFF00u;
+    }
+    here = 8u - ofs;
+    rem = width - here;
+    cur = (UWORD)((1u << ofs) - 1u);
+    next = (UWORD)~((UWORD)((1u << rem) - 1u));
+    return (cur & 0xFFu) | ((next & 0xFFu) << 8);
+}
+
+/* ui_a.s _ui_print_shift_char: shift the 1-bit glyph by vwf_current_rotate
+ * (bit 7 set means left, the low bits are the count), then merge it into the
+ * two 2bpp planes selected by vwf_current_mask. */
+void ui_print_shift_char(void *dest, const UBYTE __far *src, UBYTE bank) {
+    UBYTE *d = (UBYTE *)dest;
+    UBYTE inv = vwf_inverse_map;
+    UBYTE rotate = vwf_current_rotate;
+    UBYTE mask = vwf_current_mask;
+    UBYTE row;
+
+    (void)bank;
+    for (row = 0; row < 8; row++) {
+        UBYTE lo = (UBYTE)(*src++ ^ inv);
+        UBYTE hi = (UBYTE)(*src++ ^ inv);
+        UBYTE n;
+
+        if (rotate & 0x80u) {
+            n = rotate & 0x7Fu;
+            lo = (n >= 8u) ? 0u : (UBYTE)(lo << n);
+            hi = (n >= 8u) ? 0u : (UBYTE)(hi << n);
+        } else {
+            n = rotate;
+            lo = (n >= 8u) ? 0u : (UBYTE)(lo >> n);
+            hi = (n >= 8u) ? 0u : (UBYTE)(hi >> n);
+        }
+        d[0] = (UBYTE)((d[0] & mask) | (lo & (UBYTE)~mask));
+        d[1] = (UBYTE)((d[1] & mask) | (hi & (UBYTE)~mask));
+        d += 2;
+    }
+}
+
+/* Write one text tile-map cell: tile index plus the UI palette and the
+ * optional second 256-tile bank. */
+void ui_set_tile_banked(UBYTE *addr, UBYTE tile, UBYTE bank) {
+    uint16_t offset = win_offset(addr);
+
+    if (offset >= WSC_WIN_CELLS)
+        return;
+    hal_win_tiles[offset] = tile;
+    hal_win_attrs[offset] = HAL_WIN_UI_ATTR | (bank ? HAL_WIN_BANK1 : 0);
 }
 
 /* ui_a.s _ui_draw_frame_row, rewritten in C. */

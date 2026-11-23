@@ -140,7 +140,11 @@ void hal_window_flush(void) {
 
     for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES; i++) {
         uint8_t attr = hal_win_attrs[i];
-        uint16_t cell = WS_SCREEN_ATTR_TILE_EX(hal_win_tiles[i]);
+        uint16_t index = hal_win_tiles[i];
+
+        if (attr & HAL_WIN_BANK1)
+            index += 256;
+        uint16_t cell = WS_SCREEN_ATTR_TILE_EX(index);
 
         if (attr & HAL_WIN_UI_ATTR) {
             cell |= WS_SCREEN_ATTR_PALETTE(hal_win_palette);

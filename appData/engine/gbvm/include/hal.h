@@ -57,6 +57,11 @@ uint8_t hal_input_read(void);
 void hal_load_bkg_tiles(uint16_t first, uint16_t count,
                         const uint8_t __far *data, uint8_t bpp);
 
+/* Same conversion for GB 2bpp data already in near RAM (the UI text tiles
+ * are composed in WRAM before upload). */
+void hal_load_bkg_tiles_ram(uint16_t first, uint16_t count,
+                            const uint8_t *data);
+
 /* Load count CGB RGB555 palettes into WSC palettes starting at first.
  * Each palette is four colours written to entries 1-4; entry 0 is cleared. */
 void hal_set_bkg_palette(uint8_t first, uint8_t count,

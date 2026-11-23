@@ -1,0 +1,17 @@
+{
+  "rom": "gamerom/gamerom_c15_var.wsc",
+  "elf": "gamerom/build/gamerom_c15_var.elf",
+  "build": "gamerom",
+  "frames": 40,
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/text_oracle.py",
+    "args": ["--mode", "var", "--frames", "40"],
+    "precision": "exact"
+  },
+  "ram": [
+    {"symbol": "text_drawn", "size": 1, "equals": "0x01"},
+    {"symbol": "script_memory", "offset": 18, "size": 2, "equals": "0xffd6"},
+    {"symbol": "script_memory", "offset": 22, "size": 2, "equals": "0x04d2"}
+  ]
+}

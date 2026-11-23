@@ -4,8 +4,10 @@
 #include <wonderful.h>
 #include <ws.h>
 
-/* Attribute byte flag: cell uses the UI palette and no flips. */
+/* Attribute byte flags: UI palette, and the second 256-tile bank (the GB
+ * CGB text buffer uses the same bank bit as its VRAM bank 1). */
 #define HAL_WIN_UI_ATTR 0x80
+#define HAL_WIN_BANK1   0x08
 
 /* Screen 1 and 2 memory, also used by the background map writers. */
 extern volatile ws_screen_t hal_screen;

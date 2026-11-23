@@ -28,6 +28,6 @@ void vm_choice(SCRIPT_CTX * THIS, INT16 idx, UBYTE options, UBYTE count) OLDCALL
 
 void vm_set_font(SCRIPT_CTX * THIS, UBYTE font_index) OLDCALL BANKED;
 
-void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * offset, UBYTE channel_mask) OLDCALL BANKED;
+void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, const UBYTE VM_FAR * offset, UBYTE channel_mask) OLDCALL BANKED;
 
 #endif

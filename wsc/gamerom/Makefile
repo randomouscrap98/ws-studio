@@ -31,6 +31,9 @@ S2C_C		:= $(S2C_DIR)/$(S2C_NAME).c
 D2C_STAMP	:= $(GEN_DIR)/d2c.stamp
 C13_TEST_SCRIPT	:= $(CURDIR)/src/script_c13_test.s
 C14_TEST_SCRIPT	:= $(CURDIR)/src/script_c14_test.s
+C15_TEST_SCRIPTS	:= $(CURDIR)/src/script_c15_instant.s \
+			   $(CURDIR)/src/script_c15_speed.s \
+			   $(CURDIR)/src/script_c15_var.s
 
 BUILDDIR	:= $(CURDIR)/build
 OBJDIR		:= $(BUILDDIR)/obj
@@ -39,16 +42,25 @@ ROM_TOWN	:= $(CURDIR)/gamerom_town.wsc
 ROM_TOWN_WALK	:= $(CURDIR)/gamerom_town_walk.wsc
 ROM_C13		:= $(CURDIR)/gamerom_c13.wsc
 ROM_C14		:= $(CURDIR)/gamerom_c14.wsc
+ROM_C15_INSTANT	:= $(CURDIR)/gamerom_c15_instant.wsc
+ROM_C15_SPEED	:= $(CURDIR)/gamerom_c15_speed.wsc
+ROM_C15_VAR	:= $(CURDIR)/gamerom_c15_var.wsc
 ELF_LOGO	:= $(BUILDDIR)/gamerom.elf
 ELF_TOWN	:= $(BUILDDIR)/gamerom_town.elf
 ELF_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk.elf
 ELF_C13		:= $(BUILDDIR)/gamerom_c13.elf
 ELF_C14		:= $(BUILDDIR)/gamerom_c14.elf
+ELF_C15_INSTANT	:= $(BUILDDIR)/gamerom_c15_instant.elf
+ELF_C15_SPEED	:= $(BUILDDIR)/gamerom_c15_speed.elf
+ELF_C15_VAR	:= $(BUILDDIR)/gamerom_c15_var.elf
 STAGE_LOGO	:= $(BUILDDIR)/gamerom_stage1.elf
 STAGE_TOWN	:= $(BUILDDIR)/gamerom_town_stage1.elf
 STAGE_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk_stage1.elf
 STAGE_C13	:= $(BUILDDIR)/gamerom_c13_stage1.elf
 STAGE_C14	:= $(BUILDDIR)/gamerom_c14_stage1.elf
+STAGE_C15_INSTANT := $(BUILDDIR)/gamerom_c15_instant_stage1.elf
+STAGE_C15_SPEED	:= $(BUILDDIR)/gamerom_c15_speed_stage1.elf
+STAGE_C15_VAR	:= $(BUILDDIR)/gamerom_c15_var_stage1.elf
 RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
 RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
@@ -100,7 +112,8 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(GBVM_WSC)/scroll_wsc.c $(GBVM_WSC)/stubs_wsc.c \
 		   $(GBVM_WSC)/ui_wsc.c \
 		   $(CURDIR)/src/platform.c $(CURDIR)/src/c13_test_scene.c \
-		   $(CURDIR)/src/c14_test_scene.c
+		   $(CURDIR)/src/c14_test_scene.c \
+		   $(CURDIR)/src/c15_test_scene.c
 ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
 
 BOOTSTRAP_LOGO	:= $(OBJDIR)/bootstrap_logo.o
@@ -108,6 +121,9 @@ BOOTSTRAP_TOWN	:= $(OBJDIR)/bootstrap_town.o
 BOOTSTRAP_TOWN_WALK := $(OBJDIR)/bootstrap_town_walk.o
 BOOTSTRAP_C13	:= $(OBJDIR)/bootstrap_c13.o
 BOOTSTRAP_C14	:= $(OBJDIR)/bootstrap_c14.o
+BOOTSTRAP_C15_INSTANT := $(OBJDIR)/bootstrap_c15_instant.o
+BOOTSTRAP_C15_SPEED := $(OBJDIR)/bootstrap_c15_speed.o
+BOOTSTRAP_C15_VAR := $(OBJDIR)/bootstrap_c15_var.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 
@@ -120,7 +136,10 @@ COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 all: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
-all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL) $(ROM_C13) $(ROM_C14)
+all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL) \
+	 $(ROM_C13) $(ROM_C14) $(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) \
+	 $(ELF_LOGO) $(ELF_TOWN) $(ELF_TOWN_WALK) $(ELF_C13) $(ELF_C14) \
+	 $(ELF_C15_INSTANT) $(ELF_C15_SPEED) $(ELF_C15_VAR)
 
 # Generated data sources only exist after d2c runs. The first make pass
 # creates them, then re-enters this Makefile so the source lists are complete.
@@ -155,6 +174,7 @@ export-data $(EXPORT_READY):
 	$(WSC_DIR)/export/run.sh
 
 $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
+		$(C15_TEST_SCRIPTS) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@echo "  S2C     $(S2C_DIR)"
@@ -163,7 +183,7 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 	$(PYTHON) $(WSC_DIR)/tools/s2c.py --include $(EXPORT_DIR)/include \
 		--out $(S2C_DIR) --name $(S2C_NAME) \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
-		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT)
+		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS)
 
 $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 	@echo "  D2C     $(GEN_DIR)"
@@ -173,25 +193,69 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 		--states topdown
 	@touch $@
 
-$(ROM_LOGO) $(ELF_LOGO): $(STAGE_LOGO)
+$(ROM_LOGO): $(STAGE_LOGO)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_LOGO) --output-elf $(ELF_LOGO) $<
 
-$(ROM_TOWN) $(ELF_TOWN): $(STAGE_TOWN)
+$(ELF_LOGO): $(ROM_LOGO)
+	@echo "  ROM     $(ROM_LOGO) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_LOGO) --output-elf $(ELF_LOGO) $(STAGE_LOGO)
+
+$(ROM_TOWN): $(STAGE_TOWN)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_TOWN) --output-elf $(ELF_TOWN) $<
 
-$(ROM_TOWN_WALK) $(ELF_TOWN_WALK): $(STAGE_TOWN_WALK)
+$(ELF_TOWN): $(ROM_TOWN)
+	@echo "  ROM     $(ROM_TOWN) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_TOWN) --output-elf $(ELF_TOWN) $(STAGE_TOWN)
+
+$(ROM_TOWN_WALK): $(STAGE_TOWN_WALK)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_TOWN_WALK) --output-elf $(ELF_TOWN_WALK) $<
 
-$(ROM_C13) $(ELF_C13): $(STAGE_C13)
+$(ELF_TOWN_WALK): $(ROM_TOWN_WALK)
+	@echo "  ROM     $(ROM_TOWN_WALK) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_TOWN_WALK) --output-elf $(ELF_TOWN_WALK) $(STAGE_TOWN_WALK)
+
+$(ROM_C13): $(STAGE_C13)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_C13) --output-elf $(ELF_C13) $<
 
-$(ROM_C14) $(ELF_C14): $(STAGE_C14)
+$(ELF_C13): $(ROM_C13)
+	@echo "  ROM     $(ROM_C13) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C13) --output-elf $(ELF_C13) $(STAGE_C13)
+
+$(ROM_C14): $(STAGE_C14)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_C14) --output-elf $(ELF_C14) $<
+
+$(ELF_C14): $(ROM_C14)
+	@echo "  ROM     $(ROM_C14) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C14) --output-elf $(ELF_C14) $(STAGE_C14)
+
+$(ROM_C15_INSTANT): $(STAGE_C15_INSTANT)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_C15_INSTANT) --output-elf $(ELF_C15_INSTANT) $<
+
+$(ELF_C15_INSTANT): $(ROM_C15_INSTANT)
+	@echo "  ROM     $(ROM_C15_INSTANT) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C15_INSTANT) --output-elf $(ELF_C15_INSTANT) $(STAGE_C15_INSTANT)
+
+$(ROM_C15_SPEED): $(STAGE_C15_SPEED)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_C15_SPEED) --output-elf $(ELF_C15_SPEED) $<
+
+$(ELF_C15_SPEED): $(ROM_C15_SPEED)
+	@echo "  ROM     $(ROM_C15_SPEED) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C15_SPEED) --output-elf $(ELF_C15_SPEED) $(STAGE_C15_SPEED)
+
+$(ROM_C15_VAR): $(STAGE_C15_VAR)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_C15_VAR) --output-elf $(ELF_C15_VAR) $<
+
+$(ELF_C15_VAR): $(ROM_C15_VAR)
+	@echo "  ROM     $(ROM_C15_VAR) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C15_VAR) --output-elf $(ELF_C15_VAR) $(STAGE_C15_VAR)
 
 $(STAGE_LOGO): $(COMMON_OBJS) $(BOOTSTRAP_LOGO)
 	@echo "  LD      $@"
@@ -210,6 +274,18 @@ $(STAGE_C13): $(COMMON_OBJS) $(BOOTSTRAP_C13)
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
 $(STAGE_C14): $(COMMON_OBJS) $(BOOTSTRAP_C14)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_C15_INSTANT): $(COMMON_OBJS) $(BOOTSTRAP_C15_INSTANT)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_C15_SPEED): $(COMMON_OBJS) $(BOOTSTRAP_C15_SPEED)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_C15_VAR): $(COMMON_OBJS) $(BOOTSTRAP_C15_VAR)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
@@ -266,9 +342,29 @@ $(BOOTSTRAP_C14): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
 	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c14_test \
 		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
 
+$(BOOTSTRAP_C15_INSTANT): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (c15 text instant)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c15_instant \
+		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
+
+$(BOOTSTRAP_C15_SPEED): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (c15 text speed)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c15_speed \
+		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
+
+$(BOOTSTRAP_C15_VAR): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (c15 text variable)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c15_var \
+		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
+
 clean:
 	@echo "  CLEAN"
-	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_C13) $(ROM_C14) $(BUILDDIR) $(GEN_DIR)
+	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_C13) $(ROM_C14) \
+		$(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) \
+		$(BUILDDIR) $(GEN_DIR)
 
 usage: $(ELF_LOGO)
 	$(ROMUSAGE) $< -g

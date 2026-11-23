@@ -49,6 +49,40 @@ void hal_load_bkg_tiles(uint16_t first, uint16_t count,
     hal_wsc_convert_tiles_2bpp(first, count, data, 1);
 }
 
+void hal_load_bkg_tiles_ram(uint16_t first, uint16_t count,
+                            const uint8_t *data) {
+    uint16_t t, row, bit;
+
+    for (t = 0; t < count; t++) {
+        volatile uint8_t *dst =
+            (volatile uint8_t *)WS_TILE_4BPP_MEM(first + t);
+        const uint8_t *src = data + t * 16;
+
+        for (row = 0; row < 8; row++) {
+            uint8_t lo = src[row * 2];
+            uint8_t hi = src[row * 2 + 1];
+            uint8_t p0 = 0, p1 = 0, p2 = 0, p3 = 0;
+
+            for (bit = 0; bit < 8; bit++) {
+                uint8_t mask = (uint8_t)(0x80 >> bit);
+                uint8_t index = (uint8_t)(
+                    ((lo & mask) ? 1 : 0) |
+                    ((hi & mask) ? 2 : 0)) + 1;
+
+                if (index & 1) p0 |= mask;
+                if (index & 2) p1 |= mask;
+                if (index & 4) p2 |= mask;
+                if (index & 8) p3 |= mask;
+            }
+
+            dst[row * 4 + 0] = p0;
+            dst[row * 4 + 1] = p1;
+            dst[row * 4 + 2] = p2;
+            dst[row * 4 + 3] = p3;
+        }
+    }
+}
+
 void hal_set_bkg_palette(uint8_t first, uint8_t count,
                          const uint16_t __far *cgb_colors) {
     uint8_t p, i;

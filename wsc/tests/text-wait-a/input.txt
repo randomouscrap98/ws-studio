@@ -1,0 +1,2 @@
+# Hold A from frame 30 so the modal wait completes.
+30 A

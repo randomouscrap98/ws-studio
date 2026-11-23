@@ -33,6 +33,16 @@
 #define ui_frame_r_tiles  0xC5u
 #define ui_frame_bg_tiles 0xC4u
 
+/* The font bitmap lives in far ROM on the WonderSwan. */
+#ifdef __ia16__
+typedef const UBYTE __far * ui_font_bitmap_t;
+typedef const far_ptr_t __far * ui_font_desc_ptr_t;
+void ui_set_tile_banked(UBYTE * addr, UBYTE tile, UBYTE bank);
+#else
+typedef const UBYTE * ui_font_bitmap_t;
+typedef const far_ptr_t * ui_font_desc_ptr_t;
+#endif
+
 UBYTE win_pos_x, win_dest_pos_x;
 UBYTE win_pos_y, win_dest_pos_y;
 UBYTE win_speed;
@@ -77,7 +87,11 @@ UBYTE text_scroll_fill;
 
 UBYTE text_sound_mask;
 UBYTE text_sound_bank;
+#ifdef __ia16__
+const UBYTE __far * text_sound_data;
+#else
 const UBYTE * text_sound_data;
+#endif
 
 UBYTE overlay_priority;
 UBYTE text_palette;
@@ -186,10 +200,14 @@ void ui_draw_frame(UBYTE x, UBYTE y, UBYTE width, UBYTE height) BANKED {
     ui_draw_frame_row(base_addr, ui_frame_bl_tiles, width);
 }
 
-inline void ui_load_tile(const UBYTE * tiledata, UBYTE bank) {
+inline void ui_load_tile(ui_font_bitmap_t tiledata, UBYTE bank) {
 #ifdef __ia16__
-    /* Text rendering is the next porting chunk. */
-    (void)tiledata; (void)bank;
+    /* Text tiles are GB 2bpp data; the HAL conversion shifts every colour
+     * index up by one.  The bank bit selects the same 256-tile window as the
+     * GB's two VRAM banks. */
+    hal_load_bkg_tiles((uint16_t)ui_current_tile +
+                       ((ui_current_tile_bank) ? 256u : 0u),
+                       1, (const uint8_t __far *)tiledata, 2);
 #else
 #ifdef CGB
     VBK_REG = (ui_current_tile_bank != 0) ? VBK_BANK_1 : VBK_BANK_0;
@@ -200,14 +218,20 @@ inline void ui_load_tile(const UBYTE * tiledata, UBYTE bank) {
 #endif
 #endif
 }
-#ifndef __ia16__
+
 inline void ui_load_wram_tile(const UBYTE * tiledata) {
+#ifdef __ia16__
+    hal_load_bkg_tiles_ram((uint16_t)ui_current_tile +
+                           ((ui_current_tile_bank) ? 256u : 0u),
+                           1, tiledata);
+#else
 #ifdef CGB
     VBK_REG = (ui_current_tile_bank != 0) ? VBK_BANK_1 : VBK_BANK_0;
 #endif
     set_bkg_data(ui_current_tile, 1, tiledata);
 #ifdef CGB
     VBK_REG = VBK_BANK_0;
+#endif
 #endif
 }
 
@@ -241,14 +265,20 @@ void ui_set_start_tile(UBYTE start_tile, UBYTE start_tile_bank) BANKED {
     memset(vwf_tile_data, text_bkg_fill, sizeof(vwf_tile_data));
 }
 
+#ifdef __ia16__
+void ui_print_shift_char(void * dest, ui_font_bitmap_t src, UBYTE bank);
+UWORD ui_print_make_mask_lr(UBYTE width, UBYTE ofs);
+UWORD ui_print_make_mask_rl(UBYTE width, UBYTE ofs);
+#else
 void ui_print_shift_char(void * dest, const void * src, UBYTE bank) OLDCALL;
 UWORD ui_print_make_mask_lr(UBYTE width, UBYTE ofs) OLDCALL;
 UWORD ui_print_make_mask_rl(UBYTE width, UBYTE ofs) OLDCALL;
+#endif
 void ui_swap_tiles(void);
 
 UBYTE ui_print_render(const unsigned char ch) {
     UBYTE letter = (vwf_current_font_desc.attr & FONT_RECODE) ? ReadBankedUBYTE(vwf_current_font_desc.recode_table + (ch & vwf_current_font_desc.mask), vwf_current_font_bank) : ch;
-    const UBYTE * bitmap = vwf_current_font_desc.bitmaps + letter * 16u;
+    ui_font_bitmap_t bitmap = vwf_current_font_desc.bitmaps + letter * 16u;
     if (vwf_current_font_desc.attr & FONT_VWF) {
         vwf_inverse_map = (vwf_current_font_desc.attr & FONT_VWF_1BIT) ? text_bkg_fill : 0u;
         UBYTE width = ReadBankedUBYTE(vwf_current_font_desc.widths + letter, vwf_current_font_bank);
@@ -297,6 +327,9 @@ UBYTE ui_print_render(const unsigned char ch) {
 }
 
 inline void ui_set_tile(UBYTE * addr, UBYTE tile, UBYTE bank) {
+#ifdef __ia16__
+    ui_set_tile_banked(addr, tile, bank);
+#else
 #ifdef CGB
     if (_is_CGB) {
         VBK_REG = VBK_ATTRIBUTES;
@@ -307,6 +340,7 @@ inline void ui_set_tile(UBYTE * addr, UBYTE tile, UBYTE bank) {
     bank;
 #endif
     set_vram_byte(addr, tile);
+#endif
 }
 
 UBYTE ui_draw_text_buffer_char(void) BANKED {
@@ -342,7 +376,7 @@ UBYTE ui_draw_text_buffer_char(void) BANKED {
                 ui_text_ptr = 0;
                 text_drawn = TRUE;
                 if (vwf_current_font_idx != current_font_idx) {
-                    const far_ptr_t * font = ui_fonts + vwf_current_font_idx;
+                    ui_font_desc_ptr_t font = ui_fonts + vwf_current_font_idx;
                     MemcpyBanked(&vwf_current_font_desc, font->ptr, sizeof(font_desc_t), vwf_current_font_bank = font->bank);
                 }
                 text_bkg_fill = current_text_bkg_fill;
@@ -359,7 +393,7 @@ UBYTE ui_draw_text_buffer_char(void) BANKED {
             case 0x02: {
                 // set current font
                 current_font_idx = *(++ui_text_ptr) - 1u;
-                const far_ptr_t * font = ui_fonts + current_font_idx;
+                ui_font_desc_ptr_t font = ui_fonts + current_font_idx;
                 UBYTE old_flags = vwf_current_font_desc.attr;
                 MemcpyBanked(&vwf_current_font_desc, font->ptr, sizeof(font_desc_t), vwf_current_font_bank = font->bank);
                 if ((vwf_current_offset) && ((old_flags & FONT_VWF) != 0) && ((vwf_current_font_desc.attr & FONT_VWF) == 0)) {
@@ -458,7 +492,6 @@ UBYTE ui_draw_text_buffer_char(void) BANKED {
         ui_text_ptr++;
     }
 }
-#endif /* !__ia16__ */
 
 void ui_update(void) BANKED {
     UBYTE flag = FALSE;
@@ -488,10 +521,6 @@ void ui_update(void) BANKED {
 
     // don't draw text while moving
     if (flag) return;
-#ifdef __ia16__
-    // Text rendering is the next porting chunk.
-    return;
-#else
     // all drawn - nothing to do
     if (text_drawn) return;
     // too fast - wait
@@ -504,9 +533,8 @@ void ui_update(void) BANKED {
     do {
         flag = ui_draw_text_buffer_char();
     } while (((text_ff) || (text_draw_speed == 0)) && (!text_drawn));
-    // play sound
+    // play sound (the WonderSwan audio driver is a stub)
     if ((flag) && (text_sound_bank != SFX_STOP_BANK)) music_play_sfx(text_sound_bank, text_sound_data, text_sound_mask, MUSIC_SFX_PRIORITY_NORMAL);
-#endif
 }
 
 UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {

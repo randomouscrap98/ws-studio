@@ -39,18 +39,76 @@ typedef struct set_submap_params_t {
 
 void ui_draw_frame(UBYTE x, UBYTE y, UBYTE width, UBYTE height) BANKED;
 
-#ifndef __ia16__
+#ifdef __ia16__
+/* vm_ui_a.s keeps the fixed-width request here. */
+static UBYTE _itoa_fmt_len;
+#else
 extern UBYTE _itoa_fmt_len;
 UBYTE itoa_fmt(INT16 v, UBYTE * d) OLDCALL BANKED PRESERVES_REGS(b, c);
+#endif
+
+#ifdef __ia16__
+/* vm_ui_a.s _itoa_fmt / .utoa_fmt: decimal, '-' for negative values, and
+ * %Dn zero padding.  dlen is set by itoa_format before the call and counts
+ * digits only; the sign is written in addition to it. */
+static UBYTE itoa_fmt(INT16 v, UBYTE * d) {
+    UBYTE * start = d;
+    UBYTE digits[5];
+    UBYTE count = 0;
+    UBYTE width = _itoa_fmt_len;
+    UWORD value;
+
+    if (v < 0) {
+        if (_itoa_fmt_len) _itoa_fmt_len--;
+        *d++ = '-';
+        value = (UWORD)(-(INT32)v);
+    } else {
+        value = (UWORD)v;
+    }
+
+    do {
+        digits[count++] = (UBYTE)('0' + (value % 10u));
+        value /= 10u;
+    } while (value);
+
+    if (width >= 5u) {
+        while (width > 5u) {
+            *d++ = '0';
+            width--;
+        }
+        _itoa_fmt_len = 5u;
+        width = 5u;
+    }
+    while (count < width) digits[count++] = '0';
+
+    while (count) *d++ = digits[--count];
+    return (UBYTE)(d - start);
+}
+
+static void reverse_text(UBYTE * s) {
+    UBYTE * end = s;
+    while (*end) end++;
+    while (s < --end) {
+        UBYTE t = *s;
+        *s++ = *end;
+        *end = t;
+    }
+}
+#else
+#define reverse_text reverse
+#endif
 
 inline UBYTE itoa_format(INT16 v, UBYTE * d, UBYTE dlen) {
     _itoa_fmt_len = dlen;
     UBYTE len = itoa_fmt(v, d);
-    if (vwf_direction != UI_PRINT_LEFTTORIGHT) reverse(d);
+    if (vwf_direction != UI_PRINT_LEFTTORIGHT) reverse_text(d);
     return len;
 }
 
-static const unsigned char * load_text(const unsigned char * s, INT16 * args) NONBANKED {
+/* Script strings are far ROM on the WonderSwan and near ROM on the GB. */
+typedef const UBYTE VM_FAR * ui_text_src_t;
+
+static ui_text_src_t load_text(ui_text_src_t s, INT16 * args) NONBANKED {
     unsigned char * d = ui_text_data;
     while (*s) {
         if (*s == '%') {
@@ -99,15 +157,26 @@ static const unsigned char * load_text(const unsigned char * s, INT16 * args) NO
 void vm_load_text(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE nargs) OLDCALL NONBANKED {
     dummy0; dummy1; // suppress warnings
     SWITCH_ROM(THIS->bank);
-    const INT16 * sargs = THIS->PC;
     INT16 * dargs = ui_text_data + (sizeof(ui_text_data) - sizeof(INT16));
+#ifdef __ia16__
+    ui_text_src_t sargs = THIS->PC;
+    while (nargs--) {
+        INT16 idx = (INT16)(sargs[0] | ((UWORD)sargs[1] << 8));
+        sargs += 2;
+        *dargs-- = *((INT16 *)VM_REF_TO_PTR(idx));
+    }
+    THIS->PC = load_text(sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
+#else
+    const INT16 * sargs = THIS->PC;
     while (nargs--) {
         *dargs-- = *((INT16 *)VM_REF_TO_PTR(*sargs));
         ++sargs;
     }
     THIS->PC = (const UBYTE VM_FAR *)load_text((const unsigned char *)sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
+#endif
 }
 
+#ifndef __ia16__
 // renders UI text into buffer indirectly
 void vm_load_text_ex(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE n) OLDCALL NONBANKED {
     dummy0; dummy1; // suppress warnings
@@ -116,6 +185,7 @@ void vm_load_text_ex(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE 
     load_text(*(const unsigned char **)(arg0 - 1), (INT16 *)(arg0 - 2));
     if (n) THIS->stack_ptr -= n;
 }
+#endif
 
 // start displaying text
 void vm_display_text(SCRIPT_CTX * THIS, UBYTE options, UBYTE start_tile) OLDCALL BANKED {
@@ -148,7 +218,6 @@ void vm_switch_text_layer(SCRIPT_CTX * THIS, UBYTE target) OLDCALL BANKED {
     THIS;
     if (target) text_render_base_addr = GetWinAddr(); else text_render_base_addr = GetBkgAddr();
 }
-#endif /* !__ia16__ */
 
 // set position of overlayed window
 void vm_overlay_setpos(SCRIPT_CTX * THIS, UBYTE pos_x, UBYTE pos_y) OLDCALL BANKED {
@@ -239,6 +308,7 @@ void vm_choice(SCRIPT_CTX * THIS, INT16 idx, UBYTE options, UBYTE count) OLDCALL
     *v = (count) ? ui_run_menu((menu_item_t *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
     THIS->PC += sizeof(menu_item_t) * count;
 }
+#endif
 
 void vm_set_font(SCRIPT_CTX * THIS, UBYTE font_index) OLDCALL BANKED {
     THIS;
@@ -246,7 +316,6 @@ void vm_set_font(SCRIPT_CTX * THIS, UBYTE font_index) OLDCALL BANKED {
     vwf_current_font_bank = ui_fonts[font_index].bank;
     MemcpyBanked(&vwf_current_font_desc, ui_fonts[font_index].ptr, sizeof(font_desc_t), vwf_current_font_bank);
 }
-#endif /* !__ia16__ */
 
 void vm_overlay_scroll(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UBYTE color) OLDCALL BANKED {
     THIS;
@@ -324,11 +393,9 @@ void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, 
     _map_tile_offset = 0;
 }
 
-#ifndef __ia16__
-void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * offset, UBYTE channel_mask) OLDCALL BANKED {
+void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, const UBYTE VM_FAR * offset, UBYTE channel_mask) OLDCALL BANKED {
     THIS;
     text_sound_bank = bank;
     text_sound_data = offset;
     text_sound_mask = channel_mask;
 }
-#endif
