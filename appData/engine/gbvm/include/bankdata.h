@@ -5,6 +5,59 @@
 
 #include "compat.h"
 
+#if defined(__ia16__)
+
+/* WonderSwan Color data model: exported data is far ROM, there is no bank
+ * register to switch and far pointers carry their own segment. The engine's
+ * (ptr, bank) pair is kept so GB callers and the converter's operands keep
+ * working; bank is 0 for C data and the script-bank index for script data. */
+#define TO_FAR_PTR_T(A) {.bank = 0, .ptr = (const void __far *)&(A)}
+#define TO_FAR_ARGS(T, A) (T)(A).ptr, (A).bank
+
+#ifndef BANK
+#define BANK(VARNAME) 0
+#endif
+#ifndef BANKREF
+#define BANKREF(VARNAME)
+#endif
+#ifndef BANKREF_EXTERN
+#define BANKREF_EXTERN(VARNAME)
+#endif
+#ifndef SIZE
+#define SIZE(VARNAME) ((UWORD)sizeof(VARNAME))
+#endif
+#ifndef SIZEREF
+#define SIZEREF(VARNAME)
+#endif
+#ifndef SIZEREF_EXTERN
+#define SIZEREF_EXTERN(VARNAME)
+#endif
+
+typedef struct far_ptr_t {
+    UBYTE bank;
+    const void __far *ptr;
+} far_ptr_t;
+
+void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
+void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
+void SetBankedBkgTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
+                       const unsigned char __far *tiles, UBYTE bank);
+void SetBankedWinTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
+                       const unsigned char __far *tiles, UBYTE bank);
+
+void ReadBankedFarPtr(far_ptr_t * dest, const void __far *ptr, UBYTE bank);
+UWORD ReadBankedUWORD(const void __far *ptr, UBYTE bank);
+inline UBYTE ReadBankedUBYTE(const void __far *ptr, UBYTE bank) {
+    (void)bank;
+    return *(const UBYTE __far *)ptr;
+}
+void MemcpyBanked(void *to, const void __far *from, size_t n, UBYTE bank);
+void MemcpyVRAMBanked(void *to, const void __far *from, size_t n, UBYTE bank);
+UBYTE IndexOfFarPtr(const far_ptr_t __far * list, UBYTE bank, UBYTE count,
+                    const far_ptr_t * item);
+
+#else
+
 #define TO_FAR_PTR_T(A) {.bank = (UBYTE)&(__bank_ ## A), .ptr = (void *)&(A)}
 #define TO_FAR_ARGS(T, A) (T)(A).ptr, (A).bank
 
@@ -143,5 +196,7 @@ void MemcpyVRAMBanked(void* to, const void* from, size_t n, UBYTE bank);
  * @return index in the array or count if not found
  */
 UBYTE IndexOfFarPtr(const far_ptr_t * list, UBYTE bank, UBYTE count, const far_ptr_t * item);
+
+#endif
 
 #endif

@@ -68,9 +68,10 @@ void hal_set_bkg_palette(uint8_t first, uint8_t count,
     }
 }
 
-void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
-                       const uint8_t __far *map,
-                       const uint8_t __far *attrs, uint8_t map_w) {
+static void hal_put_screen_tiles(volatile ws_screen_t *screen,
+                                 uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                                 const uint8_t __far *map,
+                                 const uint8_t __far *attrs, uint8_t map_w) {
     uint8_t row, col;
 
     for (row = 0; row < h; row++) {
@@ -79,7 +80,7 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
             uint8_t map_y = (uint8_t)(y + row);
             uint16_t off = (uint16_t)map_y * map_w + map_x;
             uint8_t tile = map[off];
-            uint8_t attr = attrs[off];
+            uint8_t attr = attrs ? attrs[off] : 0;
             uint16_t index = (uint16_t)tile;
             uint16_t cell;
 
@@ -91,8 +92,20 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
                  | ((attr & 0x20) ? WS_SCREEN_ATTR_FLIP_H : 0)
                  | ((attr & 0x40) ? WS_SCREEN_ATTR_FLIP_V : 0);
 
-            hal_screen.cell[((uint16_t)(map_y & 31) << 5) |
-                            (map_x & 31)] = cell;
+            screen->cell[((uint16_t)(map_y & 31) << 5) |
+                         (map_x & 31)] = cell;
         }
     }
+}
+
+void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                       const uint8_t __far *map,
+                       const uint8_t __far *attrs, uint8_t map_w) {
+    hal_put_screen_tiles(&hal_screen, x, y, w, h, map, attrs, map_w);
+}
+
+void hal_put_win_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                       const uint8_t __far *map,
+                       const uint8_t __far *attrs, uint8_t map_w) {
+    hal_put_screen_tiles(&hal_win_screen, x, y, w, h, map, attrs, map_w);
 }

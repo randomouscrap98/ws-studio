@@ -398,6 +398,14 @@ def run_test(test_json, update_golden):
         check_frame(raw_path, spec)
 
     if "ram" in spec:
+        ram_spec = spec["ram"]
+        if isinstance(ram_spec, str):
+            # A generated oracle may write the checks after the build step.
+            ram_spec = load_json(resolve(ram_spec))
+            if not isinstance(ram_spec, list):
+                raise TestError("RAM check file must contain a JSON list")
+            spec = dict(spec)
+            spec["ram"] = ram_spec
         check_ram(ram_path, resolve(spec["elf"]), spec)
 
 

@@ -1,0 +1,4 @@
+build/
+datarom.wsc
+compile_commands.json
+__pycache__/

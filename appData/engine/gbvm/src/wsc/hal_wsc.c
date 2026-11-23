@@ -12,8 +12,10 @@ uint16_t hal_screen_h_px;
 
 static volatile uint16_t hal_vblanks;
 
-/* Screen 1 is 32x32 cells; the hardware needs it 2 KiB aligned. */
+/* Screens 1 and 2 are 32x32 cells; the hardware needs them 2 KiB aligned. */
 volatile ws_screen_t hal_screen
+    __attribute__((section(".iramx_screen"), aligned(0x800)));
+volatile ws_screen_t hal_win_screen
     __attribute__((section(".iramx_screen"), aligned(0x800)));
 
 static void __attribute__((interrupt)) hal_vblank_isr(void) {
@@ -33,11 +35,14 @@ void hal_display_init(void) {
     hal_screen_h_px = WS_DISPLAY_HEIGHT_PIXELS;
 
     ws_display_set_screen1_address((const void __wf_iram *)&hal_screen);
+    ws_display_set_screen2_address((const void __wf_iram *)&hal_win_screen);
     ws_display_scroll_screen1_to(0, 0);
     outportb(WS_DISPLAY_BACK_PORT, 0x00);
 
-    for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES; i++)
+    for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES; i++) {
         hal_screen.cell[i] = 0;
+        hal_win_screen.cell[i] = 0;
+    }
 
     ws_int_set_handler(WS_INT_VBLANK, (void __far *)hal_vblank_isr);
     ws_int_enable(WS_INT_ENABLE_VBLANK);
