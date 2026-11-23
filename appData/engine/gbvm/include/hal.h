@@ -2,9 +2,10 @@
 #define HAL_H
 
 #include <stdint.h>
+#include <gbdk/metasprites.h>
 
 /* WonderSwan Color hardware abstraction used by the GBVM engine port.
- * Only the background path needed by the C05 tests is implemented. */
+ * Background and sprite paths are implemented. */
 
 /* GB joypad bits; X1/X2/X3/X4 map to up/right/down/left. */
 #ifndef J_RIGHT
@@ -68,5 +69,47 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
 
 /* Scroll the background to the given logical pixel position. */
 void hal_scroll_to(int16_t x, int16_t y);
+
+/* Sprite tiles are plain GB 2bpp, converted without an index shift. Index 0
+ * stays transparent. */
+void hal_load_sprite_tiles(uint16_t first, uint16_t count,
+                           const uint8_t __far *data, uint8_t bpp);
+
+/* Load count CGB RGB555 palettes into sprite palettes starting at first.
+ * GB sprite palette p becomes WSC palette 8+p; all four entries are written. */
+void hal_set_sprite_palette(uint8_t first, uint8_t count,
+                            const uint16_t __far *cgb_colors);
+
+/* Metasprite drawing. The offset chain is cumulative, as in GBDK: each
+ * entry's dx/dy is relative to the previous entry.
+ *
+ * Coordinates are logical screen pixels, with (0, 0) at the top left. GB OAM
+ * hardware coordinates carry a fixed (-8, -16) bias; the HAL removes it so
+ * callers can pass logical positions directly.
+ *
+ * props is OR'd with each entry's props. Palette bits 0-2 select the GB sprite
+ * palette, bit 3 adds 256 to the tile index, bits 5/6 flip the tile. The GB
+ * behind-BG priority bit (7) is ignored because screen 1 has no equivalent
+ * priority bit on WSC.
+ *
+ * mode is HAL_SPRITE_MODE_8X8 or HAL_SPRITE_MODE_8X16. In 8x16 mode the low
+ * tile bit is ignored, the top half is tile & 0xFE, the bottom tile | 1, and
+ * a V-flip swaps the halves. flip is HAL_FLIP_NONE/H/V/HV and mirrors both the
+ * tile graphics and the cumulative offsets.
+ *
+ * Returns the number of 8x8 WSC sprite entries added. */
+#define HAL_SPRITE_MODE_8X8  0
+#define HAL_SPRITE_MODE_8X16 1
+#define HAL_FLIP_NONE 0
+#define HAL_FLIP_H    1
+#define HAL_FLIP_V    2
+#define HAL_FLIP_HV   3
+
+void hal_sprites_begin(void);
+uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
+                             uint8_t props, int16_t x, int16_t y,
+                             uint8_t mode, uint8_t flip);
+void hal_sprites_end(void);
+uint16_t hal_sprite_count(void);
 
 #endif

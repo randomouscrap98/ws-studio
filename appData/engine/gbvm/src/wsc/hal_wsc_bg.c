@@ -5,12 +5,9 @@
 #include "hal.h"
 #include "hal_wsc_internal.h"
 
-void hal_load_bkg_tiles(uint16_t first, uint16_t count,
-                        const uint8_t __far *data, uint8_t bpp) {
+void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
+                                const uint8_t __far *data, uint8_t index_shift) {
     uint16_t t, row, bit;
-
-    if (bpp != 2)
-        return;
 
     for (t = 0; t < count; t++) {
         volatile uint8_t *dst =
@@ -26,7 +23,7 @@ void hal_load_bkg_tiles(uint16_t first, uint16_t count,
                 uint8_t mask = (uint8_t)(0x80 >> bit);
                 uint8_t index = (uint8_t)(
                     ((lo & mask) ? 1 : 0) |
-                    ((hi & mask) ? 2 : 0)) + 1;
+                    ((hi & mask) ? 2 : 0)) + index_shift;
 
                 if (index & 1) p0 |= mask;
                 if (index & 2) p1 |= mask;
@@ -41,6 +38,15 @@ void hal_load_bkg_tiles(uint16_t first, uint16_t count,
             dst[row * 4 + 3] = p3;
         }
     }
+}
+
+void hal_load_bkg_tiles(uint16_t first, uint16_t count,
+                        const uint8_t __far *data, uint8_t bpp) {
+    if (bpp != 2)
+        return;
+
+    /* GB background colour 0 stays opaque: shift every index up by one. */
+    hal_wsc_convert_tiles_2bpp(first, count, data, 1);
 }
 
 void hal_set_bkg_palette(uint8_t first, uint8_t count,

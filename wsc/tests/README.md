@@ -103,11 +103,23 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   through the portable VM core and checks the results in `script_memory`
   and named RAM variables.
 - `hal-static`: runs `wsc/halrom` for 30 frames with no input. The HAL loads
-  hand-made GB background data, so the frame must match `ref_render.py` at
-  scroll 0 exactly; `scroll_x == 0` and `hal_frames` is 30 +/- 2.
+  hand-made GB background and sprite data, so the frame must match
+  `ref_render.py` at scroll 0 exactly; `scroll_x == 0`, `player_x == 16`,
+  `player_y == 24`, `sprite_count == 6` and `hal_frames` is 30 +/- 2.
 - `hal-scroll`: holds X2 (right) from frame 10 for 60 frames. The frame
   must match `ref_render.py` at scroll 8; `scroll_x == 8` and `hal_input`
-  is the GB `J_RIGHT` bit (`0x01`).
+  is the GB `J_RIGHT` bit (`0x01`). `player_x` also moves with X2, so the
+  reference is given its post-latch visible x position (`--player-x 64`).
+- `spr-static`: same ROM with no input. The 8x16 player metasprite and the
+  H+V-flipped 8x8 metasprite must match the reference exactly; the RAM
+  checks cover `player_x`, `player_y`, `sprite_count` and `scroll_x`.
+- `spr-move`: holds X2 for frames 10-29 and X3 for frames 30-59. It checks
+  the final player position (36, 54) in RAM and the exact reference frame.
+  The WSC latches the sprite table at line 142, so the visible frame uses
+  the previous y (52); the reference is given that latched position.
+- `spr-overlap`: moves the player right until it overlaps the other
+  metasprite, then releases the button. The exact reference pins the WSC
+  sprite-to-sprite rule that the lower table index is drawn on top.
 
 The keypad values used by the input tests correspond to the libws
 `WS_KEY_*` constants:

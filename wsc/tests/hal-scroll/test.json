@@ -8,11 +8,13 @@
     "script": "tools/ref_render.py",
     "args": [
       "--scroll",
-      "8"
+      "8",
+      "--player-x",
+      "64"
     ],
     "precision": "exact"
   },
-  "frame_sha256": "b2397c8d25f0c15500a0442b432a5c6cee027ff4252f97a96df06bc29b166d6c",
+  "frame_sha256": "cc569df6fa3c02653526a2f2cc23fcb8f7542e7525e7495e2a5df07e09d5411a",
   "ram": [
     {
       "symbol": "scroll_x",

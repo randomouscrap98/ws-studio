@@ -64,7 +64,7 @@ endif
 SOURCES_S	:= $(shell find -L $(SOURCEDIRS) -name "*.s")
 SOURCES_C	:= $(shell find -L $(SOURCEDIRS) -name "*.c")
 
-HAL_SOURCES	:= hal_wsc.c hal_wsc_bg.c
+HAL_SOURCES	:= hal_wsc.c hal_wsc_bg.c hal_wsc_spr.c
 
 # Compiler and linker flags
 # -------------------------

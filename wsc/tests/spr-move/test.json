@@ -1,0 +1,42 @@
+{
+  "rom": "halrom/halrom.wsc",
+  "elf": "halrom/build/halrom.elf",
+  "build": "halrom",
+  "frames": 60,
+  "input": "input.txt",
+  "reference": {
+    "script": "tools/ref_render.py",
+    "args": [
+      "--scroll",
+      "8",
+      "--player-x",
+      "36",
+      "--player-y",
+      "52"
+    ],
+    "precision": "exact"
+  },
+  "frame_sha256": "e558bc65021a70839371fbc378e7aaacffc242efb99abf6ec5b377d565a59e17",
+  "ram": [
+    {
+      "symbol": "player_x",
+      "size": 2,
+      "equals": "0x24"
+    },
+    {
+      "symbol": "player_y",
+      "size": 2,
+      "equals": "0x36"
+    },
+    {
+      "symbol": "sprite_count",
+      "size": 2,
+      "equals": "0x06"
+    },
+    {
+      "symbol": "scroll_x",
+      "size": 1,
+      "equals": "0x08"
+    }
+  ]
+}

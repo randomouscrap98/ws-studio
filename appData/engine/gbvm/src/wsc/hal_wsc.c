@@ -45,7 +45,8 @@ void hal_display_init(void) {
 }
 
 void hal_display_on(void) {
-    ws_display_set_control(WS_DISPLAY_CTRL_SCR1_ENABLE);
+    ws_display_set_control(WS_DISPLAY_CTRL_SCR1_ENABLE |
+                           WS_DISPLAY_CTRL_SPR_ENABLE);
 }
 
 void hal_display_off(void) {
