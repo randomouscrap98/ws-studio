@@ -573,6 +573,17 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x48: { /* vm_choice */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_count = vm_fetch8(&p);
+    UBYTE a_options = vm_fetch8(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_choice(CTX, a_idx, a_options, a_count);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4B: { /* vm_set_font */
         const UBYTE VM_FAR *p = CTX->PC + 1;
     UBYTE a_font_index = vm_fetch8(&p);

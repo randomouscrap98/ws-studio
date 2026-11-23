@@ -537,8 +537,11 @@ void ui_update(void) BANKED {
     if ((flag) && (text_sound_bank != SFX_STOP_BANK)) music_play_sfx(text_sound_bank, text_sound_data, text_sound_mask, MUSIC_SFX_PRIORITY_NORMAL);
 }
 
+#ifdef __ia16__
+UBYTE ui_run_menu(const menu_item_t __far * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
+#else
 UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
-#ifndef __ia16__
+#endif
     menu_item_t current_menu_item;
     UBYTE current_index = ((options & MENU_SET_START) ? start_index : 1u), next_index = 0u;
     // copy first menu item
@@ -616,10 +619,6 @@ UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE cou
         // reset next index
         next_index = 0;
     };
-#else
-    (void)start_item; (void)bank; (void)options; (void)count; (void)start_index;
-    return 0;
-#endif
 }
 
 void ui_run_modal(UBYTE wait_flags) BANKED {

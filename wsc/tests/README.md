@@ -172,3 +172,12 @@ The keypad values used by the input tests correspond to the libws
 - `text-var`: `gamerom_c15_var` sets `VAR_QUEST10 = -42` and
   `VAR_TURNIP_COUNTER = 1234`, then prints `Var: %d and %d.` at instant
   speed. The frame pins the `-` sign and multi-digit formatting.
+- `choice-frame` / `choice-down-a` / `choice-cancel`: run
+  `gamerom_c16_choice`, which prints `Pick one:` and three labels, then runs
+  a vertical 3-item `VM_CHOICE` (`UI_MENU_LAST_0 | UI_MENU_CANCEL_B`) after
+  setting `VAR_QUEST10 = 7`. `choice-frame` holds no input and shows the
+  cursor on item 1 (row 2); the oracle adds the cursor tile to the window
+  map. `choice-down-a` presses down once (item 1's link to item 2) and then
+  A; the result is 2 and the script moves the overlay to y=18 tiles, so the
+  frame is the town without the window. `choice-cancel` presses B; the
+  result is 0. All three check `vm_last_unimplemented_opcode == 0`.

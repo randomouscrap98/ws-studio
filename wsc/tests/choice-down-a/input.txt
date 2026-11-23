@@ -1,0 +1,5 @@
+# Wait for the prompt, move down from item 1 to item 2, then pick it with A.
+60 X3
+64 -
+70 A
+74 -

@@ -13,6 +13,10 @@ Glyph tiles are composed here from the exported variable-width font data
 in the C15 report: each glyph is shifted into the current 8-pixel tile, and
 the overflow (if any) continues at the top of the next tile.  Text is only
 wrapped by explicit 0x0a newlines; the compiler emits those.
+
+The C16 "choice" mode adds the UI cursor tile at the menu items' window cells,
+and "closed" renders the scene with the overlay window hidden (after
+VM_OVERLAY_MOVE_TO y=18).
 """
 
 import argparse
@@ -58,7 +62,18 @@ MODES = {
     "instant": (b"\x01\x01Wow! Found\nGOLD COIN.", ()),
     "speed": (b"\x01\x03Wow! Found\nGOLD COIN.", ()),
     "var": (b"\x01\x01Var: %d and %d.", (-42, 1234)),
+    # C16 menu: prompt on row 1, three labels on rows 2-4.  The menu cursor
+    # starts on the first item at window cell (1, 2).
+    "choice": (b"\x01\x01Pick one:\n1 - One\n2 - Two\n3 - Three", ()),
 }
+
+# Cursor cells ("choice" mode), as (window x, window y).
+CURSORS = {
+    "choice": [(1, 2)],
+}
+
+# Modes that render the scene with no overlay window (C16 close tests).
+CLOSED_MODES = {"closed"}
 
 
 def split_top_level(text, sep=","):
@@ -389,7 +404,7 @@ def ui_tiles(export):
     return tiles
 
 
-def build_window_cells():
+def build_window_cells(height=4):
     cells = [[0, 0, False, False] for _ in range(32 * 32)]
 
     def put(x, y, tile):
@@ -401,13 +416,13 @@ def build_window_cells():
         for x in range(27):
             put(x, y, UI_BLACK_TILE)
 
-    # VM_OVERLAY_CLEAR 0, 0, 20, 4 with UI_DRAW_FRAME.
+    # VM_OVERLAY_CLEAR 0, 0, 20, height with UI_DRAW_FRAME.
     for x in range(20):
         put(x, 0, UI_FRAME_TILE if x == 0 else
             (UI_FRAME_TILE + 2 if x == 19 else UI_FRAME_TILE + 1))
-        put(x, 3, UI_FRAME_TILE + 6 if x == 0 else
+        put(x, height - 1, UI_FRAME_TILE + 6 if x == 0 else
             (UI_FRAME_TILE + 8 if x == 19 else UI_FRAME_TILE + 7))
-    for y in range(1, 3):
+    for y in range(1, height - 1):
         put(0, y, UI_FRAME_TILE + 3)
         for x in range(1, 19):
             put(x, y, UI_FRAME_TILE + 4)
@@ -419,7 +434,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--export", default=str(boot_oracle.DEFAULT_EXPORT))
     parser.add_argument("--project-dir", default=str(boot_oracle.DEFAULT_PROJECT))
-    parser.add_argument("--mode", choices=sorted(MODES), required=True)
+    parser.add_argument("--mode", choices=sorted(set(MODES) | CLOSED_MODES),
+                        required=True)
     parser.add_argument("--frames", type=int, required=True)
     parser.add_argument("--draw-calls", type=int, default=None,
                         help="override the speed-mode render-call count")
@@ -442,37 +458,40 @@ def main(argv=None):
             export, args.project_dir, SCENE, PLAYER_X, PLAYER_Y, start_dir,
             args.frames, effects={}, final=final)
 
-        font = Font(export)
-        fmt, values = MODES[args.mode]
-        text = format_text(fmt, values)
+        if args.mode not in CLOSED_MODES:
+            font = Font(export)
+            fmt, values = MODES[args.mode]
+            text = format_text(fmt, values)
 
-        cells = build_window_cells()
-        calls = None
-        if args.mode == "speed":
-            calls = (args.draw_calls if args.draw_calls is not None
-                     else speed_draw_calls(args.frames))
-        decoder = TextDecoder(font, cells)
-        renderer = decoder.run(text, calls)
+            cells = build_window_cells(5 if args.mode == "choice" else 4)
+            calls = None
+            if args.mode == "speed":
+                calls = (args.draw_calls if args.draw_calls is not None
+                         else speed_draw_calls(args.frames))
+            decoder = TextDecoder(font, cells)
+            renderer = decoder.run(text, calls)
+            for cx, cy in CURSORS.get(args.mode, []):
+                cells[cy * 32 + cx] = [UI_CURSOR_TILE, UI_PALETTE, False, False]
 
-        base_tiles = scenario["bg_tiles"]
-        tiles = ui_tiles(export)
-        tiles.update(renderer.tiles)
-        limit = max(tiles) + 1
-        if len(base_tiles) < limit:
-            base_tiles.extend([[0] * 16] * (limit - len(base_tiles)))
-        for index, data in tiles.items():
-            base_tiles[index] = data
+            base_tiles = scenario["bg_tiles"]
+            tiles = ui_tiles(export)
+            tiles.update(renderer.tiles)
+            limit = max(tiles) + 1
+            if len(base_tiles) < limit:
+                base_tiles.extend([[0] * 16] * (limit - len(base_tiles)))
+            for index, data in tiles.items():
+                base_tiles[index] = data
 
-        scenario["window"] = {
-            "x": WINDOW_X,
-            "y": WINDOW_Y,
-            "width": WINDOW_W,
-            "height": WINDOW_H,
-            "scroll_x": (-WINDOW_X) & 0xFF,
-            "scroll_y": (-WINDOW_Y) & 0xFF,
-            "cells": cells,
-        }
-        scenario["window_hide_actors"] = True
+            scenario["window"] = {
+                "x": WINDOW_X,
+                "y": WINDOW_Y,
+                "width": WINDOW_W,
+                "height": WINDOW_H,
+                "scroll_x": (-WINDOW_X) & 0xFF,
+                "scroll_y": (-WINDOW_Y) & 0xFF,
+                "cells": cells,
+            }
+            scenario["window_hide_actors"] = True
 
         if args.scenario_out:
             Path(args.scenario_out).write_text(__import__("json").dumps(scenario))

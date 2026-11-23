@@ -1,0 +1,3 @@
+# Wait for the prompt, then cancel the menu with B.
+60 B
+64 -

@@ -1,0 +1,19 @@
+{
+  "rom": "gamerom/gamerom_c16_choice.wsc",
+  "elf": "gamerom/build/gamerom_c16_choice.elf",
+  "build": "gamerom",
+  "frames": 120,
+  "input": "input.txt",
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/text_oracle.py",
+    "args": ["--mode", "closed", "--frames", "120"],
+    "precision": "exact"
+  },
+  "ram": [
+    {"symbol": "script_memory", "offset": 18, "size": 2, "equals": "0x0000"},
+    {"symbol": "win_pos_y", "size": 1, "equals": "0x90"},
+    {"symbol": "hal_win_visible", "size": 1, "equals": "0x00"},
+    {"symbol": "vm_last_unimplemented_opcode", "size": 1, "equals": "0x00"}
+  ]
+}

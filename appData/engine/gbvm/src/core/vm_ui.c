@@ -302,13 +302,15 @@ void vm_overlay_show(SCRIPT_CTX * THIS, UBYTE pos_x, UBYTE pos_y, UBYTE color, U
     ui_set_pos(pos_x << 3, pos_y << 3);
 }
 
-#ifndef __ia16__
 void vm_choice(SCRIPT_CTX * THIS, INT16 idx, UBYTE options, UBYTE count) OLDCALL BANKED {
     INT16 * v = VM_REF_TO_PTR(idx);
+#ifdef __ia16__
+    *v = (count) ? ui_run_menu((const menu_item_t __far *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
+#else
     *v = (count) ? ui_run_menu((menu_item_t *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
+#endif
     THIS->PC += sizeof(menu_item_t) * count;
 }
-#endif
 
 void vm_set_font(SCRIPT_CTX * THIS, UBYTE font_index) OLDCALL BANKED {
     THIS;

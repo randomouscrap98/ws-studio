@@ -12,7 +12,7 @@ against script_cmds[] and vm.i.  The dispatcher emits all of them for the
 WonderSwan build.  The host build only links the core vm.h handlers, so the
 engine handler cases are compiled under __ia16__.  Handlers for hardware the
 WSC does not have (SGB, SIO/link, GB Printer, RTC) stay "unimplemented
-opcode"; menu and the indirect text loader in vm_ui.h are also excluded.  See
+opcode"; the indirect text loader in vm_ui.h is also excluded.  See
 EXCLUDED_HEADERS and EXCLUDED_HANDLERS.  The overlay-window and direct text
 handlers in vm_ui.h are emitted.
 """
@@ -40,11 +40,10 @@ EXCLUDED_HEADERS = {
     "vm_sio.h": "SIO/link",
 }
 
-# Menu opcodes in vm_ui.h stay excluded.  The indirect text loader is not
-# emitted by the gbs2 compiler; its stack layout is GB-specific.
+# The indirect text loader in vm_ui.h stays excluded: it is not emitted by
+# the gbs2 compiler and its stack layout is GB-specific.
 EXCLUDED_HANDLERS = {
     "vm_load_text_ex",
-    "vm_choice",
 }
 
 # Pointer operands that are (bank, C data) pairs, not script bytecode.  They
