@@ -21,6 +21,7 @@
 .LOCAL_ACTOR = -4
 
 _script_c14_test::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
         VM_RESERVE              4
 

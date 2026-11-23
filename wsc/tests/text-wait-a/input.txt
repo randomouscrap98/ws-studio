@@ -1,2 +1,2 @@
-# Hold A from frame 30 so the modal wait completes.
-30 A
+# Hold A a few frames after the test script starts.
+6 A

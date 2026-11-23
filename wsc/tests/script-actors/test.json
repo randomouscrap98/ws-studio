@@ -1,8 +1,8 @@
 {
-  "rom": "gamerom/gamerom_c13.wsc",
-  "elf": "gamerom/build/gamerom_c13.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 90,
+  "frames": 66,
   "frame_sha256": null,
   "reference": {
     "script": "tools/c13_oracle.py",
@@ -95,5 +95,12 @@
       "size": 1,
       "equals": "0x00"
     }
-  ]
+  ],
+  "boot": "c13",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

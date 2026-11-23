@@ -1,17 +1,39 @@
 {
-  "rom": "gamerom/gamerom_c18_big.wsc",
-  "elf": "gamerom/build/gamerom_c18_big.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 60,
+  "frames": 29,
   "frame_sha256": null,
   "reference": {
     "script": "tools/c18_oracle.py",
-    "args": ["--mode", "big"],
+    "args": [
+      "--mode",
+      "big"
+    ],
     "precision": "exact"
   },
   "ram": [
-    {"symbol": "image_width", "size": 2, "equals": "0x0080"},
-    {"symbol": "image_height", "size": 2, "equals": "0x0090"},
-    {"symbol": "vm_last_unimplemented_opcode", "size": 1, "equals": "0x00"}
-  ]
+    {
+      "symbol": "image_width",
+      "size": 2,
+      "equals": "0x0080"
+    },
+    {
+      "symbol": "image_height",
+      "size": 2,
+      "equals": "0x0090"
+    },
+    {
+      "symbol": "vm_last_unimplemented_opcode",
+      "size": 1,
+      "equals": "0x00"
+    }
+  ],
+  "boot": "c18-big",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

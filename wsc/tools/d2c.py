@@ -423,7 +423,7 @@ def write_bootstrap(out_dir, init_data, s2c_header_name, scenes):
         lines.append('#include "data/{}.h"'.format(font))
     lines.extend([
         "",
-        "/* The test build overrides these from the make command line. */",
+        "/* Defaults; the test image overrides the start scene at run time. */",
         "#ifndef BOOT_START_SCENE",
         "#define BOOT_START_SCENE {}".format(start_scene),
         "#endif",
@@ -439,10 +439,12 @@ def write_bootstrap(out_dir, init_data, s2c_header_name, scenes):
         "",
         "extern const __far struct scene_t BOOT_START_SCENE;",
         "",
-        "const __far INT16 start_scene_x = BOOT_START_X;",
-        "const __far INT16 start_scene_y = BOOT_START_Y;",
-        "const __far direction_e start_scene_dir = BOOT_START_DIR;",
-        "const __far far_ptr_t start_scene = {",
+        "/* These are not const so a platform can select a start scene at run time",
+        " * (the WSC test image writes a boot id into its ROM). */",
+        "INT16 start_scene_x = BOOT_START_X;",
+        "INT16 start_scene_y = BOOT_START_Y;",
+        "direction_e start_scene_dir = BOOT_START_DIR;",
+        "far_ptr_t start_scene = {",
         "    .bank = 0,",
         "    .ptr = (const void __far *)&BOOT_START_SCENE",
         "};",
@@ -460,6 +462,9 @@ def write_bootstrap(out_dir, init_data, s2c_header_name, scenes):
     lines.extend([
         "};",
         "",
+        "/* Implemented by the platform's boot table. */",
+        "void wsc_boot_select(far_ptr_t *scene, INT16 *x, INT16 *y);",
+        "",
         "/* Platform globals assigned by the script_engine_init VM routine. They",
         " * are weak so engine sources that define one keep their definition. */",
     ])
@@ -470,6 +475,7 @@ def write_bootstrap(out_dir, init_data, s2c_header_name, scenes):
     for name, size, value in init_data.get("globals", []):
         lines.append("    {} = {};".format(name, value))
     lines.extend([
+        "    wsc_boot_select(&start_scene, &start_scene_x, &start_scene_y);",
         "}",
         "",
         "/* VM_LOCK, VM_RAISE(EXCEPTION_RESET, 0): platform globals are set by",
@@ -478,6 +484,21 @@ def write_bootstrap(out_dir, init_data, s2c_header_name, scenes):
         "",
     ])
     out.write_text("\n".join(lines))
+
+    # The runtime selector assigns these through pointers, so their public
+    # declarations cannot stay const.
+    header = out_dir / "include" / "data" / "data_bootstrap.h"
+    if header.is_file():
+        text = header.read_text()
+        for decl in (
+            "INT16 start_scene_x;",
+            "INT16 start_scene_y;",
+            "direction_e start_scene_dir;",
+            "far_ptr_t start_scene;",
+        ):
+            for prefix in ("extern const __far ", "extern const "):
+                text = text.replace(prefix + decl, "extern " + decl)
+        header.write_text(text)
 
 
 def write_states(out_dir, tables, implemented):

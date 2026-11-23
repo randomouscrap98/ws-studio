@@ -1,17 +1,39 @@
 {
-  "rom": "gamerom/gamerom_c14.wsc",
-  "elf": "gamerom/build/gamerom_c14.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 60,
+  "frames": 36,
   "frame_sha256": null,
   "reference": {
     "script": "tools/overlay_oracle.py",
-    "args": ["--frames", "60"],
+    "args": [
+      "--frames",
+      "36"
+    ],
     "precision": "exact"
   },
   "ram": [
-    {"symbol": "win_pos_x", "size": 1, "equals": "0x08"},
-    {"symbol": "win_pos_y", "size": 1, "equals": "0x6c"},
-    {"symbol": "win_dest_pos_y", "size": 1, "equals": "0x48"}
-  ]
+    {
+      "symbol": "win_pos_x",
+      "size": 1,
+      "equals": "0x08"
+    },
+    {
+      "symbol": "win_pos_y",
+      "size": 1,
+      "equals": "0x6c"
+    },
+    {
+      "symbol": "win_dest_pos_y",
+      "size": 1,
+      "equals": "0x48"
+    }
+  ],
+  "boot": "c14",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

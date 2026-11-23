@@ -9,6 +9,7 @@
 
 ; C18 tiles-big: hide the player so the frame is background-only, then stop.
 _script_c18_stop::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
         VM_RESERVE              4
         VM_SET_CONST            .LOCAL_ACTOR, 0

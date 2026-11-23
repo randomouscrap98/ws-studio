@@ -1,8 +1,8 @@
 {
-  "rom": "gamerom/gamerom_town_walk.wsc",
-  "elf": "gamerom/build/gamerom_town_walk.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 140,
+  "frames": 117,
   "frame_sha256": null,
   "reference": {
     "script": "tools/walk_oracle.py",
@@ -14,12 +14,19 @@
       "--start-y",
       "328",
       "--frames",
-      "140",
+      "116",
       "--input",
       "tests/walk-free/input.txt"
     ],
     "precision": "exact"
   },
   "ram": "gamerom/build/ram_walk_free.json",
-  "input": "input.txt"
+  "input": "input.txt",
+  "boot": "town-walk",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 600
+  }
 }

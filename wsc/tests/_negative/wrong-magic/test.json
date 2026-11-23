@@ -2,7 +2,7 @@
   "rom": "hello/hello.wsc",
   "elf": "hello/build/hello.elf",
   "build": "hello",
-  "frames": 60,
+  "frames": 0,
   "frame_sha256": "fb1017b33145e11a8792c0ba780f7efab96db2e51f470966facd2797db32bece",
   "ram": [
     {
@@ -10,5 +10,11 @@
       "size": 2,
       "equals": "0x9999"
     }
-  ]
+  ],
+  "marker": {
+    "symbol": "hello_magic",
+    "size": 2,
+    "equals": "0x9999",
+    "timeout": 60
+  }
 }

@@ -2,7 +2,7 @@
   "rom": "vmrom/vmrom.wsc",
   "elf": "vmrom/build/vmrom.elf",
   "build": "vmrom",
-  "frames": 60,
+  "frames": 0,
   "frame_sha256": null,
   "ram": [
     {
@@ -176,5 +176,11 @@
       "size": 2,
       "equals": "0x0001"
     }
-  ]
+  ],
+  "marker": {
+    "symbol": "vmrom_done",
+    "size": 2,
+    "equals": "0x0001",
+    "timeout": 120
+  }
 }

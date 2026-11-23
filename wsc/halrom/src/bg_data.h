@@ -11,8 +11,8 @@
 #include <stdint.h>
 
 #define BG_TILE_COUNT 8
+#define BG_HI_TILE_FIRST 512
 #define BG_HI_TILE_COUNT 2
-#define BG_HI_TILE_FIRST 256
 #define BG_PALETTE_COUNT 3
 #define BG_MAP_WIDTH 32
 #define BG_MAP_HEIGHT 32

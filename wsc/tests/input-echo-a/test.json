@@ -11,5 +11,11 @@
       "size": 2,
       "equals": "0x0004"
     }
-  ]
+  ],
+  "marker": {
+    "symbol": "echo_ready",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 120
+  }
 }

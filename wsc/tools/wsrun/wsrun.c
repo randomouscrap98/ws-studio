@@ -55,6 +55,12 @@ struct options {
     const char *ram;
     uint32_t frames;
     bool have_frames;
+    uint32_t marker_address;
+    unsigned marker_width;
+    uint32_t marker_value;
+    uint32_t marker_timeout;
+    bool have_marker;
+    int boot_id;
 };
 
 struct input_event {
@@ -240,17 +246,60 @@ static int16_t input_state_cb(unsigned port, unsigned device, unsigned index,
     return (int16_t)((input_mask >> id) & 1);
 }
 
-static bool parse_u32(const char *text, uint32_t *out)
+static bool parse_u32_base(const char *text, int base, uint32_t *out)
 {
     char *end;
     unsigned long value;
 
     errno = 0;
-    value = strtoul(text, &end, 10);
+    value = strtoul(text, &end, base);
     if (errno != 0 || end == text || *end != '\0' || value > UINT32_MAX)
         return false;
     *out = (uint32_t)value;
     return true;
+}
+
+static bool parse_u32(const char *text, uint32_t *out)
+{
+    return parse_u32_base(text, 10, out);
+}
+
+/* ADDR:SIZE:VALUE, all in C notation (0x... or decimal). */
+static bool parse_marker(const char *text, struct options *opts)
+{
+    char *copy;
+    char *first;
+    char *second;
+    uint32_t address;
+    uint32_t width;
+    uint32_t value;
+    bool ok = false;
+
+    copy = strdup(text);
+    if (!copy)
+        return false;
+    first = strchr(copy, ':');
+    if (!first)
+        goto done;
+    *first++ = '\0';
+    second = strchr(first, ':');
+    if (!second)
+        goto done;
+    *second++ = '\0';
+    if (!parse_u32_base(copy, 0, &address) ||
+        !parse_u32(first, &width) ||
+        !parse_u32_base(second, 0, &value))
+        goto done;
+    if (width != 1 && width != 2 && width != 4)
+        goto done;
+    opts->marker_address = address;
+    opts->marker_width = width;
+    opts->marker_value = value;
+    opts->have_marker = true;
+    ok = true;
+done:
+    free(copy);
+    return ok;
 }
 
 static char *trim(char *text)
@@ -611,7 +660,60 @@ static void usage(FILE *stream)
 {
     fprintf(stream,
             "usage: wsrun --core SO --rom ROM --frames N [--input FILE] "
-            "[--png OUT] [--raw OUT] [--ram OUT]\n");
+            "[--png OUT] [--raw OUT] [--ram OUT]\n"
+            "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
+            "[--boot-id N]\n");
+}
+
+/* The gamerom image carries this marker next to a one-byte boot-scene id.
+ * Patching the loaded ROM image survives the CRT's IRAM initialisation,
+ * unlike a poke into system RAM before the first frame. */
+static const uint8_t boot_magic[] = { 'W', 'S', 'C', 'B', 'O', 'O', 'T' };
+
+static bool patch_boot_id(uint8_t *rom, size_t size, unsigned id)
+{
+    size_t matches = 0;
+    size_t offset = 0;
+    size_t i;
+
+    if (id == 0)
+        return true;
+    while (offset + sizeof(boot_magic) < size) {
+        bool same = true;
+
+        for (i = 0; i < sizeof(boot_magic); i++) {
+            if (rom[offset + i] != boot_magic[i]) {
+                same = false;
+                break;
+            }
+        }
+        if (same) {
+            matches++;
+            rom[offset + sizeof(boot_magic)] = (uint8_t)id;
+        }
+        offset++;
+    }
+    if (matches != 1) {
+        fprintf(stderr,
+                "error: ROM has %zu boot-id slots (expected exactly 1)\n",
+                matches);
+        return false;
+    }
+    return true;
+}
+
+static bool ram_value(const uint8_t *ram, size_t ram_size, uint32_t address,
+                      unsigned width, uint32_t *out)
+{
+    uint32_t value = 0;
+    unsigned i;
+
+    if ((uint64_t)address + width > ram_size)
+        return false;
+    for (i = 0; i < width; i++)
+        value |= (uint32_t)ram[address + i] << (8 * i);
+    *out = value;
+    return true;
 }
 
 static void *load_symbol(void *handle, const char *name)
@@ -643,7 +745,10 @@ int main(int argc, char **argv)
     bool ok = false;
     char err[256];
     uint32_t i;
+    uint32_t marker_frame = 0;
     int rc = 1;
+
+    opts.boot_id = -1;
 
     for (i = 1; i < (uint32_t)argc; i++) {
         const char *arg = argv[i];
@@ -668,6 +773,35 @@ int main(int argc, char **argv)
                 return 2;
             }
             opts.have_frames = true;
+        } else if (strcmp(arg, "--marker") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_marker(argv[i], &opts)) {
+                fprintf(stderr, "error: invalid marker '%s' "
+                        "(expected ADDR:SIZE:VALUE)\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
+        } else if (strcmp(arg, "--marker-timeout") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_u32(argv[i], &opts.marker_timeout)) {
+                fprintf(stderr, "error: invalid marker timeout '%s'\n",
+                        argv[i]);
+                usage(stderr);
+                return 2;
+            }
+        } else if (strcmp(arg, "--boot-id") == 0) {
+            uint32_t id;
+
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_u32(argv[i], &id) || id > 255) {
+                fprintf(stderr, "error: invalid boot id '%s'\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
+            opts.boot_id = (int)id;
         } else if (strcmp(arg, "--input") == 0) {
             if (++i >= (uint32_t)argc)
                 goto bad_args;
@@ -697,6 +831,12 @@ bad_args:
         usage(stderr);
         return 2;
     }
+    if (opts.marker_timeout == 0)
+        opts.marker_timeout = 600;
+    if (!opts.have_marker && opts.marker_timeout != 600) {
+        fprintf(stderr, "error: --marker-timeout requires --marker\n");
+        return 2;
+    }
 
     if (opts.input) {
         if (!parse_input_file(opts.input, err, sizeof(err))) {
@@ -707,6 +847,9 @@ bad_args:
 
     if (!read_file(opts.rom, &rom_data, &rom_size))
         return 1;
+    if (opts.boot_id >= 0 &&
+        !patch_boot_id(rom_data, rom_size, (unsigned)opts.boot_id))
+        goto cleanup;
 
     if (!init_directories())
         goto cleanup;
@@ -762,6 +905,45 @@ bad_args:
     ram_data = core.get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
     ram_size = core.get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
 
+    if (opts.have_marker) {
+        bool found = false;
+
+        if (!ram_data || ram_size == 0) {
+            fprintf(stderr, "error: core did not expose system RAM\n");
+            goto cleanup;
+        }
+        for (i = 0; i < opts.marker_timeout; i++) {
+            uint32_t value;
+
+            input_mask = 0;
+            core.run();
+            if (video_error) {
+                fprintf(stderr, "error: %s\n", video_error_message);
+                goto cleanup;
+            }
+            if (!ram_value(ram_data, ram_size, opts.marker_address,
+                           opts.marker_width, &value)) {
+                fprintf(stderr,
+                        "error: marker address 0x%X is outside the %zu-byte "
+                        "RAM dump\n", opts.marker_address, ram_size);
+                goto cleanup;
+            }
+            if (value == opts.marker_value) {
+                marker_frame = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            fprintf(stderr,
+                    "error: marker 0x%X at 0x%X was not reached in %u frames\n",
+                    opts.marker_value, opts.marker_address,
+                    opts.marker_timeout);
+            goto cleanup;
+        }
+    }
+
+    /* Input frame numbers are relative to the marker when one is used. */
     for (i = 0; i < opts.frames; i++) {
         input_mask = mask_for_frame(i);
         core.run();
@@ -797,10 +979,11 @@ bad_args:
             goto cleanup;
     }
 
-    if (printf("frames=%u width=%u height=%u ram_size=%zu\n", opts.frames,
+    if (printf("frames=%u width=%u height=%u ram_size=%zu", opts.frames,
                have_frame ? frame_width : 0,
                have_frame ? frame_height : 0, ram_size) < 0 ||
-        fflush(stdout) != 0) {
+        (opts.have_marker && printf(" marker_frame=%u", marker_frame) < 0) ||
+        printf("\n") < 0 || fflush(stdout) != 0) {
         fprintf(stderr, "error: cannot write to stdout\n");
         goto cleanup;
     }

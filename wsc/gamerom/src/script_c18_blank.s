@@ -12,6 +12,7 @@
 ; border on each side.  Eight lines are long enough to walk the text tile
 ; buffer from 0xCC through 0xFF, so tile 0xFF (the old blank tile) is loaded.
 _script_c18_blank::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
         VM_RESERVE              4
         VM_SET_CONST            .LOCAL_ACTOR, 0

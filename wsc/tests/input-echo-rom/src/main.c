@@ -4,6 +4,7 @@
 #include <ws.h>
 
 volatile uint16_t echo_keys;
+volatile uint8_t echo_ready;
 
 void main(void) {
 	ws_system_set_mode(WS_MODE_COLOR_4BPP);
@@ -15,6 +16,7 @@ void main(void) {
 	/* No tiles or sprites: only the backdrop is visible. */
 	ws_display_set_control(0);
 
+	echo_ready = 1;
 	while (1)
 		echo_keys = ws_keypad_scan();
 }

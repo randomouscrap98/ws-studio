@@ -1,17 +1,43 @@
 {
-  "rom": "gamerom/gamerom_c15_var.wsc",
-  "elf": "gamerom/build/gamerom_c15_var.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 40,
+  "frames": 16,
   "frame_sha256": null,
   "reference": {
     "script": "tools/text_oracle.py",
-    "args": ["--mode", "var", "--frames", "40"],
+    "args": [
+      "--mode",
+      "var",
+      "--frames",
+      "16"
+    ],
     "precision": "exact"
   },
   "ram": [
-    {"symbol": "text_drawn", "size": 1, "equals": "0x01"},
-    {"symbol": "script_memory", "offset": 18, "size": 2, "equals": "0xffd6"},
-    {"symbol": "script_memory", "offset": 22, "size": 2, "equals": "0x04d2"}
-  ]
+    {
+      "symbol": "text_drawn",
+      "size": 1,
+      "equals": "0x01"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 18,
+      "size": 2,
+      "equals": "0xffd6"
+    },
+    {
+      "symbol": "script_memory",
+      "offset": 22,
+      "size": 2,
+      "equals": "0x04d2"
+    }
+  ],
+  "boot": "c15-var",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

@@ -1,19 +1,48 @@
 {
-  "rom": "gamerom/gamerom_c16_choice.wsc",
-  "elf": "gamerom/build/gamerom_c16_choice.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 120,
+  "frames": 96,
   "input": "input.txt",
   "frame_sha256": null,
   "reference": {
     "script": "tools/text_oracle.py",
-    "args": ["--mode", "closed", "--frames", "120"],
+    "args": [
+      "--mode",
+      "closed",
+      "--frames",
+      "96"
+    ],
     "precision": "exact"
   },
   "ram": [
-    {"symbol": "script_memory", "offset": 18, "size": 2, "equals": "0x0002"},
-    {"symbol": "win_pos_y", "size": 1, "equals": "0x90"},
-    {"symbol": "hal_win_visible", "size": 1, "equals": "0x00"},
-    {"symbol": "vm_last_unimplemented_opcode", "size": 1, "equals": "0x00"}
-  ]
+    {
+      "symbol": "script_memory",
+      "offset": 18,
+      "size": 2,
+      "equals": "0x0002"
+    },
+    {
+      "symbol": "win_pos_y",
+      "size": 1,
+      "equals": "0x90"
+    },
+    {
+      "symbol": "hal_win_visible",
+      "size": 1,
+      "equals": "0x00"
+    },
+    {
+      "symbol": "vm_last_unimplemented_opcode",
+      "size": 1,
+      "equals": "0x00"
+    }
+  ],
+  "boot": "c16-choice",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

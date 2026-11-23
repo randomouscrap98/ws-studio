@@ -14,6 +14,7 @@
 ; \001\001 selects text speed index 0 (instant).  \012 is the explicit
 ; newline emitted by the GB Studio compiler.
 _script_c15_instant::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
 
         VM_OVERLAY_SHOW         1, 1, .UI_COLOR_BLACK, 0

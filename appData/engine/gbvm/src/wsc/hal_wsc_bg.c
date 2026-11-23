@@ -41,30 +41,19 @@ void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
     }
 }
 
-/* Background data cannot live in the sprite-tile window.  Older HAL users
- * addressed the GB tile map's second bank at 256; in the C18 layout that bank
- * is WSC_TILE_BG_BANK1_BASE.  Keep those callers working by moving a
- * background load out of the sprite window into background bank 1. */
-static uint16_t bkg_tile_index(uint16_t first) {
-    if (first >= WSC_TILE_SPRITE_BASE && first < WSC_TILE_BG_BANK1_BASE)
-        return (uint16_t)(first + (WSC_TILE_BG_BANK1_BASE - WSC_TILE_SPRITE_BASE));
-    return first;
-}
-
 void hal_load_bkg_tiles(uint16_t first, uint16_t count,
                         const uint8_t __far *data, uint8_t bpp) {
     if (bpp != 2)
         return;
 
     /* GB background colour 0 stays opaque: shift every index up by one. */
-    hal_wsc_convert_tiles_2bpp(bkg_tile_index(first), count, data, 1);
+    hal_wsc_convert_tiles_2bpp(first, count, data, 1);
 }
 
 void hal_load_bkg_tiles_ram(uint16_t first, uint16_t count,
                             const uint8_t *data) {
     uint16_t t, row, bit;
 
-    first = bkg_tile_index(first);
     for (t = 0; t < count; t++) {
         volatile uint8_t *dst =
             (volatile uint8_t *)WS_TILE_4BPP_MEM(first + t);

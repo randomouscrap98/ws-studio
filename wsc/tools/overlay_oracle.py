@@ -10,11 +10,11 @@ window script in wsc/gamerom/src/script_c14_test.s is:
   CLEAR  (0, 0) 27x6 black + frame
   WAIT   non-modal for the window
 
-ui_time_masks[1] is 0, so a speed of 1 moves once every game frame.  The move
-starts on the first core-loop ui_update(); MOVE_START_FRAME is the number of
-retro_run frames before that update.  The window position at frame N is
+ui_time_masks[1] is 0, so a speed of 1 moves once every game frame.  Frames
+here are counted from the test script's marker.  The window position after K
+marker-relative frames is
 
-    y = max(72, 144 - (N - MOVE_START_FRAME))
+    y = max(72, 144 - K)
 
 and x is always 8 (tile 1).  The GB hide rule is applied by ref_render.py:
 an actor is hidden when its top-left is inside the window and the window is
@@ -46,12 +46,11 @@ UI_PALETTE = 7
 
 FRAME_H = ref_render.HEIGHT
 
-# The scene script starts at boot frame 24.  One pixel is moved per game
-# frame; the first moved position is visible at frame 24 and from frame 26
-# on y = 168 - N, clamped at the final y.  The tests only use frames 60 and
-# 100, well inside the steady one-pixel-per-frame range.
-MOVE_FRAME_OFFSET = 168
-FIRST_MOVE_FRAME = 24
+# One pixel is moved per game frame.  Relative to the marker, the first
+# moved position is visible at K = 1; the tests stay inside the steady
+# one-pixel-per-frame range.
+MOVE_FRAME_OFFSET = 144
+FIRST_MOVE_FRAME = 1
 
 
 def window_y_at(frames):

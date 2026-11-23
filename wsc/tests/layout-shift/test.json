@@ -1,8 +1,8 @@
 {
-  "rom": "gamerom/gamerom_town_pad.wsc",
-  "elf": "gamerom/build/gamerom_town_pad.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 60,
+  "frames": 37,
   "frame_sha256": null,
   "reference": {
     "script": "tools/boot_oracle.py",
@@ -18,5 +18,12 @@
     ],
     "precision": "exact"
   },
-  "ram": "gamerom/build/ram_town_pad.json"
+  "ram": "gamerom/build/ram_town.json",
+  "boot": "town",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 600
+  }
 }

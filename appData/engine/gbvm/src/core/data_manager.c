@@ -280,6 +280,12 @@ inline void load_sprite_palette(DATA_PTR(palette_t) palette, UBYTE bank) {
     DMG_palette[2] = (UBYTE)(data >> 8);
 }
 
+#ifdef __ia16__
+/* Test synchronisation point: set when a scene's init script is queued.
+ * Test scripts overwrite it with 2 as their first instruction. */
+volatile UBYTE wsc_test_marker;
+#endif
+
 UBYTE load_scene(DATA_PTR(scene_t) scene, UBYTE bank, UBYTE init_data) BANKED {
     UBYTE i;
     scene_t scn;
@@ -451,8 +457,14 @@ UBYTE load_scene(DATA_PTR(scene_t) scene, UBYTE bank, UBYTE init_data) BANKED {
     emote_actor = NULL;
 
     if ((init_data) && (scn.script_init.ptr != NULL)) {
+#ifdef __ia16__
+        wsc_test_marker = 1;
+#endif
         return (script_execute(scn.script_init.bank, scn.script_init.ptr, 0, 0) != 0);
     }
+#ifdef __ia16__
+    if (init_data) wsc_test_marker = 1;
+#endif
     return FALSE;
 }
 

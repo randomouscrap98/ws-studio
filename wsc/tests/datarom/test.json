@@ -2,7 +2,13 @@
   "rom": "datarom/datarom.wsc",
   "elf": "datarom/build/datarom.elf",
   "build": "datarom",
-  "frames": 2,
+  "frames": 0,
   "frame_sha256": null,
-  "ram": "build/datarom/oracle_ram.json"
+  "ram": "build/datarom/oracle_ram.json",
+  "marker": {
+    "symbol": "datarom_done",
+    "size": 2,
+    "equals": "0x0001",
+    "timeout": 120
+  }
 }

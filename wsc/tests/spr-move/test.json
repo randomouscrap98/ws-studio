@@ -2,7 +2,7 @@
   "rom": "halrom/halrom.wsc",
   "elf": "halrom/build/halrom.elf",
   "build": "halrom",
-  "frames": 60,
+  "frames": 56,
   "input": "input.txt",
   "reference": {
     "script": "tools/ref_render.py",
@@ -38,5 +38,11 @@
       "size": 1,
       "equals": "0x08"
     }
-  ]
+  ],
+  "marker": {
+    "symbol": "hal_ready",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 120
+  }
 }

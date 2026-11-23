@@ -10,6 +10,7 @@ volatile uint8_t scroll_x;
 volatile int16_t player_x;
 volatile int16_t player_y;
 volatile uint16_t sprite_count;
+volatile uint8_t hal_ready;
 
 static void draw_sprites(void) {
     hal_sprites_begin();
@@ -44,6 +45,7 @@ void main(void) {
 
     hal_display_on();
 
+    hal_ready = 1;
     while (1) {
         hal_input = hal_input_read();
 

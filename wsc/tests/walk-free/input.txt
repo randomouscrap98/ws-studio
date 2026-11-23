@@ -1,6 +1,5 @@
-# Wait for the scene to boot, then move down three tiles and right four
-# tiles.  The final position is tile (18, 44); both axes have scrolled well
-# past two tiles.
-40 X3
-64 X2
-96 -
+# Marker-relative: wait for the scene, move down three tiles, then right
+# four tiles. Final position is tile (18, 44).
+17 X3
+41 X2
+73 -

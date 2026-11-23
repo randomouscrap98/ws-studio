@@ -9,6 +9,7 @@
 ; selects text speed index 2.  ui_time_masks[2] = 1, so ui_update() renders
 ; one character on game frames where (game_time & 1) == 0.
 _script_c15_speed::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
 
         VM_OVERLAY_SHOW         1, 1, .UI_COLOR_BLACK, 0

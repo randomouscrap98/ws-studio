@@ -19,6 +19,22 @@ BUILD_TESTS_DIR = WSC_DIR / "build" / "tests"
 WSRUN = WSC_DIR / "build" / "wsrun"
 CORE = WSC_DIR / "build" / "mednafen_wswan_libretro.so"
 
+# Values must match BOOT_SCENE_* in wsc/gamerom/src/test_scenes.h.
+BOOT_SCENES = {
+    "logo": 0,
+    "town": 1,
+    "town-walk": 2,
+    "c13": 3,
+    "c14": 4,
+    "c15-instant": 5,
+    "c15-speed": 6,
+    "c15-var": 7,
+    "c16-choice": 8,
+    "c17-edge": 9,
+    "c18-big": 10,
+    "c18-blank": 11,
+}
+
 # Sections that wf-wswantool places in IRAM, which is what wsrun's system-RAM
 # dump contains. Far data (SRAM), ROM and absolute symbols are not dumped.
 IRAM_SECTION_PREFIXES = (
@@ -201,6 +217,40 @@ def run_wsrun(test_dir, out_dir, spec):
         "--ram",
         ram_path,
     ]
+
+    boot = spec.get("boot")
+    if boot is not None:
+        if boot not in BOOT_SCENES:
+            raise TestError("unknown boot scene {!r}".format(boot))
+        argv.extend(["--boot-id", str(BOOT_SCENES[boot])])
+
+    marker = spec.get("marker")
+    if marker is not None:
+        if not isinstance(marker, dict):
+            raise TestError("marker must be an object")
+        symbol = marker.get("symbol")
+        size = marker.get("size")
+        if not isinstance(symbol, str) or not symbol:
+            raise TestError("marker is missing a symbol")
+        if size not in (1, 2, 4):
+            raise TestError("marker size must be 1, 2 or 4")
+        if "equals" not in marker:
+            raise TestError("marker is missing equals")
+        try:
+            value = parse_equals(marker["equals"])
+        except (TypeError, ValueError):
+            raise TestError("invalid marker equals value {!r}".format(
+                marker["equals"]))
+        elf_path = resolve(spec["elf"])
+        if not elf_path.is_file():
+            raise TestError("ELF {} does not exist after build".format(elf_path))
+        address, _size = elf_symbol(elf_path, symbol)
+        argv.extend(["--marker", "{}:{}:{}".format(address, size, value)])
+        timeout = marker.get("timeout")
+        if timeout is not None:
+            if type(timeout) is not int or timeout <= 0:
+                raise TestError("marker timeout must be a positive integer")
+            argv.extend(["--marker-timeout", str(timeout)])
     input_name = spec.get("input")
     if input_name:
         input_path = Path(input_name)

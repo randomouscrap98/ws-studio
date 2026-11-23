@@ -2,12 +2,22 @@
   "rom": "gamerom/gamerom.wsc",
   "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 200,
+  "frames": 186,
   "frame_sha256": null,
   "reference": {
     "script": "tools/boot_oracle.py",
-    "args": ["--scene", "scene_logo"],
+    "args": [
+      "--scene",
+      "scene_logo"
+    ],
     "precision": "exact"
   },
-  "ram": "gamerom/build/ram_logo.json"
+  "ram": "gamerom/build/ram_logo.json",
+  "boot": "logo",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 600
+  }
 }

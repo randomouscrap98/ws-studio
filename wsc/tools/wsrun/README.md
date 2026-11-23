@@ -1,8 +1,9 @@
 # wsrun
 
 `wsrun` is a small headless libretro frontend for running WonderSwan Color
-ROMs in the beetle-wswan core for a fixed number of frames. It saves the last
-video frame as RGB24 and PNG, plus a dump of the console's 64 KiB system RAM.
+ROMs in the beetle-wswan core for a fixed number of frames, optionally
+synchronising on a RAM marker first. It saves the last video frame as RGB24
+and PNG, plus a dump of the console's 64 KiB system RAM.
 
 ## Build
 
@@ -20,18 +21,28 @@ Nothing is re-downloaded or rebuilt when everything is already up to date.
 
 ```sh
 wsc/build/wsrun --core SO --rom ROM --frames N \
-    [--input FILE] [--png OUT] [--raw OUT] [--ram OUT]
+    [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
+    [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N]
 ```
 
-- `--frames N` runs `retro_run` exactly N times, as fast as possible.
+- `--frames N` runs `retro_run` exactly N times, as fast as possible. With
+  `--marker` it is the number of runs after the marker was observed.
 - `--raw OUT` writes `width * height * 3` bytes of RGB24 with no header.
 - `--png OUT` writes the same image through stb_image_write.
 - `--ram OUT` writes the core's full `RETRO_MEMORY_SYSTEM_RAM` (65536 bytes
   on WSC).
+- `--marker ADDR:SIZE:VALUE` polls system RAM after each `retro_run` until
+  the little-endian `SIZE` (1, 2 or 4) bytes at `ADDR` equal `VALUE`; only
+  then does it start the `--frames` count. `ADDR` and `VALUE` accept decimal
+  or `0x` notation. If the value is not seen within `--marker-timeout`
+  frames (default 600), `wsrun` exits nonzero.
+- `--boot-id N` patches the byte following the `WSCBOOT` marker in the
+  loaded ROM image. The gamerom image uses it to select a start scene from
+  its run-time table; the patch is in memory only.
 - On success one line is printed to stdout:
 
   ```
-  frames=N width=W height=H ram_size=S
+  frames=N width=W height=H ram_size=S [marker_frame=M]
   ```
 
 Core log messages go to stderr. Any bad argument, missing file, `dlopen` or
@@ -47,9 +58,11 @@ Lines are `FRAME BUTTONS`:
 90 -
 ```
 
-`FRAME` is a 0-based `retro_run` index. From that frame until the next line,
-exactly those buttons are held. `-` means no buttons. `#` starts a comment;
-blank lines are ignored. Unknown button names are an error.
+`FRAME` is a 0-based `retro_run` index. With `--marker` it is relative to the
+marker observation: frame 0 is the first run after the marker. From that
+frame until the next line, exactly those buttons are held. `-` means no
+buttons. `#` starts a comment; blank lines are ignored. Unknown button names
+are an error.
 
 Supported names: `X1 X2 X3 X4 Y1 Y2 Y3 Y4 A B START`, where `X1`/`X2`/`X3`/`X4`
 are up/right/down/left on the X pad (same for Y). They map to libretro joypad

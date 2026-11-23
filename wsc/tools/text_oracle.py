@@ -384,10 +384,10 @@ class TextDecoder:
 def speed_draw_calls(frames):
     """ui_update() calls that pass the ui_time_masks[2] = 1 speed gate.
 
-    The boot scene script first runs on retro frame 24 and the modal text loop
-    starts on frame 25; the gate then passes every other frame.
+    Frames are counted from the test script's marker.  The modal text loop
+    starts one frame later, and the gate then passes every other frame.
     """
-    return max(0, (frames - 23) // 2)
+    return max(0, (frames + 1) // 2)
 
 
 def ui_tiles(export):

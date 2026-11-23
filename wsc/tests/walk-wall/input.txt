@@ -1,2 +1,2 @@
-# Hold down until the player stops against the solid last rows of the map.
-40 X3
+# Marker-relative: hold down until the solid last rows stop the player.
+17 X3

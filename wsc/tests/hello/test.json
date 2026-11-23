@@ -10,5 +10,11 @@
       "size": 2,
       "equals": "0x1234"
     }
-  ]
+  ],
+  "marker": {
+    "symbol": "hello_magic",
+    "size": 2,
+    "equals": "0x1234",
+    "timeout": 60
+  }
 }

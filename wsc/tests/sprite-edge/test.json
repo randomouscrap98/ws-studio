@@ -1,8 +1,8 @@
 {
-  "rom": "gamerom/gamerom_c17_edge.wsc",
-  "elf": "gamerom/build/gamerom_c17_edge.elf",
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 90,
+  "frames": 66,
   "frame_sha256": null,
   "reference": {
     "script": "tools/sprite_edge_oracle.py",
@@ -48,5 +48,12 @@
       "size": 2,
       "equals": "0x0a00"
     }
-  ]
+  ],
+  "boot": "c17-edge",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x02",
+    "timeout": 600
+  }
 }

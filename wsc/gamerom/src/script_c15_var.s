@@ -9,6 +9,7 @@
 ; compiler emits %d placeholders in the .asciz string and the variable
 ; indices as .dw words before it.
 _script_c15_var::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
 
         VM_SET_CONST            VAR_QUEST10, -42

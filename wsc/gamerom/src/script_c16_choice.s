@@ -15,6 +15,7 @@
 ; GB Studio compiler emits.  VAR_QUEST10 is set to 7 first, so a test can
 ; tell "cancelled to 0" from "menu never returned".
 _script_c16_choice::
+        VM_SET_CONST_INT8       _wsc_test_marker, 2
         VM_LOCK
 
         VM_OVERLAY_SHOW         1, 1, .UI_COLOR_BLACK, 0

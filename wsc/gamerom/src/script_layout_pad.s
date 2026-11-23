@@ -3,8 +3,8 @@
 .area _CODE_255
 
 ; Layout guard: 400 bytes of unreachable data appended to script bank 0.
-; The build links a separate town ROM with this script so the far-data
-; start and the far code sections move without changing any real script.
+; It is linked into the one gamerom image, so every engine test runs with
+; the shifted far-data/far-code layout that exposed the C16a bug.
 _script_layout_pad::
         .db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         .db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

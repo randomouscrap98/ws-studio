@@ -695,8 +695,11 @@ def elf_symbol_bytes(elf, symbol, count):
 
 
 def write_ram_checks(args, scene, actor_info, expected):
-    start_scene = elf_symbol_bytes(args.elf, "start_scene", 6)
-    scene_ptr = int.from_bytes(start_scene[2:6], "little")
+    scene_address = elf_symbol_address(args.elf, scene["symbol"])
+    # A far pointer stores the 20-bit linear address as segment:offset, low
+    # nibble in the offset and the rest in the segment.
+    linear = scene_address & 0xFFFFF
+    scene_ptr = ((linear >> 4) << 16) | (linear & 0x0F)
     opcode = stop_opcode(args.export, scene["script_init"])
     checks = [
         {"symbol": "current_scene", "offset": 2, "size": 4,
