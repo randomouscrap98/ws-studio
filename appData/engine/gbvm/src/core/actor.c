@@ -51,20 +51,18 @@
 #endif
 
 #ifdef __ia16__
-/* Sprite tiles are stored from tile 256 on WSC so they cannot overlap the
- * background tiles; props bit 3 selects that range in hal_draw_metasprite. */
-static UBYTE actor_draw_metasprite(const metasprite_t __far *ms, UBYTE base_tile,
-                                   UBYTE sprite_offset, UBYTE x, UBYTE y) {
-    UBYTE first = (UBYTE)hal_sprite_count();
+/* Sprite tiles live in the 256..511 half of WSC tile memory; props bit 3
+ * selects that range in hal_draw_metasprite.  Projectiles call this too, so
+ * both paths follow LCDC_REG and pass the same 16-bit screen coordinates. */
+UBYTE actor_draw_metasprite_wsc(const metasprite_t __far *ms, UBYTE base_tile,
+                                INT16 x, INT16 y) {
     UBYTE mode = (LCDC_REG & LCDCF_OBJ16) ? HAL_SPRITE_MODE_8X16
                                          : HAL_SPRITE_MODE_8X8;
-    UBYTE count = (UBYTE)hal_draw_metasprite(ms, base_tile, 0, (int16_t)x,
-                                             (int16_t)y, mode,
-                                             HAL_FLIP_NONE);
-    (void)sprite_offset;
-    hal_sprite_offset_tiles(first, count, 256);
-    return count;
+    return (UBYTE)hal_draw_metasprite(ms, base_tile, 0x08, x, y, mode,
+                                      HAL_FLIP_NONE);
 }
+#define actor_draw_metasprite(ms, base_tile, sprite_offset, x, y) \
+    actor_draw_metasprite_wsc((ms), (base_tile), (x), (y))
 #define ACTOR_META_PTR(ms) ((const metasprite_t __far *)(ms))
 #else
 #define actor_draw_metasprite(ms, base_tile, sprite_offset, x, y) \
@@ -92,7 +90,11 @@ actor_t * actors_active_head;
 actor_t * actors_active_tail;
 actor_t * actors_inactive_head;
 
+#ifdef __ia16__
+INT16 screen_x, screen_y;
+#else
 UBYTE screen_x, screen_y;
+#endif
 actor_t * invalid;
 UBYTE player_moving;
 UBYTE player_iframes;

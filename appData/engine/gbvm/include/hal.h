@@ -111,21 +111,24 @@ void hal_set_sprite_palette(uint8_t first, uint8_t count,
 /* Metasprite drawing. The offset chain is cumulative, as in GBDK: each
  * entry's dx/dy is relative to the previous entry.
  *
- * Coordinates are logical screen pixels, with (0, 0) at the top left. GB OAM
- * hardware coordinates carry a fixed (-8, -16) bias; the HAL removes it so
- * callers can pass logical positions directly.
+ * x/y are 16-bit signed logical screen pixels, with (0, 0) at the top left.
+ * The HAL culls an 8x8 entry whose position is fully outside the runtime
+ * screen (hal_screen_w_px/hal_screen_h_px). Entries that are only partly off
+ * the left/top edge stay: their 8-bit hardware coordinate wraps (x = -4 is
+ * written as 252), which the WSC sprite hardware/emulator interprets as -4.
  *
  * props is OR'd with each entry's props. Palette bits 0-2 select the GB sprite
  * palette, bit 3 adds 256 to the tile index, bits 5/6 flip the tile. The GB
  * behind-BG priority bit (7) is ignored because screen 1 has no equivalent
- * priority bit on WSC.
+ * priority bit on WSC. Pass bit 3 to put an actor's sprite tiles in the
+ * 256..511 half; this is the only sprite-tile offset mechanism.
  *
  * mode is HAL_SPRITE_MODE_8X8 or HAL_SPRITE_MODE_8X16. In 8x16 mode the low
  * tile bit is ignored, the top half is tile & 0xFE, the bottom tile | 1, and
  * a V-flip swaps the halves. flip is HAL_FLIP_NONE/H/V/HV and mirrors both the
  * tile graphics and the cumulative offsets.
  *
- * Returns the number of 8x8 WSC sprite entries added. */
+ * Returns the number of 8x8 WSC sprite entries added (after culling). */
 #define HAL_SPRITE_MODE_8X8  0
 #define HAL_SPRITE_MODE_8X16 1
 #define HAL_FLIP_NONE 0
@@ -137,9 +140,6 @@ void hal_sprites_begin(void);
 uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
                              uint8_t props, int16_t x, int16_t y,
                              uint8_t mode, uint8_t flip);
-/* Add offset to the tile field of sprite entries [first, first+count). The
- * engine keeps sprite tiles in the 256..511 half of WSC tile memory. */
-void hal_sprite_offset_tiles(uint16_t first, uint16_t count, uint16_t offset);
 void hal_sprites_end(void);
 uint16_t hal_sprite_count(void);
 

@@ -176,6 +176,27 @@ def metasprite_sprites(entries, base_tile, props, x, y, mode, flip):
     return sprites
 
 
+def hardware_sprite_position(x, y, width, height):
+    """Model the HAL cull and the WSC 8-bit sprite coordinates.
+
+    The HAL drops an 8x8 entry whose signed position is completely outside
+    the 224x144 runtime screen.  Entries that are only partly off the
+    left/top edge are kept; writing the low byte makes x = -4 into 252, and
+    beetle-wswan treats x >= 249 (and y > 150) as a negative 8-bit value.
+    """
+    x = int(x)
+    y = int(y)
+    if x >= width or x + TILE <= 0 or y >= height or y + TILE <= 0:
+        return None
+    hx = x & 0xFF
+    if hx >= 249:
+        hx -= 256
+    hy = y & 0xFF
+    if hy > 150:
+        hy = (hy ^ 0x80) - 0x80
+    return hx, hy
+
+
 def render_sprites(out, sprite_data, tile_first, sprites):
     tiles = sprite_data["spr_tiles"]
     cgb_palettes = sprite_data["spr_palettes"]
@@ -194,8 +215,16 @@ def render_sprites(out, sprite_data, tile_first, sprites):
         bit = 7 - col
         return ((low >> bit) & 1) | (((high >> bit) & 1) << 1)
 
+    visible = []
+    for tile, x, y, flip_h, flip_v, palette in sprites:
+        position = hardware_sprite_position(x, y, WIDTH, HEIGHT)
+        if position is None:
+            continue
+        visible.append((tile, position[0], position[1], flip_h, flip_v,
+                        palette))
+
     # Match the core: draw high table indices first, so lower indices win.
-    for tile, x, y, flip_h, flip_v, palette in reversed(sprites):
+    for tile, x, y, flip_h, flip_v, palette in reversed(visible):
         for row in range(8):
             ty = 7 - row if flip_v else row
             py = y + row
@@ -327,7 +356,16 @@ def render_scenario(scenario, out_path):
         bit = 7 - col
         return ((data[base] >> bit) & 1) | (((data[base + 1] >> bit) & 1) << 1)
 
-    for tile, x, y, flip_h, flip_v, palette in reversed(sprites):
+    visible = []
+    for sprite in sprites:
+        tile, x, y, flip_h, flip_v, palette = sprite
+        position = hardware_sprite_position(x, y, width, height)
+        if position is None:
+            continue
+        visible.append((tile, position[0], position[1], flip_h, flip_v,
+                        palette))
+
+    for tile, x, y, flip_h, flip_v, palette in reversed(visible):
         for row in range(8):
             ty = 7 - row if flip_v else row
             py = y + row

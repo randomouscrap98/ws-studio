@@ -39,6 +39,7 @@ C15_TEST_SCRIPTS	:= $(CURDIR)/src/script_c15_instant.s \
 			   $(CURDIR)/src/script_c15_speed.s \
 			   $(CURDIR)/src/script_c15_var.s
 C16_TEST_SCRIPT	:= $(CURDIR)/src/script_c16_choice.s
+C17_TEST_SCRIPT	:= $(CURDIR)/src/script_c17_edge.s
 LAYOUT_PAD_SCRIPT := $(CURDIR)/src/script_layout_pad.s
 
 BUILDDIR	:= $(CURDIR)/build
@@ -53,6 +54,7 @@ ROM_C15_INSTANT	:= $(CURDIR)/gamerom_c15_instant.wsc
 ROM_C15_SPEED	:= $(CURDIR)/gamerom_c15_speed.wsc
 ROM_C15_VAR	:= $(CURDIR)/gamerom_c15_var.wsc
 ROM_C16		:= $(CURDIR)/gamerom_c16_choice.wsc
+ROM_C17		:= $(CURDIR)/gamerom_c17_edge.wsc
 ELF_LOGO	:= $(BUILDDIR)/gamerom.elf
 ELF_TOWN	:= $(BUILDDIR)/gamerom_town.elf
 ELF_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk.elf
@@ -63,6 +65,7 @@ ELF_C15_INSTANT	:= $(BUILDDIR)/gamerom_c15_instant.elf
 ELF_C15_SPEED	:= $(BUILDDIR)/gamerom_c15_speed.elf
 ELF_C15_VAR	:= $(BUILDDIR)/gamerom_c15_var.elf
 ELF_C16		:= $(BUILDDIR)/gamerom_c16_choice.elf
+ELF_C17		:= $(BUILDDIR)/gamerom_c17_edge.elf
 STAGE_LOGO	:= $(BUILDDIR)/gamerom_stage1.elf
 STAGE_TOWN	:= $(BUILDDIR)/gamerom_town_stage1.elf
 STAGE_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk_stage1.elf
@@ -73,6 +76,7 @@ STAGE_C15_INSTANT := $(BUILDDIR)/gamerom_c15_instant_stage1.elf
 STAGE_C15_SPEED	:= $(BUILDDIR)/gamerom_c15_speed_stage1.elf
 STAGE_C15_VAR	:= $(BUILDDIR)/gamerom_c15_var_stage1.elf
 STAGE_C16	:= $(BUILDDIR)/gamerom_c16_choice_stage1.elf
+STAGE_C17	:= $(BUILDDIR)/gamerom_c17_edge_stage1.elf
 RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
 RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
@@ -127,7 +131,8 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(CURDIR)/src/platform.c $(CURDIR)/src/c13_test_scene.c \
 		   $(CURDIR)/src/c14_test_scene.c \
 		   $(CURDIR)/src/c15_test_scene.c \
-		   $(CURDIR)/src/c16_test_scene.c
+		   $(CURDIR)/src/c16_test_scene.c \
+		   $(CURDIR)/src/c17_test_scene.c
 ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
 
 BOOTSTRAP_LOGO	:= $(OBJDIR)/bootstrap_logo.o
@@ -139,6 +144,7 @@ BOOTSTRAP_C15_INSTANT := $(OBJDIR)/bootstrap_c15_instant.o
 BOOTSTRAP_C15_SPEED := $(OBJDIR)/bootstrap_c15_speed.o
 BOOTSTRAP_C15_VAR := $(OBJDIR)/bootstrap_c15_var.o
 BOOTSTRAP_C16	:= $(OBJDIR)/bootstrap_c16.o
+BOOTSTRAP_C17	:= $(OBJDIR)/bootstrap_c17.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 S2C_PAD_OBJ	:= $(OBJDIR)/$(S2C_PAD_NAME).o
@@ -154,9 +160,9 @@ all: $(D2C_STAMP)
 
 all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_TOWN_PAD) $(RAM_WALK_FREE) $(RAM_WALK_WALL) \
 	 $(ROM_C13) $(ROM_C14) $(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) \
-	 $(ROM_C16) \
+	 $(ROM_C16) $(ROM_C17) \
 	 $(ELF_LOGO) $(ELF_TOWN) $(ELF_TOWN_PAD) $(ELF_TOWN_WALK) $(ELF_C13) $(ELF_C14) \
-	 $(ELF_C15_INSTANT) $(ELF_C15_SPEED) $(ELF_C15_VAR) $(ELF_C16)
+	 $(ELF_C15_INSTANT) $(ELF_C15_SPEED) $(ELF_C15_VAR) $(ELF_C16) $(ELF_C17)
 
 # Generated data sources only exist after d2c runs. The first make pass
 # creates them, then re-enters this Makefile so the source lists are complete.
@@ -196,7 +202,7 @@ export-data $(EXPORT_READY):
 	$(WSC_DIR)/export/run.sh
 
 $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
-		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) \
+		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@echo "  S2C     $(S2C_DIR)"
@@ -206,13 +212,14 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 		--out $(S2C_DIR) --name $(S2C_NAME) \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
 		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS) \
-		$(C16_TEST_SCRIPT)
+		$(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT)
 
 # Guard build: the same scripts plus a padding script at the end of bank 0.
 # The extra bytes move s2c_bank0 and the far code/data sections, which is the
 # layout shift that exposed the near script-callback pointer bug.
 $(S2C_PAD_H) $(S2C_PAD_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
-		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) $(LAYOUT_PAD_SCRIPT) \
+		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT) \
+		$(LAYOUT_PAD_SCRIPT) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@echo "  S2C     $(S2C_PAD_DIR)"
@@ -222,7 +229,7 @@ $(S2C_PAD_H) $(S2C_PAD_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIP
 		--out $(S2C_PAD_DIR) --name $(S2C_PAD_NAME) \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
 		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS) \
-		$(C16_TEST_SCRIPT) $(LAYOUT_PAD_SCRIPT)
+		$(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT) $(LAYOUT_PAD_SCRIPT)
 
 $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 	@echo "  D2C     $(GEN_DIR)"
@@ -312,6 +319,14 @@ $(ELF_C16): $(ROM_C16)
 	@echo "  ROM     $(ROM_C16) (ELF rebuilt)"
 	$(BUILDROM) -o $(ROM_C16) --output-elf $(ELF_C16) $(STAGE_C16)
 
+$(ROM_C17): $(STAGE_C17)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_C17) --output-elf $(ELF_C17) $<
+
+$(ELF_C17): $(ROM_C17)
+	@echo "  ROM     $(ROM_C17) (ELF rebuilt)"
+	$(BUILDROM) -o $(ROM_C17) --output-elf $(ELF_C17) $(STAGE_C17)
+
 $(STAGE_LOGO): $(COMMON_OBJS) $(BOOTSTRAP_LOGO)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
@@ -349,6 +364,10 @@ $(STAGE_C15_VAR): $(COMMON_OBJS) $(BOOTSTRAP_C15_VAR)
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
 $(STAGE_C16): $(COMMON_OBJS) $(BOOTSTRAP_C16)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_C17): $(COMMON_OBJS) $(BOOTSTRAP_C17)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
@@ -434,12 +453,18 @@ $(BOOTSTRAP_C16): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
 	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c16_choice \
 		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
 
+$(BOOTSTRAP_C17): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (c17 sprite edge test)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c17_edge \
+		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
+
 clean:
 	@echo "  CLEAN"
 	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_TOWN_PAD) \
 		$(ROM_C13) $(ROM_C14) \
 		$(ROM_C15_INSTANT) $(ROM_C15_SPEED) $(ROM_C15_VAR) $(ROM_C16) \
-		$(BUILDDIR) $(GEN_DIR)
+		$(ROM_C17) $(BUILDDIR) $(GEN_DIR)
 
 usage: $(ELF_LOGO)
 	$(ROMUSAGE) $< -g

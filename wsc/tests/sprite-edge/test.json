@@ -1,0 +1,52 @@
+{
+  "rom": "gamerom/gamerom_c17_edge.wsc",
+  "elf": "gamerom/build/gamerom_c17_edge.elf",
+  "build": "gamerom",
+  "frames": 90,
+  "frame_sha256": null,
+  "reference": {
+    "script": "tools/sprite_edge_oracle.py",
+    "precision": "exact"
+  },
+  "ram": [
+    {
+      "symbol": "allocated_hardware_sprites",
+      "size": 1,
+      "equals": "0x08"
+    },
+    {
+      "symbol": "camera_x",
+      "size": 2,
+      "equals": "0x1200"
+    },
+    {
+      "symbol": "camera_y",
+      "size": 2,
+      "equals": "0x0b00"
+    },
+    {
+      "symbol": "actors",
+      "offset": 70,
+      "size": 2,
+      "equals": "0x0280"
+    },
+    {
+      "symbol": "actors",
+      "offset": 72,
+      "size": 2,
+      "equals": "0x0600"
+    },
+    {
+      "symbol": "actors",
+      "offset": 274,
+      "size": 2,
+      "equals": "0x2500"
+    },
+    {
+      "symbol": "actors",
+      "offset": 276,
+      "size": 2,
+      "equals": "0x0a00"
+    }
+  ]
+}

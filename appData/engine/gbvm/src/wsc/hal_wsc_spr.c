@@ -47,6 +47,12 @@ static void hal_sprite_add(uint16_t tile, int16_t x, int16_t y,
                            uint16_t attr) {
     volatile ws_sprite_t *sprite;
 
+    /* Cull a whole 8x8 entry that cannot touch the runtime screen.  A partly
+     * visible left/top entry is kept: its 8-bit coordinate (e.g. -4 -> 252)
+     * is interpreted as signed again by the WSC sprite hardware. */
+    if (x >= (int16_t)hal_screen_w_px || x + 8 <= 0 ||
+        y >= (int16_t)hal_screen_h_px || y + 8 <= 0)
+        return;
     if (hal_sprite_entries >= WS_SPRITE_MAX_COUNT)
         return;
 
@@ -121,19 +127,6 @@ uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
     }
 
     return (uint16_t)(hal_sprite_entries - first);
-}
-
-void hal_sprite_offset_tiles(uint16_t first, uint16_t count, uint16_t offset) {
-    uint16_t i;
-
-    for (i = 0; i < count && first + i < WS_SPRITE_MAX_COUNT; i++) {
-        volatile ws_sprite_t *sprite = &hal_sprite_table.entry[first + i];
-        uint16_t attr = sprite->attr;
-        uint16_t tile = (uint16_t)(((attr & WS_SPRITE_ATTR_TILE_MASK) + offset)
-                                   & WS_SPRITE_ATTR_TILE_MASK);
-
-        sprite->attr = (uint16_t)((attr & ~WS_SPRITE_ATTR_TILE_MASK) | tile);
-    }
 }
 
 void hal_sprites_end(void) {

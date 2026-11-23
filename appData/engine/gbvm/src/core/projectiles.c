@@ -153,22 +153,21 @@ void projectiles_render(void) NONBANKED {
     _save_bank = _current_bank;
 
     while (projectile) {
+#ifdef __ia16__
+        INT16 screen_x = (INT16)(SUBPX_TO_PX(projectile->pos.x) - draw_scroll_x);
+        INT16 screen_y = (INT16)(SUBPX_TO_PX(projectile->pos.y) - draw_scroll_y);
+#else
         UINT8 screen_x = SUBPX_TO_PX(projectile->pos.x) - draw_scroll_x;
         UINT8 screen_y = SUBPX_TO_PX(projectile->pos.y) - draw_scroll_y;
+#endif
 
         SWITCH_ROM(projectile->def.sprite.bank);
 #ifdef __ia16__
         const spritesheet_t __far *sprite = projectile->def.sprite.ptr;
 
-        {
-            UBYTE first = (UBYTE)hal_sprite_count();
-            UBYTE count = (UBYTE)hal_draw_metasprite(
-                *(sprite->metasprites + projectile->frame),
-                projectile->def.base_tile, 0, (int16_t)screen_x,
-                (int16_t)screen_y, HAL_SPRITE_MODE_8X16, HAL_FLIP_NONE);
-            hal_sprite_offset_tiles(first, count, 256);
-            allocated_hardware_sprites += count;
-        }
+        allocated_hardware_sprites += actor_draw_metasprite_wsc(
+            *(sprite->metasprites + projectile->frame),
+            projectile->def.base_tile, screen_x, screen_y);
 #else
         spritesheet_t *sprite = projectile->def.sprite.ptr;
 

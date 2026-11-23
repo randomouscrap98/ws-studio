@@ -423,6 +423,10 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     refresh_h = (screen_h // 8) + 1
     x0 = max(0, source_x // 8)
     y0 = max(0, source_y // 8)
+    # Actors are activated while the camera sweeps to its final position, so
+    # a caller may model the activation range separately from the final frame.
+    activation_x0 = max(0, final.get("activation_source_x", source_x) // 8)
+    activation_y0 = max(0, final.get("activation_source_y", source_y) // 8)
     for i in range(refresh_h):
         y = y0 + i
         if y >= background["height"]:
@@ -477,9 +481,15 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
             "base": base,
             "frame": frame,
             "sheet": sheet,
+            "activation_tile_x": actor["x"] >> 8,
+            "activation_tile_y": actor["y"] >> 8,
         }
         override = actor_overrides.get(actor_index)
         if override:
+            if "activation_x" in override:
+                info["activation_tile_x"] = override["activation_x"] >> 8
+            if "activation_y" in override:
+                info["activation_tile_y"] = override["activation_y"] >> 8
             if "x" in override:
                 info["px"] = override["x"] >> 5
                 info["tile_x"] = override["x"] >> 8
@@ -509,13 +519,15 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     inactive = list(reversed(actor_info))
     active = []
     for i in range(refresh_h):
-        row = y0 + i
+        row = activation_y0 + i
         if row >= background["height"]:
             break
         for actor in list(inactive):
             if actor["index"] in deactivated:
                 continue
-            if actor["tile_y"] == row and x0 <= actor["tile_x"] < x0 + refresh_w:
+            if (actor["activation_tile_y"] == row
+                    and activation_x0 <= actor["activation_tile_x"]
+                    < activation_x0 + refresh_w):
                 active.append(actor)
                 inactive.remove(actor)
 
