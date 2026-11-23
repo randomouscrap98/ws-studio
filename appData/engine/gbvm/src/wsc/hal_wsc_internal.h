@@ -4,9 +4,16 @@
 #include <wonderful.h>
 #include <ws.h>
 
+/* Attribute byte flag: cell uses the UI palette and no flips. */
+#define HAL_WIN_UI_ATTR 0x80
+
 /* Screen 1 and 2 memory, also used by the background map writers. */
 extern volatile ws_screen_t hal_screen;
 extern volatile ws_screen_t hal_win_screen;
+
+/* Screen-2 UI shadow map (8-bit tile index plus one attribute byte). */
+extern uint8_t hal_win_tiles[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES];
+extern uint8_t hal_win_attrs[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES];
 
 /* Convert count GB 2bpp tiles to 4bpp at first + t, adding index_shift to
  * every pixel index. */
@@ -17,5 +24,11 @@ void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
 void hal_put_win_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
                        const uint8_t __far *map,
                        const uint8_t __far *attrs, uint8_t map_w);
+
+/* The UI keeps screen 2 as an 8-bit tile-index shadow map (with one attribute
+ * byte per cell) and flushes it to the hardware cell array. */
+void hal_win_map_put(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                     const uint8_t __far *map,
+                     const uint8_t __far *attrs, uint8_t map_w);
 
 #endif

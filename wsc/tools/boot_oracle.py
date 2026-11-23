@@ -413,10 +413,16 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
     player_frame = (player_sheet["animations"][start_dir][0]
                     if player_sheet["animations"] else 0)
     sprites = []
+    sprite_groups = []
+
+    def add_sprite_group(entries, base, sx, sy):
+        first = len(sprites)
+        sprites.extend(expand_metasprite(entries, base, sx, sy, sprite_mode))
+        sprite_groups.append([sx, sy, first, len(sprites) - first])
+
     if not hide_player:
-        sprites = expand_metasprite(
-            player_sheet["metasprites"][player_frame], 0,
-            player_x - draw_x, player_y - draw_y, sprite_mode)
+        add_sprite_group(player_sheet["metasprites"][player_frame], 0,
+                         player_x - draw_x, player_y - draw_y)
 
     # activate_actors_in_row() runs for each rendered row, walking the
     # inactive list from its head (actors in reverse scene order).
@@ -434,9 +440,9 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
                 inactive.remove(actor)
 
     for actor in active:
-        sprites.extend(expand_metasprite(
-            actor["sheet"]["metasprites"][actor["frame"]], actor["base"],
-            actor["px"] - draw_x, actor["py"] - draw_y, sprite_mode))
+        add_sprite_group(actor["sheet"]["metasprites"][actor["frame"]],
+                         actor["base"], actor["px"] - draw_x,
+                         actor["py"] - draw_y)
 
     scenario = {
         "width": screen_w,
@@ -449,6 +455,7 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
         "spr_tiles": sprite_tile_ram,
         "spr_palettes": spr_palettes,
         "sprites": sprites,
+        "sprite_groups": sprite_groups,
     }
     return scene, background, actor_info, scenario, {
         "camera_x": final.get("camera_x", (start_x + 8) * 32),

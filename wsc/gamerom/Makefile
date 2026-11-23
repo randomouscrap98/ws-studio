@@ -30,6 +30,7 @@ S2C_H		:= $(S2C_DIR)/$(S2C_NAME).h
 S2C_C		:= $(S2C_DIR)/$(S2C_NAME).c
 D2C_STAMP	:= $(GEN_DIR)/d2c.stamp
 C13_TEST_SCRIPT	:= $(CURDIR)/src/script_c13_test.s
+C14_TEST_SCRIPT	:= $(CURDIR)/src/script_c14_test.s
 
 BUILDDIR	:= $(CURDIR)/build
 OBJDIR		:= $(BUILDDIR)/obj
@@ -37,14 +38,17 @@ ROM_LOGO	:= $(CURDIR)/gamerom.wsc
 ROM_TOWN	:= $(CURDIR)/gamerom_town.wsc
 ROM_TOWN_WALK	:= $(CURDIR)/gamerom_town_walk.wsc
 ROM_C13		:= $(CURDIR)/gamerom_c13.wsc
+ROM_C14		:= $(CURDIR)/gamerom_c14.wsc
 ELF_LOGO	:= $(BUILDDIR)/gamerom.elf
 ELF_TOWN	:= $(BUILDDIR)/gamerom_town.elf
 ELF_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk.elf
 ELF_C13		:= $(BUILDDIR)/gamerom_c13.elf
+ELF_C14		:= $(BUILDDIR)/gamerom_c14.elf
 STAGE_LOGO	:= $(BUILDDIR)/gamerom_stage1.elf
 STAGE_TOWN	:= $(BUILDDIR)/gamerom_town_stage1.elf
 STAGE_TOWN_WALK	:= $(BUILDDIR)/gamerom_town_walk_stage1.elf
 STAGE_C13	:= $(BUILDDIR)/gamerom_c13_stage1.elf
+STAGE_C14	:= $(BUILDDIR)/gamerom_c14_stage1.elf
 RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
 RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
@@ -89,17 +93,21 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(GBVM_CORE)/vm_load_save.c $(GBVM_CORE)/game_time.c \
 		   $(GBVM_CORE)/math.c $(GBVM_CORE)/math_atan2.c \
 		   $(GBVM_CORE)/system.c \
+		   $(GBVM_CORE)/ui.c $(GBVM_CORE)/vm_ui.c \
 		   $(GBVM_STATES)/topdown.c \
 		   $(GBVM_WSC)/bankdata_wsc.c $(GBVM_WSC)/hal_wsc.c \
 		   $(GBVM_WSC)/hal_wsc_bg.c $(GBVM_WSC)/hal_wsc_spr.c \
 		   $(GBVM_WSC)/scroll_wsc.c $(GBVM_WSC)/stubs_wsc.c \
-		   $(CURDIR)/src/platform.c $(CURDIR)/src/c13_test_scene.c
+		   $(GBVM_WSC)/ui_wsc.c \
+		   $(CURDIR)/src/platform.c $(CURDIR)/src/c13_test_scene.c \
+		   $(CURDIR)/src/c14_test_scene.c
 ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
 
 BOOTSTRAP_LOGO	:= $(OBJDIR)/bootstrap_logo.o
 BOOTSTRAP_TOWN	:= $(OBJDIR)/bootstrap_town.o
 BOOTSTRAP_TOWN_WALK := $(OBJDIR)/bootstrap_town_walk.o
 BOOTSTRAP_C13	:= $(OBJDIR)/bootstrap_c13.o
+BOOTSTRAP_C14	:= $(OBJDIR)/bootstrap_c14.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 
@@ -112,7 +120,7 @@ COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 all: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
-all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL) $(ROM_C13)
+all-rom: $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL) $(ROM_C13) $(ROM_C14)
 
 # Generated data sources only exist after d2c runs. The first make pass
 # creates them, then re-enters this Makefile so the source lists are complete.
@@ -146,7 +154,7 @@ $(RAM_WALK_WALL): $(ROM_TOWN_WALK) $(ELF_TOWN_WALK) \
 export-data $(EXPORT_READY):
 	$(WSC_DIR)/export/run.sh
 
-$(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) \
+$(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@echo "  S2C     $(S2C_DIR)"
@@ -155,7 +163,7 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) \
 	$(PYTHON) $(WSC_DIR)/tools/s2c.py --include $(EXPORT_DIR)/include \
 		--out $(S2C_DIR) --name $(S2C_NAME) \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
-		$(C13_TEST_SCRIPT)
+		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT)
 
 $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 	@echo "  D2C     $(GEN_DIR)"
@@ -181,6 +189,10 @@ $(ROM_C13) $(ELF_C13): $(STAGE_C13)
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM_C13) --output-elf $(ELF_C13) $<
 
+$(ROM_C14) $(ELF_C14): $(STAGE_C14)
+	@echo "  ROM     $@"
+	$(BUILDROM) -o $(ROM_C14) --output-elf $(ELF_C14) $<
+
 $(STAGE_LOGO): $(COMMON_OBJS) $(BOOTSTRAP_LOGO)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
@@ -194,6 +206,10 @@ $(STAGE_TOWN_WALK): $(COMMON_OBJS) $(BOOTSTRAP_TOWN_WALK)
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
 $(STAGE_C13): $(COMMON_OBJS) $(BOOTSTRAP_C13)
+	@echo "  LD      $@"
+	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
+
+$(STAGE_C14): $(COMMON_OBJS) $(BOOTSTRAP_C14)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
@@ -244,9 +260,15 @@ $(BOOTSTRAP_C13): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
 	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c13_test \
 		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
 
+$(BOOTSTRAP_C14): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+	@echo "  CC      $< (c14 overlay test)"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -DBOOT_START_SCENE=scene_c14_test \
+		-DBOOT_START_X=1536 -DBOOT_START_Y=2560 -MMD -MP -c -o $@ $<
+
 clean:
 	@echo "  CLEAN"
-	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_C13) $(BUILDDIR) $(GEN_DIR)
+	$(RM) $(ROM_LOGO) $(ROM_TOWN) $(ROM_TOWN_WALK) $(ROM_C13) $(ROM_C14) $(BUILDDIR) $(GEN_DIR)
 
 usage: $(ELF_LOGO)
 	$(ROMUSAGE) $< -g

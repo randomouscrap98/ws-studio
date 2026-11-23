@@ -71,6 +71,23 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
 /* Scroll the background to the given logical pixel position. */
 void hal_scroll_to(int16_t x, int16_t y);
 
+/* Screen-2 overlay window.  x/y are the logical screen position of the
+ * window's top-left corner, matching the GB window origin (WX-7, WY).  The
+ * window always extends to the bottom-right of the runtime screen, so a
+ * position outside the screen hides it.  This is the state actors_render()
+ * uses for its window_hide_actors rule. */
+void hal_window_set(int16_t x, int16_t y);
+void hal_window_hide(void);
+uint8_t hal_window_visible(void);
+uint8_t hal_window_x(void);
+uint8_t hal_window_y(void);
+
+/* UI cell storage for screen 2.  The UI writes GB 8-bit tile indices into a
+ * shadow map; hal_window_flush() converts it to 16-bit screen cells. */
+void hal_window_reset(void);
+void hal_window_flush(void);
+void hal_window_set_palette(uint8_t palette);
+
 /* Fill screen 1 with the WSC blank tile (tile 255, BG palette 0) and clear
  * that tile's pixels. The engine calls this on scene load so areas outside a
  * scene smaller than the screen show BG palette 0 colour 0. */

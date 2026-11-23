@@ -159,18 +159,7 @@ UBYTE data_peek(UBYTE slot, UINT16 idx, UWORD count, UINT16 *dest) {
     return 0;
 }
 
-/* ---- UI / dialogue stub ---- */
-UBYTE overlay_priority;
-
-void ui_init(void) {
-}
-
-void ui_update(void) {
-}
-
-void ui_load_tiles(void) {
-}
-
+/* ---- UI / dialogue: the real ui.c now provides the overlay window ---- */
 /* ---- fade stub: palettes stay fully visible ---- */
 UBYTE fade_running;
 UBYTE fade_frames_per_step;

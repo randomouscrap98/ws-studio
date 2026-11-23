@@ -150,3 +150,11 @@ The keypad values used by the input tests correspond to the libws
   deactivates/reactivates the Cat, switches to 8x8 sprites and moves the
   camera. `wsc/tools/c13_oracle.py` renders the final frame; the RAM checks
   pin both actors' fields and the camera.
+- `overlay-mid` / `overlay-rest`: run `gamerom_c14`, the town data with an
+  init script that opens the screen-2 window, moves it in from the bottom at
+  1 pixel per frame, clears a framed area and waits for the window. The mid
+  frame (60) is still moving; the rest frame (100) is at y=72. The RAM checks
+  pin `win_pos_x`, `win_pos_y` and the destination y. `wsc/tools/overlay_oracle.py`
+  renders the window cells and applies the same GB actor-hiding rule as the
+  engine. `boot-logo` now waits until its own overlay has moved off-screen
+  again (frame 200).

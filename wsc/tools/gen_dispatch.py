@@ -11,8 +11,9 @@ Every handler declared in engine/gbvm/include/vm*.h is parsed and checked
 against script_cmds[] and vm.i.  The dispatcher emits all of them for the
 WonderSwan build.  The host build only links the core vm.h handlers, so the
 engine handler cases are compiled under __ia16__.  Handlers for hardware the
-WSC does not have (SGB, SIO/link, GB Printer, RTC) and the UI/dialogue set
-stay "unimplemented opcode"; see EXCLUDED_HEADERS.
+WSC does not have (SGB, SIO/link, GB Printer, RTC) and the text/menu/font
+handlers in vm_ui.h stay "unimplemented opcode"; see EXCLUDED_HEADERS and
+EXCLUDED_HANDLERS.  The overlay-window handlers in vm_ui.h are emitted.
 """
 
 import argparse
@@ -30,13 +31,24 @@ HOST_EXCLUDED = {"vm_call_native", "vm_asm"}
 
 # Explicit exclusion list: opcodes handled by these headers stay
 # "unimplemented opcode".  SGB, SIO/link, GB Printer and RTC have no WSC
-# hardware; vm_ui is the next porting chunk.
+# hardware.
 EXCLUDED_HEADERS = {
     "vm_gbprinter.h": "GB Printer",
     "vm_rtc.h": "RTC",
     "vm_sgb.h": "SGB",
     "vm_sio.h": "SIO/link",
-    "vm_ui.h": "UI/dialogue (next chunk)",
+}
+
+# Text, menu and font opcodes in vm_ui.h stay excluded until the dialogue
+# chunk.  The overlay-window opcodes in the same header are ported.
+EXCLUDED_HANDLERS = {
+    "vm_load_text",
+    "vm_load_text_ex",
+    "vm_display_text",
+    "vm_switch_text_layer",
+    "vm_choice",
+    "vm_set_font",
+    "vm_set_text_sound",
 }
 
 # Pointer operands that are (bank, C data) pairs, not script bytecode.  They
@@ -51,6 +63,7 @@ FAR_DATA_PARAMS = {
     "vm_music_play": {"track"},
     "vm_sfx_play": {"offset"},
     "vm_projectile_load_type": {"projectile_def"},
+    "vm_overlay_set_map": {"background"},
 }
 
 ONE_BYTE_TYPES = {"UBYTE", "UINT8", "INT8", "BYTE"}
@@ -284,6 +297,7 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
         and handler in protos
         and handler not in core_handlers
         and handler not in HOST_EXCLUDED
+        and handler not in EXCLUDED_HANDLERS
         and handler_header.get(handler) not in EXCLUDED_HEADERS
     })
 
@@ -327,7 +341,7 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
     ])
 
     for opcode, handler, _args_len in entries:
-        if handler is None or handler in HOST_EXCLUDED:
+        if handler is None or handler in HOST_EXCLUDED or handler in EXCLUDED_HANDLERS:
             continue
         header = handler_header.get(handler)
         if header in EXCLUDED_HEADERS:

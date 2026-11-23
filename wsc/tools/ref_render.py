@@ -263,6 +263,56 @@ def render_scenario(scenario, out_path):
             out[pos:pos + 3] = bytes(colour)
             pos += 3
 
+    window = scenario.get("window")
+    if window:
+        wx = int(window.get("x", 0))
+        wy = int(window.get("y", 0))
+        ww = int(window.get("width", width - wx))
+        wh = int(window.get("height", height - wy))
+        wscroll_x = int(window.get("scroll_x", 0)) & 0xFF
+        wscroll_y = int(window.get("scroll_y", 0)) & 0xFF
+        wcells = window["cells"]
+        for py in range(max(0, wy), min(height, wy + wh)):
+            sy = (py + wscroll_y) & 0xFF
+            for px in range(max(0, wx), min(width, wx + ww)):
+                sx = (px + wscroll_x) & 0xFF
+                tile, palette, flip_h, flip_v = wcells[
+                    ((sy >> 3) & 31) * 32 + ((sx >> 3) & 31)]
+                data = bg_tiles[tile] if tile < len(bg_tiles) else None
+                index = 0
+                if data is not None:
+                    tx = sx & 7
+                    ty = sy & 7
+                    if flip_h:
+                        tx = 7 - tx
+                    if flip_v:
+                        ty = 7 - ty
+                    base = ty * 2
+                    bit = 7 - tx
+                    index = ((data[base] >> bit) & 1) | (
+                        ((data[base + 1] >> bit) & 1) << 1)
+                if palette < len(palettes):
+                    colour = palettes[palette][index + 1]
+                else:
+                    colour = (0, 0, 0)
+                offset = (py * width + px) * 3
+                out[offset:offset + 3] = bytes(colour)
+
+    # GB Studio hides an actor whose top-left is inside the window when the
+    # window is shown away from the left edge.  The WSC HAL puts sprites in
+    # front of screen 2, so the reference has to apply the same rule.
+    if window and scenario.get("window_hide_actors", True):
+        wx = int(window.get("x", 0))
+        wy = int(window.get("y", 0))
+        hidden = set()
+        if wx < width and wy < height:
+            for gx, gy, first, count in scenario.get("sprite_groups", []):
+                if (gx + 8 > wx + 7) and (gy - 8 > wy):
+                    hidden.update(range(first, first + count))
+        if hidden:
+            sprites = [sprite for index, sprite in enumerate(sprites)
+                       if index not in hidden]
+
     sprite_palettes = [
         [convert_palette(c) for c in scenario.get("spr_palettes", [])[p * 4:p * 4 + 4]]
         for p in range(len(scenario.get("spr_palettes", [])) // 4)

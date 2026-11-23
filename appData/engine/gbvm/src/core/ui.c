@@ -19,6 +19,10 @@
 #include "shadow.h"
 #include "music_manager.h"
 
+#ifdef __ia16__
+#include "hal.h"
+#endif
+
 #define ui_frame_tl_tiles 0xC0u
 #define ui_frame_bl_tiles 0xC6u
 #define ui_frame_tr_tiles 0xC2u
@@ -109,7 +113,11 @@ void ui_init(void) BANKED {
     ui_dest_ptr = ui_dest_base  = (text_render_base_addr = GetWinAddr()) + 32 + 1;
 
     text_scroll_addr            = GetWinAddr();
+#ifdef __ia16__
+    text_scroll_width           = hal_screen_w;
+#else
     text_scroll_width           = 20;
+#endif
     text_scroll_height          = 8;
     text_scroll_fill            = ui_white_tile;
 
@@ -120,6 +128,14 @@ void ui_init(void) BANKED {
 #ifdef CGB
     overlay_priority            = S_PRIORITY;
     text_palette                = UI_DEFAULT_PALETTE;
+#endif
+#ifdef __ia16__
+    /* Screen 2 is the overlay on WSC; the frame tiles use the CGB UI
+     * palette, and the window starts closed at MENU_CLOSED_Y. */
+    text_palette                = UI_DEFAULT_PALETTE;
+    hal_window_set_palette(text_palette);
+    hal_window_reset();
+    hal_window_set(win_pos_x, win_pos_y);
 #endif
 }
 
@@ -171,6 +187,10 @@ void ui_draw_frame(UBYTE x, UBYTE y, UBYTE width, UBYTE height) BANKED {
 }
 
 inline void ui_load_tile(const UBYTE * tiledata, UBYTE bank) {
+#ifdef __ia16__
+    /* Text rendering is the next porting chunk. */
+    (void)tiledata; (void)bank;
+#else
 #ifdef CGB
     VBK_REG = (ui_current_tile_bank != 0) ? VBK_BANK_1 : VBK_BANK_0;
 #endif
@@ -178,7 +198,9 @@ inline void ui_load_tile(const UBYTE * tiledata, UBYTE bank) {
 #ifdef CGB
     VBK_REG = VBK_BANK_0;
 #endif
+#endif
 }
+#ifndef __ia16__
 inline void ui_load_wram_tile(const UBYTE * tiledata) {
 #ifdef CGB
     VBK_REG = (ui_current_tile_bank != 0) ? VBK_BANK_1 : VBK_BANK_0;
@@ -436,6 +458,7 @@ UBYTE ui_draw_text_buffer_char(void) BANKED {
         ui_text_ptr++;
     }
 }
+#endif /* !__ia16__ */
 
 void ui_update(void) BANKED {
     UBYTE flag = FALSE;
@@ -458,8 +481,17 @@ void ui_update(void) BANKED {
         flag = TRUE;
     }
 
+#ifdef __ia16__
+    /* Apply the WX/WY-style state to the screen-2 window every frame. */
+    hal_window_set(win_pos_x, win_pos_y);
+#endif
+
     // don't draw text while moving
     if (flag) return;
+#ifdef __ia16__
+    // Text rendering is the next porting chunk.
+    return;
+#else
     // all drawn - nothing to do
     if (text_drawn) return;
     // too fast - wait
@@ -474,9 +506,11 @@ void ui_update(void) BANKED {
     } while (((text_ff) || (text_draw_speed == 0)) && (!text_drawn));
     // play sound
     if ((flag) && (text_sound_bank != SFX_STOP_BANK)) music_play_sfx(text_sound_bank, text_sound_data, text_sound_mask, MUSIC_SFX_PRIORITY_NORMAL);
+#endif
 }
 
 UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
+#ifndef __ia16__
     menu_item_t current_menu_item;
     UBYTE current_index = ((options & MENU_SET_START) ? start_index : 1u), next_index = 0u;
     // copy first menu item
@@ -554,6 +588,10 @@ UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE cou
         // reset next index
         next_index = 0;
     };
+#else
+    (void)start_item; (void)bank; (void)options; (void)count; (void)start_index;
+    return 0;
+#endif
 }
 
 void ui_run_modal(UBYTE wait_flags) BANKED {

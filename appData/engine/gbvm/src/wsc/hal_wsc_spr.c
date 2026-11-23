@@ -51,7 +51,11 @@ static void hal_sprite_add(uint16_t tile, int16_t x, int16_t y,
         return;
 
     sprite = &hal_sprite_table.entry[hal_sprite_entries++];
+    /* WSC sprites default to behind screen 2.  GB sprites are drawn above the
+     * window, so put every entry in front; actor rendering hides covered
+     * actors explicitly to reproduce the GB window rule. */
     sprite->attr = (uint16_t)(WS_SPRITE_ATTR_TILE(tile) |
+                              WS_SPRITE_ATTR_PRIORITY |
                               (attr & ~WS_SPRITE_ATTR_TILE_MASK));
     sprite->y = (uint8_t)y;
     sprite->x = (uint8_t)x;

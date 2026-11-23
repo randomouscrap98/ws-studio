@@ -18,6 +18,7 @@
 #include "vm_palette.h"
 #include "vm_projectiles.h"
 #include "vm_scene.h"
+#include "vm_ui.h"
 #endif
 
 UBYTE vm_last_unimplemented_opcode;
@@ -496,6 +497,112 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x42: { /* vm_overlay_setpos */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_pos_y = vm_fetch8(&p);
+    UBYTE a_pos_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_setpos(CTX, a_pos_x, a_pos_y);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x44: { /* vm_overlay_wait */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_wait_flags = vm_fetch8(&p);
+    UBYTE a_is_modal = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_wait(CTX, a_is_modal, a_wait_flags);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x45: { /* vm_overlay_move_to */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT8 a_speed = (INT8)vm_fetch8(&p);
+    UBYTE a_pos_y = vm_fetch8(&p);
+    UBYTE a_pos_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_move_to(CTX, a_pos_x, a_pos_y, a_speed);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x46: { /* vm_overlay_show */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_options = vm_fetch8(&p);
+    UBYTE a_color = vm_fetch8(&p);
+    UBYTE a_pos_y = vm_fetch8(&p);
+    UBYTE a_pos_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_show(CTX, a_pos_x, a_pos_y, a_color, a_options);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x47: { /* vm_overlay_clear */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_options = vm_fetch8(&p);
+    UBYTE a_color = vm_fetch8(&p);
+    UBYTE a_h = vm_fetch8(&p);
+    UBYTE a_w = vm_fetch8(&p);
+    UBYTE a_y = vm_fetch8(&p);
+    UBYTE a_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_clear(CTX, a_x, a_y, a_w, a_h, a_color, a_options);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x4C: { /* vm_overlay_set_submap_ex */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    INT16 a_params_idx = (INT16)vm_fetch16(&p);
+        CTX->PC = p;
+        vm_overlay_set_submap_ex(CTX, a_params_idx);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x4D: { /* vm_overlay_scroll */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_color = vm_fetch8(&p);
+    UBYTE a_h = vm_fetch8(&p);
+    UBYTE a_w = vm_fetch8(&p);
+    UBYTE a_y = vm_fetch8(&p);
+    UBYTE a_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_scroll(CTX, a_x, a_y, a_w, a_h, a_color);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x4E: { /* vm_overlay_set_scroll */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_color = vm_fetch8(&p);
+    UBYTE a_h = vm_fetch8(&p);
+    UBYTE a_w = vm_fetch8(&p);
+    UBYTE a_y = vm_fetch8(&p);
+    UBYTE a_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_set_scroll(CTX, a_x, a_y, a_w, a_h, a_color);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x4F: { /* vm_overlay_set_submap */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UBYTE a_scene_y = vm_fetch8(&p);
+    UBYTE a_scene_x = vm_fetch8(&p);
+    UBYTE a_h = vm_fetch8(&p);
+    UBYTE a_w = vm_fetch8(&p);
+    UBYTE a_y = vm_fetch8(&p);
+    UBYTE a_x = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_overlay_set_submap(CTX, a_x, a_y, a_w, a_h, a_scene_x, a_scene_y);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x50: { /* vm_load_tileset */
         const UBYTE VM_FAR *p = CTX->PC + 1;
     UWORD a_background_off = vm_fetch16(&p);
@@ -554,6 +661,20 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         UBYTE *a_pc = (UBYTE *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_context_prepare(CTX, a_slot, a_bank, a_pc);
+        return 1;
+      }
+#endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x56: { /* vm_overlay_set_map */
+        const UBYTE VM_FAR *p = CTX->PC + 1;
+    UWORD a_background_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+    INT16 a_y_idx = (INT16)vm_fetch16(&p);
+    INT16 a_x_idx = (INT16)vm_fetch16(&p);
+    INT16 a_idx = (INT16)vm_fetch16(&p);
+        const void VM_FAR *a_background = vm_far_data_ptr(0, a_background_off);
+        CTX->PC = p;
+        vm_overlay_set_map(CTX, a_idx, a_x_idx, a_y_idx, a_bank, a_background);
         return 1;
       }
 #endif

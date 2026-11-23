@@ -2,7 +2,7 @@
   "rom": "gamerom/gamerom.wsc",
   "elf": "gamerom/build/gamerom.elf",
   "build": "gamerom",
-  "frames": 60,
+  "frames": 200,
   "frame_sha256": null,
   "reference": {
     "script": "tools/boot_oracle.py",

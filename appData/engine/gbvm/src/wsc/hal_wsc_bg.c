@@ -107,5 +107,5 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
 void hal_put_win_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
                        const uint8_t __far *map,
                        const uint8_t __far *attrs, uint8_t map_w) {
-    hal_put_screen_tiles(&hal_win_screen, x, y, w, h, map, attrs, map_w);
+    hal_win_map_put(x, y, w, h, map, attrs, map_w);
 }

@@ -42,6 +42,15 @@
 #define ACTOR_BOUNDS_TILE16_HALF   3u
 
 #ifdef __ia16__
+/* Screen-2 window state maintained by the HAL. */
+#define WINDOW_LEFT (hal_window_x() + DEVICE_WINDOW_PX_OFFSET_X)
+#define WINDOW_TOP  hal_window_y()
+#else
+#define WINDOW_LEFT WX_REG
+#define WINDOW_TOP  WY_REG
+#endif
+
+#ifdef __ia16__
 /* Sprite tiles are stored from tile 256 on WSC so they cannot overlap the
  * background tiles; props bit 3 selects that range in hal_draw_metasprite. */
 static UBYTE actor_draw_metasprite(const metasprite_t __far *ms, UBYTE base_tile,
@@ -227,7 +236,10 @@ void actors_render(void) NONBANKED {
     }
 
     static bool window_hide_actors;
-#ifdef CGB
+#ifdef __ia16__
+    window_hide_actors = (!show_actors_on_overlay) && hal_window_visible() &&
+                         (WINDOW_LEFT > DEVICE_WINDOW_PX_OFFSET_X);
+#elif defined(CGB)
     window_hide_actors = (!_is_CGB) && ((overlay_priority & S_PRIORITY) == 0) && (!show_actors_on_overlay) && (WX_REG > DEVICE_WINDOW_PX_OFFSET_X);
 #else
     window_hide_actors = (!show_actors_on_overlay) && (WX_REG > DEVICE_WINDOW_PX_OFFSET_X);
@@ -244,7 +256,7 @@ void actors_render(void) NONBANKED {
         }
 
 
-        if (!(window_hide_actors && (screen_x + 8 > WX_REG) && (screen_y - 8 > WY_REG))) {
+        if (!(window_hide_actors && (screen_x + 8 > WINDOW_LEFT) && (screen_y - 8 > WINDOW_TOP))) {
             SWITCH_ROM(PLAYER.sprite.bank);
 #ifdef __ia16__
             const spritesheet_t __far *sprite = PLAYER.sprite.ptr;
@@ -276,7 +288,7 @@ void actors_render(void) NONBANKED {
             screen_y = SUBPX_TO_PX(actor->pos.y) - draw_scroll_y;
         }
 
-        if (((window_hide_actors) && (((screen_x + 8) > WX_REG) && ((screen_y - 8) > WY_REG)))) {
+        if (((window_hide_actors) && (((screen_x + 8) > WINDOW_LEFT) && ((screen_y - 8) > WINDOW_TOP)))) {
             continue;
         }
         SWITCH_ROM(actor->sprite.bank);

@@ -16,6 +16,10 @@
 #include "data_manager.h"
 #include "data/data_bootstrap.h"
 
+#ifdef __ia16__
+#include "hal.h"
+#endif
+
 BANKREF(VM_UI)
 
 typedef struct set_submap_params_t {
@@ -35,6 +39,7 @@ typedef struct set_submap_params_t {
 
 void ui_draw_frame(UBYTE x, UBYTE y, UBYTE width, UBYTE height) BANKED;
 
+#ifndef __ia16__
 extern UBYTE _itoa_fmt_len;
 UBYTE itoa_fmt(INT16 v, UBYTE * d) OLDCALL BANKED PRESERVES_REGS(b, c);
 
@@ -100,7 +105,7 @@ void vm_load_text(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE nar
         *dargs-- = *((INT16 *)VM_REF_TO_PTR(*sargs));
         ++sargs;
     }
-    THIS->PC = load_text((const unsigned char *)sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
+    THIS->PC = (const UBYTE VM_FAR *)load_text((const unsigned char *)sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
 }
 
 // renders UI text into buffer indirectly
@@ -143,6 +148,7 @@ void vm_switch_text_layer(SCRIPT_CTX * THIS, UBYTE target) OLDCALL BANKED {
     THIS;
     if (target) text_render_base_addr = GetWinAddr(); else text_render_base_addr = GetBkgAddr();
 }
+#endif /* !__ia16__ */
 
 // set position of overlayed window
 void vm_overlay_setpos(SCRIPT_CTX * THIS, UBYTE pos_x, UBYTE pos_y) OLDCALL BANKED {
@@ -217,10 +223,17 @@ void vm_overlay_clear(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UBY
 // shows overlay
 void vm_overlay_show(SCRIPT_CTX * THIS, UBYTE pos_x, UBYTE pos_y, UBYTE color, UBYTE options) OLDCALL BANKED {
     THIS;
+#ifdef __ia16__
+    if ((pos_x < hal_screen_w) && (pos_y < hal_screen_h))
+        vm_overlay_clear(THIS, 0, 0, (UBYTE)(hal_screen_w - pos_x),
+                         (UBYTE)(hal_screen_h - pos_y), color, options);
+#else
     if ((pos_x < 20u) && (pos_y < 18u)) vm_overlay_clear(THIS, 0, 0, 20u - pos_x, 18u - pos_y, color, options);
+#endif
     ui_set_pos(pos_x << 3, pos_y << 3);
 }
 
+#ifndef __ia16__
 void vm_choice(SCRIPT_CTX * THIS, INT16 idx, UBYTE options, UBYTE count) OLDCALL BANKED {
     INT16 * v = VM_REF_TO_PTR(idx);
     *v = (count) ? ui_run_menu((menu_item_t *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
@@ -233,6 +246,7 @@ void vm_set_font(SCRIPT_CTX * THIS, UBYTE font_index) OLDCALL BANKED {
     vwf_current_font_bank = ui_fonts[font_index].bank;
     MemcpyBanked(&vwf_current_font_desc, ui_fonts[font_index].ptr, sizeof(font_desc_t), vwf_current_font_bank);
 }
+#endif /* !__ia16__ */
 
 void vm_overlay_scroll(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UBYTE color) OLDCALL BANKED {
     THIS;
@@ -247,7 +261,11 @@ void vm_overlay_scroll(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UB
     scroll_rect(base_addr, w, h, ((color) ? ui_white_tile : ui_black_tile));
 }
 
+#ifdef __ia16__
+void set_xy_win_submap(const UBYTE __far * source, UBYTE bank, UBYTE width, UBYTE x, UBYTE y, UBYTE w, UBYTE h) OLDCALL;
+#else
 void set_xy_win_submap(const UBYTE * source, UBYTE bank, UBYTE width, UBYTE x, UBYTE y, UBYTE w, UBYTE h) OLDCALL;
+#endif
 
 void vm_overlay_set_submap(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UBYTE scene_x, UBYTE scene_y) OLDCALL BANKED {
     THIS;
@@ -275,12 +293,17 @@ void vm_overlay_set_submap_ex(SCRIPT_CTX * THIS, INT16 params_idx) OLDCALL BANKE
     set_xy_win_submap(image_ptr + offset, image_bank, image_tile_width, params->x, params->y, params->w, params->h);
 }
 
-void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, UBYTE bank, const background_t * background) OLDCALL BANKED {
+void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, UBYTE bank, VM_C_DATA(background_t) background) OLDCALL BANKED {
     far_ptr_t tilemap;
     UBYTE x = *((x_idx < 0) ? THIS->stack_ptr + x_idx : script_memory + x_idx);
     UBYTE y = *((y_idx < 0) ? THIS->stack_ptr + y_idx : script_memory + y_idx);
+#ifdef __ia16__
+    UBYTE w = ReadBankedUBYTE((const void __far *)&(background->width), bank);
+    UBYTE h = ReadBankedUBYTE((const void __far *)&(background->height), bank);
+#else
     UBYTE w = ReadBankedUBYTE((void *)&(background->width), bank);
     UBYTE h = ReadBankedUBYTE((void *)&(background->height), bank);
+#endif
 #ifdef CGB
     if (_is_CGB) {
         ReadBankedFarPtr(&tilemap, (void *)&(background->cgb_tilemap_attr), bank);
@@ -292,14 +315,20 @@ void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, 
     }
 #endif
     _map_tile_offset = *(INT16 *)(VM_REF_TO_PTR(idx));
+#ifdef __ia16__
+    ReadBankedFarPtr(&tilemap, (const void __far *)&(background->tilemap), bank);
+#else
     ReadBankedFarPtr(&tilemap, (void *)&(background->tilemap), bank);
+#endif
     SetBankedWinTiles(x, y, w, h, tilemap.ptr, tilemap.bank);
     _map_tile_offset = 0;
 }
 
+#ifndef __ia16__
 void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * offset, UBYTE channel_mask) OLDCALL BANKED {
     THIS;
     text_sound_bank = bank;
     text_sound_data = offset;
     text_sound_mask = channel_mask;
 }
+#endif
