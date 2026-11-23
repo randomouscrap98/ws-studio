@@ -54,7 +54,7 @@
 /* Sprite tiles live in the 256..511 half of WSC tile memory; props bit 3
  * selects that range in hal_draw_metasprite.  Projectiles call this too, so
  * both paths follow LCDC_REG and pass the same 16-bit screen coordinates. */
-UBYTE actor_draw_metasprite_wsc(const metasprite_t __far *ms, UBYTE base_tile,
+UBYTE actor_draw_metasprite_wsc(const metasprite_t FAR *ms, UBYTE base_tile,
                                 INT16 x, INT16 y) {
     UBYTE mode = (LCDC_REG & LCDCF_OBJ16) ? HAL_SPRITE_MODE_8X16
                                          : HAL_SPRITE_MODE_8X8;
@@ -63,7 +63,7 @@ UBYTE actor_draw_metasprite_wsc(const metasprite_t __far *ms, UBYTE base_tile,
 }
 #define actor_draw_metasprite(ms, base_tile, sprite_offset, x, y) \
     actor_draw_metasprite_wsc((ms), (base_tile), (x), (y))
-#define ACTOR_META_PTR(ms) ((const metasprite_t __far *)(ms))
+#define ACTOR_META_PTR(ms) ((const metasprite_t FAR *)(ms))
 #else
 #define actor_draw_metasprite(ms, base_tile, sprite_offset, x, y) \
     move_metasprite((ms), (base_tile), (sprite_offset), (x), (y))
@@ -214,11 +214,7 @@ void actors_render(void) NONBANKED {
 
     if (emote_actor) {
         SWITCH_ROM(emote_actor->sprite.bank);
-#ifdef __ia16__
-        const spritesheet_t __far *sprite = emote_actor->sprite.ptr;
-#else
-        spritesheet_t *sprite = emote_actor->sprite.ptr;
-#endif
+        const spritesheet_t FAR *sprite = emote_actor->sprite.ptr;
         screen_x = SUBPX_TO_PX(emote_actor->pos.x) - scroll_x + sprite->emote_origin.x;
         screen_y = SUBPX_TO_PX(emote_actor->pos.y) - scroll_y + sprite->emote_origin.y;
 
@@ -260,11 +256,7 @@ void actors_render(void) NONBANKED {
 
         if (!(window_hide_actors && (screen_x + 8 > WINDOW_LEFT) && (screen_y - 8 > WINDOW_TOP))) {
             SWITCH_ROM(PLAYER.sprite.bank);
-#ifdef __ia16__
-            const spritesheet_t __far *sprite = PLAYER.sprite.ptr;
-#else
-            spritesheet_t *sprite = PLAYER.sprite.ptr;
-#endif
+            const spritesheet_t FAR *sprite = PLAYER.sprite.ptr;
 
             allocated_hardware_sprites += actor_draw_metasprite(
                 *(sprite->metasprites + PLAYER.frame),
@@ -294,11 +286,7 @@ void actors_render(void) NONBANKED {
             continue;
         }
         SWITCH_ROM(actor->sprite.bank);
-#ifdef __ia16__
-        const spritesheet_t __far *sprite = actor->sprite.ptr;
-#else
-        spritesheet_t *sprite = actor->sprite.ptr;
-#endif
+        const spritesheet_t FAR *sprite = actor->sprite.ptr;
 
         allocated_hardware_sprites += actor_draw_metasprite(
             *(sprite->metasprites + actor->frame),

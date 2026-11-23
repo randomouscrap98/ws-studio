@@ -317,13 +317,13 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
         "",
         "UBYTE vm_last_unimplemented_opcode;",
         "",
-        "static UWORD vm_fetch16(const UBYTE VM_FAR **p) {",
+        "static UWORD vm_fetch16(const UBYTE FAR **p) {",
         "    UWORD value = (UWORD)((*p)[0] << 8) | (*p)[1];",
         "    *p += 2;",
         "    return value;",
         "}",
         "",
-        "static UBYTE vm_fetch8(const UBYTE VM_FAR **p) {",
+        "static UBYTE vm_fetch8(const UBYTE FAR **p) {",
         "    return *(*p)++;",
         "}",
         "",
@@ -354,7 +354,7 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
         far_names = {
             info[0]
             for p, info in zip(operands, infos)
-            if info[1] == "ptr" and "VM_FAR" in p
+            if info[1] == "ptr" and re.search(r"\bFAR\b", p)
         }
         before_this = []
         this_index = next(
@@ -372,7 +372,7 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
         if wrapped:
             out.append("#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)")
         out.append(f"      case 0x{opcode:02X}: {{ /* {handler} */")
-        out.append("        const UBYTE VM_FAR *p = CTX->PC + 1;")
+        out.append("        const UBYTE FAR *p = CTX->PC + 1;")
         out.extend(fetch_code(infos))
         for name, kind, _size in infos:
             if kind != "ptr":
@@ -381,11 +381,11 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
                 continue
             if name in far_data_params:
                 out.append(
-                    f"        const void VM_FAR *a_{name} = "
+                    f"        const void FAR *a_{name} = "
                     f"vm_far_data_ptr(0, a_{name}_off);"
                 )
                 continue
-            qualifier = " VM_FAR" if name in far_names else ""
+            qualifier = " FAR" if name in far_names else ""
             out.append(
                 f"        UBYTE{qualifier} *a_{name} = "
                 f"(UBYTE{qualifier} *)(vm_bank_base({bank_expr}) "

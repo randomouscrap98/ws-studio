@@ -69,11 +69,7 @@ extern UBYTE text_scroll_fill;
 
 extern UBYTE text_sound_mask;
 extern UBYTE text_sound_bank;
-#ifdef __ia16__
-extern const UBYTE __far * text_sound_data;
-#else
-extern const UBYTE * text_sound_data;
-#endif
+extern const UBYTE FAR * text_sound_data;
 
 extern const UBYTE ui_time_masks[];
 
@@ -115,10 +111,6 @@ inline void ui_move_to(UBYTE x, UBYTE y, BYTE speed) {
     if (speed == UI_SPEED_INSTANT) win_pos_y = y, win_pos_x = x; else win_speed = speed;
 }
 
-#ifdef __ia16__
-UBYTE ui_run_menu(const menu_item_t __far * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED;
-#else
-UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED;
-#endif
+UBYTE ui_run_menu(const menu_item_t FAR * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED;
 
 #endif

@@ -35,13 +35,10 @@
 #define ui_frame_bg_tiles 0xC4u
 
 /* The font bitmap lives in far ROM on the WonderSwan. */
+typedef const UBYTE FAR * ui_font_bitmap_t;
+typedef const far_ptr_t FAR * ui_font_desc_ptr_t;
 #ifdef __ia16__
-typedef const UBYTE __far * ui_font_bitmap_t;
-typedef const far_ptr_t __far * ui_font_desc_ptr_t;
 void ui_set_tile_banked(UBYTE * addr, UBYTE tile, UBYTE bank);
-#else
-typedef const UBYTE * ui_font_bitmap_t;
-typedef const far_ptr_t * ui_font_desc_ptr_t;
 #endif
 
 UBYTE win_pos_x, win_dest_pos_x;
@@ -88,11 +85,7 @@ UBYTE text_scroll_fill;
 
 UBYTE text_sound_mask;
 UBYTE text_sound_bank;
-#ifdef __ia16__
-const UBYTE __far * text_sound_data;
-#else
-const UBYTE * text_sound_data;
-#endif
+const UBYTE FAR * text_sound_data;
 
 UBYTE overlay_priority;
 UBYTE text_palette;
@@ -208,7 +201,7 @@ inline void ui_load_tile(ui_font_bitmap_t tiledata, UBYTE bank) {
      * GB's two VRAM banks. */
     hal_load_bkg_tiles((uint16_t)ui_current_tile +
                        ((ui_current_tile_bank) ? WSC_TILE_BG_BANK1_BASE : WSC_TILE_BG_BANK0_BASE),
-                       1, (const uint8_t __far *)tiledata, 2);
+                       1, (const uint8_t FAR *)tiledata, 2);
 #else
 #ifdef CGB
     VBK_REG = (ui_current_tile_bank != 0) ? VBK_BANK_1 : VBK_BANK_0;
@@ -538,11 +531,7 @@ void ui_update(void) BANKED {
     if ((flag) && (text_sound_bank != SFX_STOP_BANK)) music_play_sfx(text_sound_bank, text_sound_data, text_sound_mask, MUSIC_SFX_PRIORITY_NORMAL);
 }
 
-#ifdef __ia16__
-UBYTE ui_run_menu(const menu_item_t __far * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
-#else
-UBYTE ui_run_menu(menu_item_t * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
-#endif
+UBYTE ui_run_menu(const menu_item_t FAR * start_item, UBYTE bank, UBYTE options, UBYTE count, UBYTE start_index) BANKED {
     menu_item_t current_menu_item;
     UBYTE current_index = ((options & MENU_SET_START) ? start_index : 1u), next_index = 0u;
     // copy first menu item

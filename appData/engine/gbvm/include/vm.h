@@ -12,17 +12,6 @@
 
 BANKREF_EXTERN(VM_MAIN)
 
-// Script bytecode lives in ROM. On the WonderSwan it is reached through
-// far pointers; the host and the Game Boy use ordinary near pointers.
-#if defined(__ia16__)
-#define VM_FAR __far
-/* C data operands are far ROM objects resolved through vm_far_data[]. */
-#define VM_C_DATA(T) const T __far *
-#else
-#define VM_FAR
-#define VM_C_DATA(T) const T *
-#endif
-
 #define FN_ARG0 -1
 #define FN_ARG1 -2
 #define FN_ARG2 -3
@@ -61,7 +50,7 @@ typedef UBYTE (*SCRIPT_UPDATE_FN)(void * THIS, UBYTE start, UWORD * stack_frame)
 #define VM_GLOBAL(idx) script_memory[(idx)]
 
 typedef struct SCRIPT_CTX {
-    const UBYTE VM_FAR * PC;
+    const UBYTE FAR * PC;
     UBYTE bank;
     // linked list of contexts for the multitasking
     struct SCRIPT_CTX * next;
@@ -88,10 +77,10 @@ typedef struct SCRIPT_CTX {
 // vm_far_data[]. The GB/SDCC build keeps direct near RAM addresses.
 extern SCRIPT_UPDATE_FN vm_native_fns[];
 extern UBYTE *const vm_ram_syms[];
-extern const UBYTE VM_FAR *const vm_far_data[];
-const UBYTE VM_FAR * vm_bank_base(UBYTE bank);
+extern const UBYTE FAR *const vm_far_data[];
+const UBYTE FAR * vm_bank_base(UBYTE bank);
 UBYTE * vm_ram_ptr(UWORD idx);
-const UBYTE VM_FAR * vm_far_data_ptr(UBYTE bank, UWORD idx);
+const UBYTE FAR * vm_far_data_ptr(UBYTE bank, UWORD idx);
 UBYTE * vm_native_token(UWORD index);
 UBYTE vm_dispatch_step(SCRIPT_CTX * CTX);
 #endif
@@ -175,22 +164,22 @@ extern UBYTE vm_loaded_state;
 extern UBYTE vm_exception_code;
 extern UBYTE vm_exception_params_length;
 extern UBYTE vm_exception_params_bank;
-extern const void VM_FAR * vm_exception_params_offset;
+extern const void FAR * vm_exception_params_offset;
 
 // script core functions
 void vm_push(SCRIPT_CTX * THIS, UWORD value) OLDCALL BANKED;
 UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) OLDCALL BANKED;
-void vm_call(SCRIPT_CTX * THIS, UBYTE VM_FAR * pc) OLDCALL BANKED;
+void vm_call(SCRIPT_CTX * THIS, UBYTE FAR * pc) OLDCALL BANKED;
 void vm_ret(SCRIPT_CTX * THIS, UBYTE n) OLDCALL BANKED;
-void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE VM_FAR * pc) OLDCALL BANKED;
+void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE FAR * pc) OLDCALL BANKED;
 void vm_ret_far(SCRIPT_CTX * THIS, UBYTE n) OLDCALL BANKED;
-void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 VM_FAR * pc, UBYTE n) OLDCALL BANKED;
+void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 FAR * pc, UBYTE n) OLDCALL BANKED;
 void vm_switch(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idx, UBYTE size, UBYTE n) OLDCALL NONBANKED;
-void vm_jump(SCRIPT_CTX * THIS, UBYTE VM_FAR * pc) OLDCALL BANKED;
+void vm_jump(SCRIPT_CTX * THIS, UBYTE FAR * pc) OLDCALL BANKED;
 void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 idx) OLDCALL BANKED;
-void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE VM_FAR * pc, INT16 idx, UBYTE nargs) OLDCALL NONBANKED;
-void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE VM_FAR * pc, UBYTE n) OLDCALL BANKED;
-void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE VM_FAR * pc, UBYTE n) OLDCALL BANKED;
+void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE FAR * pc, INT16 idx, UBYTE nargs) OLDCALL NONBANKED;
+void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE FAR * pc, UBYTE n) OLDCALL BANKED;
+void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE FAR * pc, UBYTE n) OLDCALL BANKED;
 void vm_push_value(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_push_value_ind(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_push_reference(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
@@ -216,7 +205,7 @@ void vm_call_native(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UINT8 b
 void vm_asm(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS) OLDCALL NONBANKED NAKED;
 void vm_memset(SCRIPT_CTX * THIS, INT16 idx, INT16 value, INT16 count) OLDCALL BANKED;
 void vm_memcpy(SCRIPT_CTX * THIS, INT16 idxA, INT16 idxB, INT16 count) OLDCALL BANKED;
-void vm_rate_limit_const(SCRIPT_CTX * THIS, UWORD n_frames, INT16 idxA, UBYTE VM_FAR * pc) OLDCALL BANKED;
+void vm_rate_limit_const(SCRIPT_CTX * THIS, UWORD n_frames, INT16 idxA, UBYTE FAR * pc) OLDCALL BANKED;
 
 // return TRUE if VM is in locked state
 inline UBYTE VM_ISLOCKED(void) {
@@ -229,7 +218,7 @@ inline UBYTE VM_ISLOCKED(void) {
 // initialize script runner contexts
 void script_runner_init(UBYTE reset) BANKED;
 // execute a script in the new allocated context
-SCRIPT_CTX * script_execute(UBYTE bank, const UBYTE VM_FAR * pc, UWORD * handle, UBYTE nargs, ...) BANKED;
+SCRIPT_CTX * script_execute(UBYTE bank, const UBYTE FAR * pc, UWORD * handle, UBYTE nargs, ...) BANKED;
 // terminate script by ID; returns non zero if no such thread is running
 UBYTE script_terminate(UBYTE ID) BANKED;
 // detach script from the monitoring variable

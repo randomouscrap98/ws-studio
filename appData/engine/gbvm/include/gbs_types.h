@@ -116,17 +116,11 @@ typedef struct tileset_t {
 typedef struct spritesheet_t {
     uint8_t n_metasprites;
     point8_t emote_origin;
-#ifdef __ia16__
-    /* Exported spritesheets live in far ROM, so arrays they point at are far
-     * too. gcc-ia16 rejects a near pointer initializer to a far object. */
-    const metasprite_t __far * const __far *metasprites;
-    const animation_t __far *animations;
-    const uint16_t __far *animations_lookup;
-#else
-    metasprite_t * const *metasprites;
-    animation_t *animations;
-    uint16_t *animations_lookup;
-#endif
+    /* Exported spritesheets live in far ROM on WSC, so the arrays they point
+     * at are far too. */
+    const metasprite_t FAR * const FAR *metasprites;
+    const animation_t FAR *animations;
+    const uint16_t FAR *animations_lookup;
     rect16_t bounds;
     far_ptr_t tileset;              // far pointer to sprite tileset
     far_ptr_t cgb_tileset;          // far pointer to additional CGB tileset (may be NULL)
@@ -167,15 +161,9 @@ typedef struct projectile_t
 
 typedef struct font_desc_t {
     uint8_t attr, mask;
-#ifdef __ia16__
-    const uint8_t __far * recode_table;
-    const uint8_t __far * widths;
-    const uint8_t __far * bitmaps;
-#else
-    const uint8_t * recode_table;
-    const uint8_t * widths;
-    const uint8_t * bitmaps;
-#endif
+    const uint8_t FAR * recode_table;
+    const uint8_t FAR * widths;
+    const uint8_t FAR * bitmaps;
 } font_desc_t;
 
 typedef struct scene_stack_item_t {

@@ -163,7 +163,7 @@ void projectiles_render(void) NONBANKED {
 
         SWITCH_ROM(projectile->def.sprite.bank);
 #ifdef __ia16__
-        const spritesheet_t __far *sprite = projectile->def.sprite.ptr;
+        const spritesheet_t FAR *sprite = projectile->def.sprite.ptr;
 
         allocated_hardware_sprites += actor_draw_metasprite_wsc(
             *(sprite->metasprites + projectile->frame),

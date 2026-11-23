@@ -21,11 +21,7 @@ void vm_load_palette(SCRIPT_CTX * THIS, UBYTE mask, UBYTE options) OLDCALL BANKE
         UBYTE sgb_changes = SGB_PALETTES_NONE;
     #endif
     UBYTE is_commit = (options & PALETTE_COMMIT), is_bkg = (options & PALETTE_BKG), is_spr = (options & PALETTE_SPRITE);
-#ifdef __ia16__
-    const palette_entry_t __far * sour = (const palette_entry_t __far *)THIS->PC;
-#else
-    const palette_entry_t * sour = (const palette_entry_t *)THIS->PC;
-#endif
+    const palette_entry_t FAR * sour = (const palette_entry_t FAR *)THIS->PC;
     palette_entry_t * dest = (is_bkg) ? BkgPalette : SprPalette;
     for (UBYTE i = mask, nb = 0; (i != 0); dest++, nb++, i >>= 1) {
         if ((i & 1) == 0) continue;
@@ -58,8 +54,8 @@ void vm_load_palette(SCRIPT_CTX * THIS, UBYTE mask, UBYTE options) OLDCALL BANKE
             #ifdef CGB
                 if (_is_CGB) {
 #ifdef __ia16__
-                    if (is_bkg) hal_set_bkg_palette(nb, 1, (const uint16_t __far *)dest);
-                    if (is_spr) hal_set_sprite_palette(nb, 1, (const uint16_t __far *)dest);
+                    if (is_bkg) hal_set_bkg_palette(nb, 1, (const uint16_t FAR *)dest);
+                    if (is_spr) hal_set_sprite_palette(nb, 1, (const uint16_t FAR *)dest);
 #else
                     if (is_bkg) set_bkg_palette(nb, 1, (void *)dest);
                     if (is_spr) set_sprite_palette(nb, 1, (void *)dest);
@@ -80,5 +76,5 @@ void vm_load_palette(SCRIPT_CTX * THIS, UBYTE mask, UBYTE options) OLDCALL BANKE
     #ifdef SGB
         if ((sgb_changes) && (_is_SGB)) SGBTransferPalettes(sgb_changes);
     #endif
-    THIS->PC = (const UBYTE VM_FAR *)sour;
+    THIS->PC = (const UBYTE FAR *)sour;
 }

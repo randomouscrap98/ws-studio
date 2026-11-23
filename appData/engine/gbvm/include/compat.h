@@ -1,7 +1,12 @@
 #ifndef _COMPAT_H_INCLUDE
 #define _COMPAT_H_INCLUDE
 
-#include <gbdk/platform.h>
+/* The only spelling of "far on WSC, nothing elsewhere". */
+#ifdef __ia16__
+#define FAR __far
+#else
+#define FAR
+#endif
 
 #ifndef OLDCALL
 #if __SDCC_REVISION >= 12608

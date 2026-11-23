@@ -4,24 +4,12 @@
 #include <gbdk/platform.h>
 #include "gbs_types.h"
 
-#ifdef __ia16__
-/* Exported scene objects and their arrays live in far ROM. */
-#define DATA_PTR(T) const T __far *
-#else
-#define DATA_PTR(T) const T *
-#endif
-
 extern far_ptr_t current_scene;
 extern UBYTE image_bank;
 extern UBYTE image_attr_bank;
 extern UBYTE collision_bank;
-#ifdef __ia16__
-extern const unsigned char __far *image_ptr;
-extern const unsigned char __far *image_attr_ptr;
-#else
-extern unsigned char *image_ptr;
-extern unsigned char *image_attr_ptr;
-#endif
+extern const unsigned char FAR *image_ptr;
+extern const unsigned char FAR *image_attr_ptr;
 extern UBYTE image_tile_width;
 extern UBYTE image_tile_height;
 extern UINT16 image_width;
@@ -42,18 +30,12 @@ extern scene_stack_item_t * scene_stack_ptr;
 extern UBYTE scene_sprites_base_tiles[MAX_SCENE_SPRITES];
 
 void load_init(void) BANKED;
-UBYTE load_scene(DATA_PTR(scene_t) scene, UBYTE bank, UBYTE init_data) BANKED;
+UBYTE load_scene(const scene_t FAR * scene, UBYTE bank, UBYTE init_data) BANKED;
 
-UBYTE load_sprite(UBYTE sprite_offset, DATA_PTR(spritesheet_t) sprite, UBYTE bank) BANKED;
+UBYTE load_sprite(UBYTE sprite_offset, const spritesheet_t FAR * sprite, UBYTE bank) BANKED;
 void load_player(void) BANKED;
-#ifdef __ia16__
-void load_emote(const unsigned char __far * tiles, UBYTE bank) BANKED;
-void load_animations(DATA_PTR(spritesheet_t) sprite, UBYTE bank, UWORD animation_set, animation_t * res_animations) NONBANKED;
-void load_bounds(DATA_PTR(spritesheet_t) sprite, UBYTE bank, rect16_t * res_bounds) BANKED;
-#else
-void load_emote(const unsigned char * tiles, UBYTE bank) BANKED;
-void load_animations(const spritesheet_t *sprite, UBYTE bank, UWORD animation_set, animation_t * res_animations) NONBANKED;
-void load_bounds(const spritesheet_t * sprite, UBYTE bank, rect16_t * res_bounds) BANKED;
-#endif
+void load_emote(const unsigned char FAR * tiles, UBYTE bank) BANKED;
+void load_animations(const spritesheet_t FAR * sprite, UBYTE bank, UWORD animation_set, animation_t * res_animations) NONBANKED;
+void load_bounds(const spritesheet_t FAR * sprite, UBYTE bank, rect16_t * res_bounds) BANKED;
 
 #endif

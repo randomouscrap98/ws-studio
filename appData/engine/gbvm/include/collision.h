@@ -14,11 +14,7 @@
 #define TILE_PROP_LADDER 0x10
 
 extern UBYTE collision_bank;
-#ifdef __ia16__
-extern const unsigned char __far *collision_ptr;
-#else
-extern unsigned char *collision_ptr;
-#endif
+extern const unsigned char FAR *collision_ptr;
 extern UBYTE image_tile_width;
 extern UBYTE image_tile_height;
 

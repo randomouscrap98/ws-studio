@@ -19,11 +19,7 @@
 #endif
 
 // put submap of a large map to screen
-#ifdef __ia16__
-void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h, const unsigned char __far *map, UINT8 map_w) OLDCALL;
-#else
-void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h, const unsigned char *map, UINT8 map_w) OLDCALL;
-#endif
+void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h, const unsigned char FAR *map, UINT8 map_w) OLDCALL;
 
 void scroll_queue_row(UBYTE x, UBYTE y);
 void scroll_queue_col(UBYTE x, UBYTE y);

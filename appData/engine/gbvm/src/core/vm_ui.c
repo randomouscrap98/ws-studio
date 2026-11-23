@@ -106,7 +106,7 @@ inline UBYTE itoa_format(INT16 v, UBYTE * d, UBYTE dlen) {
 }
 
 /* Script strings are far ROM on the WonderSwan and near ROM on the GB. */
-typedef const UBYTE VM_FAR * ui_text_src_t;
+typedef const UBYTE FAR * ui_text_src_t;
 
 static ui_text_src_t load_text(ui_text_src_t s, INT16 * args) NONBANKED {
     unsigned char * d = ui_text_data;
@@ -172,7 +172,7 @@ void vm_load_text(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE nar
         *dargs-- = *((INT16 *)VM_REF_TO_PTR(*sargs));
         ++sargs;
     }
-    THIS->PC = (const UBYTE VM_FAR *)load_text((const unsigned char *)sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
+    THIS->PC = (const UBYTE FAR *)load_text((const unsigned char *)sargs, (INT16 *)(ui_text_data + (sizeof(ui_text_data) - sizeof(INT16))));
 #endif
 }
 
@@ -304,11 +304,7 @@ void vm_overlay_show(SCRIPT_CTX * THIS, UBYTE pos_x, UBYTE pos_y, UBYTE color, U
 
 void vm_choice(SCRIPT_CTX * THIS, INT16 idx, UBYTE options, UBYTE count) OLDCALL BANKED {
     INT16 * v = VM_REF_TO_PTR(idx);
-#ifdef __ia16__
-    *v = (count) ? ui_run_menu((const menu_item_t __far *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
-#else
-    *v = (count) ? ui_run_menu((menu_item_t *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
-#endif
+    *v = (count) ? ui_run_menu((const menu_item_t FAR *)(THIS->PC), THIS->bank, options, count, MAX(1, MIN(count, *v))) : 0;
     THIS->PC += sizeof(menu_item_t) * count;
 }
 
@@ -332,11 +328,7 @@ void vm_overlay_scroll(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UB
     scroll_rect(base_addr, w, h, ((color) ? ui_white_tile : ui_black_tile));
 }
 
-#ifdef __ia16__
-void set_xy_win_submap(const UBYTE __far * source, UBYTE bank, UBYTE width, UBYTE x, UBYTE y, UBYTE w, UBYTE h) OLDCALL;
-#else
-void set_xy_win_submap(const UBYTE * source, UBYTE bank, UBYTE width, UBYTE x, UBYTE y, UBYTE w, UBYTE h) OLDCALL;
-#endif
+void set_xy_win_submap(const UBYTE FAR * source, UBYTE bank, UBYTE width, UBYTE x, UBYTE y, UBYTE w, UBYTE h) OLDCALL;
 
 void vm_overlay_set_submap(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE w, UBYTE h, UBYTE scene_x, UBYTE scene_y) OLDCALL BANKED {
     THIS;
@@ -364,17 +356,12 @@ void vm_overlay_set_submap_ex(SCRIPT_CTX * THIS, INT16 params_idx) OLDCALL BANKE
     set_xy_win_submap(image_ptr + offset, image_bank, image_tile_width, params->x, params->y, params->w, params->h);
 }
 
-void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, UBYTE bank, VM_C_DATA(background_t) background) OLDCALL BANKED {
+void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, UBYTE bank, const background_t FAR * background) OLDCALL BANKED {
     far_ptr_t tilemap;
     UBYTE x = *((x_idx < 0) ? THIS->stack_ptr + x_idx : script_memory + x_idx);
     UBYTE y = *((y_idx < 0) ? THIS->stack_ptr + y_idx : script_memory + y_idx);
-#ifdef __ia16__
-    UBYTE w = ReadBankedUBYTE((const void __far *)&(background->width), bank);
-    UBYTE h = ReadBankedUBYTE((const void __far *)&(background->height), bank);
-#else
-    UBYTE w = ReadBankedUBYTE((void *)&(background->width), bank);
-    UBYTE h = ReadBankedUBYTE((void *)&(background->height), bank);
-#endif
+    UBYTE w = ReadBankedUBYTE((const void FAR *)&(background->width), bank);
+    UBYTE h = ReadBankedUBYTE((const void FAR *)&(background->height), bank);
 #ifdef CGB
     if (_is_CGB) {
         ReadBankedFarPtr(&tilemap, (void *)&(background->cgb_tilemap_attr), bank);
@@ -386,16 +373,12 @@ void vm_overlay_set_map(SCRIPT_CTX * THIS, INT16 idx, INT16 x_idx, INT16 y_idx, 
     }
 #endif
     _map_tile_offset = *(INT16 *)(VM_REF_TO_PTR(idx));
-#ifdef __ia16__
-    ReadBankedFarPtr(&tilemap, (const void __far *)&(background->tilemap), bank);
-#else
-    ReadBankedFarPtr(&tilemap, (void *)&(background->tilemap), bank);
-#endif
+    ReadBankedFarPtr(&tilemap, (const void FAR *)&(background->tilemap), bank);
     SetBankedWinTiles(x, y, w, h, tilemap.ptr, tilemap.bank);
     _map_tile_offset = 0;
 }
 
-void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, const UBYTE VM_FAR * offset, UBYTE channel_mask) OLDCALL BANKED {
+void vm_set_text_sound(SCRIPT_CTX * THIS, UBYTE bank, const UBYTE FAR * offset, UBYTE channel_mask) OLDCALL BANKED {
     THIS;
     text_sound_bank = bank;
     text_sound_data = offset;

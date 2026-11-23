@@ -5,13 +5,20 @@
 
 #include "compat.h"
 
+/* A (bank, pointer) pair. On WSC the pointer is far; on the Game Boy the
+ * macro is empty and it stays near. */
+typedef struct far_ptr_t {
+    UBYTE bank;
+    const void FAR *ptr;
+} far_ptr_t;
+
 #if defined(__ia16__)
 
 /* WonderSwan Color data model: exported data is far ROM, there is no bank
  * register to switch and far pointers carry their own segment. The engine's
  * (ptr, bank) pair is kept so GB callers and the converter's operands keep
  * working; bank is 0 for C data and the script-bank index for script data. */
-#define TO_FAR_PTR_T(A) {.bank = 0, .ptr = (const void __far *)&(A)}
+#define TO_FAR_PTR_T(A) {.bank = 0, .ptr = (const void FAR *)&(A)}
 #define TO_FAR_ARGS(T, A) (T)(A).ptr, (A).bank
 
 #ifndef BANK
@@ -33,30 +40,25 @@
 #define SIZEREF_EXTERN(VARNAME)
 #endif
 
-typedef struct far_ptr_t {
-    UBYTE bank;
-    const void __far *ptr;
-} far_ptr_t;
-
-void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
+void SetBankedBkgData(UBYTE i, UBYTE l, const unsigned char FAR *ptr, UBYTE bank);
 /* Same, but into the GB background bank 1 window (WSC tiles 512..767). */
-void SetBankedBkgDataBank1(UBYTE i, UBYTE l, const unsigned char __far *ptr,
+void SetBankedBkgDataBank1(UBYTE i, UBYTE l, const unsigned char FAR *ptr,
                            UBYTE bank);
-void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char __far *ptr, UBYTE bank);
+void SetBankedSpriteData(UBYTE i, UBYTE l, const unsigned char FAR *ptr, UBYTE bank);
 void SetBankedBkgTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
-                       const unsigned char __far *tiles, UBYTE bank);
+                       const unsigned char FAR *tiles, UBYTE bank);
 void SetBankedWinTiles(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
-                       const unsigned char __far *tiles, UBYTE bank);
+                       const unsigned char FAR *tiles, UBYTE bank);
 
-void ReadBankedFarPtr(far_ptr_t * dest, const void __far *ptr, UBYTE bank);
-UWORD ReadBankedUWORD(const void __far *ptr, UBYTE bank);
-inline UBYTE ReadBankedUBYTE(const void __far *ptr, UBYTE bank) {
+void ReadBankedFarPtr(far_ptr_t * dest, const void FAR *ptr, UBYTE bank);
+UWORD ReadBankedUWORD(const void FAR *ptr, UBYTE bank);
+inline UBYTE ReadBankedUBYTE(const void FAR *ptr, UBYTE bank) {
     (void)bank;
-    return *(const UBYTE __far *)ptr;
+    return *(const UBYTE FAR *)ptr;
 }
-void MemcpyBanked(void *to, const void __far *from, size_t n, UBYTE bank);
-void MemcpyVRAMBanked(void *to, const void __far *from, size_t n, UBYTE bank);
-UBYTE IndexOfFarPtr(const far_ptr_t __far * list, UBYTE bank, UBYTE count,
+void MemcpyBanked(void *to, const void FAR *from, size_t n, UBYTE bank);
+void MemcpyVRAMBanked(void *to, const void FAR *from, size_t n, UBYTE bank);
+UBYTE IndexOfFarPtr(const far_ptr_t FAR * list, UBYTE bank, UBYTE count,
                     const far_ptr_t * item);
 
 #else
@@ -89,11 +91,6 @@ __endasm; \
 #ifndef SIZEREF_EXTERN
 #define SIZEREF_EXTERN(VARNAME) extern const void __size_ ## VARNAME;
 #endif
-
-typedef struct far_ptr_t {
-    UBYTE bank;
-    void * ptr;
-} far_ptr_t;
 
 /**
  * Call set_bkg_data with data stored in banked memory (non-reentrant!)

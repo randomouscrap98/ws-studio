@@ -132,6 +132,9 @@ The Python oracles take marker-relative frame counts too. In particular,
 
 ## Tests
 
+- `div-reg-short` / `div-reg-long`: boot `town` and run 1 and 16 marker-relative
+  frames. The vblank ISR advances `DIV_REG[0]` with the frame count and scan
+  line, so the check requires a non-zero byte at the end of both runs.
 - `hello`: the C00 red-screen ROM; waits for `hello_magic == 0x1234`, then
   runs 60 frames and checks the frame hash.
 - `input-echo-a` / `input-echo-up`: run `input-echo-rom`, which stores the

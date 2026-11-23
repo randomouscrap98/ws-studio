@@ -23,13 +23,13 @@
 
 UBYTE vm_last_unimplemented_opcode;
 
-static UWORD vm_fetch16(const UBYTE VM_FAR **p) {
+static UWORD vm_fetch16(const UBYTE FAR **p) {
     UWORD value = (UWORD)((*p)[0] << 8) | (*p)[1];
     *p += 2;
     return value;
 }
 
-static UBYTE vm_fetch8(const UBYTE VM_FAR **p) {
+static UBYTE vm_fetch8(const UBYTE FAR **p) {
     return *(*p)++;
 }
 
@@ -40,36 +40,36 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
     }
     switch (op) {
       case 0x01: { /* vm_push */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_value = vm_fetch16(&p);
         CTX->PC = p;
         vm_push(CTX, a_value);
         return 1;
       }
       case 0x02: { /* vm_pop */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
         CTX->PC = p;
         vm_pop(CTX, a_n);
         return 1;
       }
       case 0x04: { /* vm_call */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_call(CTX, a_pc);
         return 1;
       }
       case 0x05: { /* vm_ret */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
         CTX->PC = p;
         vm_ret(CTX, a_n);
         return 1;
       }
       case 0x06: { /* vm_get_far */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_addr = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_size = vm_fetch8(&p);
@@ -79,17 +79,17 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x07: { /* vm_loop */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
     UWORD a_pc_off = vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_loop(CTX, a_idx, a_pc, a_n);
         return 1;
       }
       case 0x08: { /* vm_switch */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
     UBYTE a_size = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -98,31 +98,31 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x09: { /* vm_jump */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_jump(CTX, a_pc);
         return 1;
       }
       case 0x0A: { /* vm_call_far */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_call_far(CTX, a_bank, a_pc);
         return 1;
       }
       case 0x0B: { /* vm_ret_far */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
         CTX->PC = p;
         vm_ret_far(CTX, a_n);
         return 1;
       }
       case 0x0D: { /* vm_invoke */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
     UBYTE a_nparams = vm_fetch8(&p);
     UWORD a_fn_off = vm_fetch16(&p);
@@ -132,51 +132,51 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x0E: { /* vm_beginthread */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_nargs = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_beginthread(0, 0, CTX, a_bank, a_pc, a_idx, a_nargs);
         return 1;
       }
       case 0x0F: { /* vm_if */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
     UWORD a_pc_off = vm_fetch16(&p);
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
     UBYTE a_condition = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_if(CTX, a_condition, a_idxA, a_idxB, a_pc, a_n);
         return 1;
       }
       case 0x10: { /* vm_push_value_ind */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_push_value_ind(CTX, a_idx);
         return 1;
       }
       case 0x11: { /* vm_push_value */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_push_value(CTX, a_idx);
         return 1;
       }
       case 0x12: { /* vm_reserve */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT8 a_ofs = (INT8)vm_fetch8(&p);
         CTX->PC = p;
         vm_reserve(CTX, a_ofs);
         return 1;
       }
       case 0x13: { /* vm_set */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -184,7 +184,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x14: { /* vm_set_const */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_value = vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -192,33 +192,33 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x15: { /* vm_rpn */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_rpn(0, 0, CTX);
         return 1;
       }
       case 0x16: { /* vm_join */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_join(CTX, a_idx);
         return 1;
       }
       case 0x17: { /* vm_terminate */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_terminate(CTX, a_idx);
         return 1;
       }
       case 0x18: { /* vm_idle */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_idle(CTX);
         return 1;
       }
       case 0x19: { /* vm_get_tlocal */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -226,36 +226,36 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x1A: { /* vm_if_const */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_n = vm_fetch8(&p);
     UWORD a_pc_off = vm_fetch16(&p);
     INT16 a_B = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
     UBYTE a_condition = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_if_const(CTX, a_condition, a_idxA, a_B, a_pc, a_n);
         return 1;
       }
       case 0x1C: { /* vm_rate_limit_const */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
     UWORD a_n_frames = vm_fetch16(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(CTX->bank) + a_pc_off);
         CTX->PC = p;
         vm_rate_limit_const(CTX, a_n_frames, a_idxA, a_pc);
         return 1;
       }
       case 0x23: { /* vm_init_rng */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_init_rng(CTX, a_idx);
         return 1;
       }
       case 0x24: { /* vm_rand */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_limit = vm_fetch16(&p);
     UWORD a_min = vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -264,19 +264,19 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x25: { /* vm_lock */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_lock(CTX);
         return 1;
       }
       case 0x26: { /* vm_unlock */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_unlock(CTX);
         return 1;
       }
       case 0x27: { /* vm_raise */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_size = vm_fetch8(&p);
     UBYTE a_code = vm_fetch8(&p);
         CTX->PC = p;
@@ -284,7 +284,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x28: { /* vm_set_indirect */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -292,7 +292,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x29: { /* vm_get_indirect */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -300,21 +300,21 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x2A: { /* vm_test_terminate */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_flags = vm_fetch8(&p);
         CTX->PC = p;
         vm_test_terminate(CTX, a_flags);
         return 1;
       }
       case 0x2B: { /* vm_poll_loaded */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_poll_loaded(CTX, a_idx);
         return 1;
       }
       case 0x2C: { /* vm_push_reference */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_push_reference(CTX, a_idx);
@@ -322,7 +322,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x2E: { /* vm_save_peek */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_slot = vm_fetch8(&p);
     UWORD a_count = vm_fetch16(&p);
     INT16 a_idxC = (INT16)vm_fetch16(&p);
@@ -335,7 +335,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x2F: { /* vm_save_clear */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_slot = vm_fetch8(&p);
         CTX->PC = p;
         vm_save_clear(CTX, a_slot);
@@ -344,7 +344,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x30: { /* vm_actor_move_to */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_move_to(CTX, a_idx);
@@ -353,7 +353,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x31: { /* vm_actor_activate */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_activate(CTX, a_idx);
@@ -362,7 +362,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x32: { /* vm_actor_set_dir */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_dir = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -372,7 +372,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x33: { /* vm_actor_deactivate */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_deactivate(CTX, a_idx);
@@ -381,7 +381,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x34: { /* vm_actor_set_anim */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx_anim = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -391,7 +391,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x35: { /* vm_actor_set_pos */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_set_pos(CTX, a_idx);
@@ -400,11 +400,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x36: { /* vm_actor_emote */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_emote_tiles_off = vm_fetch16(&p);
     UBYTE a_emote_tiles_bank = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_emote_tiles = vm_far_data_ptr(0, a_emote_tiles_off);
+        const void FAR *a_emote_tiles = vm_far_data_ptr(0, a_emote_tiles_off);
         CTX->PC = p;
         vm_actor_emote(CTX, a_idx, a_emote_tiles_bank, a_emote_tiles);
         return 1;
@@ -412,7 +412,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x37: { /* vm_actor_set_bounds */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_set_bounds(CTX, a_idx);
@@ -421,11 +421,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x38: { /* vm_actor_set_spritesheet */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_spritesheet_off = vm_fetch16(&p);
     UBYTE a_spritesheet_bank = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_spritesheet = vm_far_data_ptr(0, a_spritesheet_off);
+        const void FAR *a_spritesheet = vm_far_data_ptr(0, a_spritesheet_off);
         CTX->PC = p;
         vm_actor_set_spritesheet(CTX, a_idx, a_spritesheet_bank, a_spritesheet);
         return 1;
@@ -433,14 +433,14 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x39: { /* vm_actor_replace_tile */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_length = vm_fetch8(&p);
     UBYTE a_start_tile = vm_fetch8(&p);
     UWORD a_tileset_off = vm_fetch16(&p);
     UBYTE a_tileset_bank = vm_fetch8(&p);
     UBYTE a_target_tile = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        const void FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
         CTX->PC = p;
         vm_actor_replace_tile(CTX, a_idx, a_target_tile, a_tileset_bank, a_tileset, a_start_tile, a_length);
         return 1;
@@ -448,7 +448,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x3A: { /* vm_actor_get_pos */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_get_pos(CTX, a_idx);
@@ -457,7 +457,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x3C: { /* vm_actor_get_dir */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_dest = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -467,7 +467,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x3D: { /* vm_actor_set_anim_tick */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_speed = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -477,7 +477,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x3E: { /* vm_actor_set_move_speed */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_speed = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -487,7 +487,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x3F: { /* vm_actor_set_flags */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mask = vm_fetch8(&p);
     UBYTE a_flags = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -498,7 +498,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x40: { /* vm_load_text */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_nargs = vm_fetch8(&p);
         CTX->PC = p;
         vm_load_text(0, 0, CTX, a_nargs);
@@ -507,7 +507,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x41: { /* vm_display_text */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_start_tile = vm_fetch8(&p);
     UBYTE a_options = vm_fetch8(&p);
         CTX->PC = p;
@@ -517,7 +517,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x42: { /* vm_overlay_setpos */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_pos_y = vm_fetch8(&p);
     UBYTE a_pos_x = vm_fetch8(&p);
         CTX->PC = p;
@@ -527,7 +527,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x44: { /* vm_overlay_wait */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_wait_flags = vm_fetch8(&p);
     UBYTE a_is_modal = vm_fetch8(&p);
         CTX->PC = p;
@@ -537,7 +537,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x45: { /* vm_overlay_move_to */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT8 a_speed = (INT8)vm_fetch8(&p);
     UBYTE a_pos_y = vm_fetch8(&p);
     UBYTE a_pos_x = vm_fetch8(&p);
@@ -548,7 +548,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x46: { /* vm_overlay_show */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_options = vm_fetch8(&p);
     UBYTE a_color = vm_fetch8(&p);
     UBYTE a_pos_y = vm_fetch8(&p);
@@ -560,7 +560,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x47: { /* vm_overlay_clear */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_options = vm_fetch8(&p);
     UBYTE a_color = vm_fetch8(&p);
     UBYTE a_h = vm_fetch8(&p);
@@ -574,7 +574,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x48: { /* vm_choice */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_count = vm_fetch8(&p);
     UBYTE a_options = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -585,7 +585,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4B: { /* vm_set_font */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_font_index = vm_fetch8(&p);
         CTX->PC = p;
         vm_set_font(CTX, a_font_index);
@@ -594,7 +594,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4C: { /* vm_overlay_set_submap_ex */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_params_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_overlay_set_submap_ex(CTX, a_params_idx);
@@ -603,7 +603,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4D: { /* vm_overlay_scroll */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_color = vm_fetch8(&p);
     UBYTE a_h = vm_fetch8(&p);
     UBYTE a_w = vm_fetch8(&p);
@@ -616,7 +616,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4E: { /* vm_overlay_set_scroll */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_color = vm_fetch8(&p);
     UBYTE a_h = vm_fetch8(&p);
     UBYTE a_w = vm_fetch8(&p);
@@ -629,7 +629,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x4F: { /* vm_overlay_set_submap */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_scene_y = vm_fetch8(&p);
     UBYTE a_scene_x = vm_fetch8(&p);
     UBYTE a_h = vm_fetch8(&p);
@@ -643,11 +643,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x50: { /* vm_load_tileset */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_background_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_background = vm_far_data_ptr(0, a_background_off);
+        const void FAR *a_background = vm_far_data_ptr(0, a_background_off);
         CTX->PC = p;
         vm_load_tileset(CTX, a_idx, a_bank, a_background);
         return 1;
@@ -655,7 +655,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x51: { /* vm_set_sprites_visible */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mode = vm_fetch8(&p);
         CTX->PC = p;
         vm_set_sprites_visible(CTX, a_mode);
@@ -664,7 +664,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x52: { /* vm_input_wait */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mask = vm_fetch8(&p);
         CTX->PC = p;
         vm_input_wait(CTX, a_mask);
@@ -673,7 +673,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x53: { /* vm_input_attach */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_slot = vm_fetch8(&p);
     UBYTE a_mask = vm_fetch8(&p);
         CTX->PC = p;
@@ -683,7 +683,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x54: { /* vm_input_get */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_joyid = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -693,11 +693,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x55: { /* vm_context_prepare */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_slot = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_context_prepare(CTX, a_slot, a_bank, a_pc);
         return 1;
@@ -705,13 +705,13 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x56: { /* vm_overlay_set_map */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_background_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     INT16 a_y_idx = (INT16)vm_fetch16(&p);
     INT16 a_x_idx = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_background = vm_far_data_ptr(0, a_background_off);
+        const void FAR *a_background = vm_far_data_ptr(0, a_background_off);
         CTX->PC = p;
         vm_overlay_set_map(CTX, a_idx, a_x_idx, a_y_idx, a_bank, a_background);
         return 1;
@@ -719,7 +719,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x57: { /* vm_fade */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mode = vm_fetch8(&p);
         CTX->PC = p;
         vm_fade(CTX, a_mode);
@@ -728,11 +728,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x58: { /* vm_timer_prepare */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_timer = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_timer_prepare(CTX, a_timer, a_bank, a_pc);
         return 1;
@@ -740,7 +740,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x59: { /* vm_timer_set */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_value = vm_fetch8(&p);
     UBYTE a_timer = vm_fetch8(&p);
         CTX->PC = p;
@@ -750,7 +750,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5A: { /* vm_get_tile_xy */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx_y = (INT16)vm_fetch16(&p);
     INT16 a_idx_x = (INT16)vm_fetch16(&p);
     INT16 a_idx_tile = (INT16)vm_fetch16(&p);
@@ -761,13 +761,13 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5B: { /* vm_replace_tile */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_length = vm_fetch8(&p);
     INT16 a_idx_start_tile = (INT16)vm_fetch16(&p);
     UWORD a_tileset_off = vm_fetch16(&p);
     UBYTE a_tileset_bank = vm_fetch8(&p);
     INT16 a_idx_target_tile = (INT16)vm_fetch16(&p);
-        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        const void FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
         CTX->PC = p;
         vm_replace_tile(CTX, a_idx_target_tile, a_tileset_bank, a_tileset, a_idx_start_tile, a_length);
         return 1;
@@ -775,7 +775,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5C: { /* vm_poll */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_event_mask = vm_fetch8(&p);
     INT16 a_res = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -786,7 +786,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5D: { /* vm_set_sprite_mode */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mode = vm_fetch8(&p);
         CTX->PC = p;
         vm_set_sprite_mode(CTX, a_mode);
@@ -795,13 +795,13 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5E: { /* vm_replace_tile_xy */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx_start_tile = (INT16)vm_fetch16(&p);
     UWORD a_tileset_off = vm_fetch16(&p);
     UBYTE a_tileset_bank = vm_fetch8(&p);
     UBYTE a_y = vm_fetch8(&p);
     UBYTE a_x = vm_fetch8(&p);
-        const void VM_FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
+        const void FAR *a_tileset = vm_far_data_ptr(0, a_tileset_off);
         CTX->PC = p;
         vm_replace_tile_xy(CTX, a_x, a_y, a_tileset_bank, a_tileset, a_idx_start_tile);
         return 1;
@@ -809,7 +809,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x5F: { /* vm_input_detach */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_mask = vm_fetch8(&p);
         CTX->PC = p;
         vm_input_detach(CTX, a_mask);
@@ -818,10 +818,10 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x60: { /* vm_music_play */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_track_off = vm_fetch16(&p);
     UBYTE a_track_bank = vm_fetch8(&p);
-        const void VM_FAR *a_track = vm_far_data_ptr(0, a_track_off);
+        const void FAR *a_track = vm_far_data_ptr(0, a_track_off);
         CTX->PC = p;
         vm_music_play(CTX, a_track_bank, a_track);
         return 1;
@@ -829,7 +829,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x61: { /* vm_music_stop */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_music_stop();
         return 1;
@@ -837,7 +837,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x62: { /* vm_music_mute */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_channels = vm_fetch8(&p);
         CTX->PC = p;
         vm_music_mute(CTX, a_channels);
@@ -846,7 +846,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x63: { /* vm_sound_mastervol */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_volume = vm_fetch8(&p);
         CTX->PC = p;
         vm_sound_mastervol(CTX, a_volume);
@@ -855,11 +855,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x65: { /* vm_music_routine */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_pc_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
     UBYTE a_routine = vm_fetch8(&p);
-        UBYTE VM_FAR *a_pc = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_pc_off);
+        UBYTE FAR *a_pc = (UBYTE FAR *)(vm_bank_base(a_bank) + a_pc_off);
         CTX->PC = p;
         vm_music_routine(CTX, a_routine, a_bank, a_pc);
         return 1;
@@ -867,12 +867,12 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x66: { /* vm_sfx_play */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_priority = vm_fetch8(&p);
     UBYTE a_channel_mask = vm_fetch8(&p);
     UWORD a_offset_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
-        const void VM_FAR *a_offset = vm_far_data_ptr(0, a_offset_off);
+        const void FAR *a_offset = vm_far_data_ptr(0, a_offset_off);
         CTX->PC = p;
         vm_sfx_play(CTX, a_bank, a_offset, a_channel_mask, a_priority);
         return 1;
@@ -880,7 +880,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x67: { /* vm_music_setpos */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_row = vm_fetch8(&p);
     UBYTE a_pattern = vm_fetch8(&p);
         CTX->PC = p;
@@ -890,7 +890,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x68: { /* vm_scene_push */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_scene_push();
         return 1;
@@ -898,7 +898,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x69: { /* vm_scene_pop */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_scene_pop();
         return 1;
@@ -906,7 +906,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x6A: { /* vm_scene_pop_all */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_scene_pop_all();
         return 1;
@@ -914,7 +914,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x6B: { /* vm_scene_stack_reset */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
         CTX->PC = p;
         vm_scene_stack_reset();
         return 1;
@@ -922,7 +922,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x70: { /* vm_camera_move_to */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_after_lock_camera = vm_fetch8(&p);
     UBYTE a_speed = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -933,7 +933,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x71: { /* vm_camera_set_pos */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_camera_set_pos(CTX, a_idx);
@@ -942,7 +942,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x72: { /* vm_timer_stop */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_timer = vm_fetch8(&p);
         CTX->PC = p;
         vm_timer_stop(CTX, a_timer);
@@ -951,7 +951,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x73: { /* vm_timer_reset */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_timer = vm_fetch8(&p);
         CTX->PC = p;
         vm_timer_reset(CTX, a_timer);
@@ -960,7 +960,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x74: { /* vm_actor_terminate_update */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_terminate_update(CTX, a_idx);
@@ -969,7 +969,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x75: { /* vm_actor_set_anim_frame */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_set_anim_frame(CTX, a_idx);
@@ -977,7 +977,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #endif
       case 0x76: { /* vm_memset */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_count = (INT16)vm_fetch16(&p);
     INT16 a_value = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -986,7 +986,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
       case 0x77: { /* vm_memcpy */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_count = (INT16)vm_fetch16(&p);
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
@@ -996,7 +996,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
       }
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x7C: { /* vm_load_palette */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_options = vm_fetch8(&p);
     UBYTE a_mask = vm_fetch8(&p);
         CTX->PC = p;
@@ -1006,7 +1006,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x7F: { /* vm_rumble */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_enable = vm_fetch8(&p);
         CTX->PC = p;
         vm_rumble(CTX, a_enable);
@@ -1015,7 +1015,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x80: { /* vm_projectile_launch */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
     UBYTE a_type = vm_fetch8(&p);
         CTX->PC = p;
@@ -1025,12 +1025,12 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x81: { /* vm_projectile_load_type */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_projectile_def_off = vm_fetch16(&p);
     UBYTE a_projectile_def_bank = vm_fetch8(&p);
     UBYTE a_src_type = vm_fetch8(&p);
     UBYTE a_dest_type = vm_fetch8(&p);
-        const void VM_FAR *a_projectile_def = vm_far_data_ptr(0, a_projectile_def_off);
+        const void FAR *a_projectile_def = vm_far_data_ptr(0, a_projectile_def_off);
         CTX->PC = p;
         vm_projectile_load_type(CTX, a_dest_type, a_src_type, a_projectile_def_bank, a_projectile_def);
         return 1;
@@ -1038,7 +1038,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x83: { /* vm_actor_get_anim_frame */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_get_anim_frame(CTX, a_idx);
@@ -1047,7 +1047,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x84: { /* vm_actor_set_anim_set */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UWORD a_offset = vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1057,7 +1057,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x85: { /* vm_switch_text_layer */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_target = vm_fetch8(&p);
         CTX->PC = p;
         vm_switch_text_layer(CTX, a_target);
@@ -1066,7 +1066,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x86: { /* vm_actor_get_angle */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_dest = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1076,7 +1076,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x87: { /* vm_actor_set_spritesheet_by_ref */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idxB = (INT16)vm_fetch16(&p);
     INT16 a_idxA = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1086,7 +1086,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x88: { /* vm_actor_move_cancel */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_move_cancel(CTX, a_idx);
@@ -1095,7 +1095,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x89: { /* vm_sin_scale */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_accuracy = vm_fetch8(&p);
     INT16 a_idx_angle = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -1106,7 +1106,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x8A: { /* vm_cos_scale */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_accuracy = vm_fetch8(&p);
     INT16 a_idx_angle = (INT16)vm_fetch16(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
@@ -1117,11 +1117,11 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x8B: { /* vm_set_text_sound */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_channel_mask = vm_fetch8(&p);
     UWORD a_offset_off = vm_fetch16(&p);
     UBYTE a_bank = vm_fetch8(&p);
-        UBYTE VM_FAR *a_offset = (UBYTE VM_FAR *)(vm_bank_base(a_bank) + a_offset_off);
+        UBYTE FAR *a_offset = (UBYTE FAR *)(vm_bank_base(a_bank) + a_offset_off);
         CTX->PC = p;
         vm_set_text_sound(CTX, a_bank, a_offset, a_channel_mask);
         return 1;
@@ -1129,7 +1129,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x8E: { /* vm_actor_begin_update */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_begin_update(CTX, a_idx);
@@ -1138,7 +1138,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x8F: { /* vm_actor_move_to_init */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_attr = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1148,7 +1148,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x90: { /* vm_actor_move_to_x */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_attr = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1158,7 +1158,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x91: { /* vm_actor_move_to_y */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_attr = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1168,7 +1168,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x92: { /* vm_actor_move_to_xy */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     UBYTE a_attr = vm_fetch8(&p);
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
@@ -1178,7 +1178,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x93: { /* vm_actor_move_to_set_dir_x */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_move_to_set_dir_x(CTX, a_idx);
@@ -1187,7 +1187,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x94: { /* vm_actor_move_to_set_dir_y */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_move_to_set_dir_y(CTX, a_idx);
@@ -1196,7 +1196,7 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
 #endif
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x95: { /* vm_actor_set_anim_moving */
-        const UBYTE VM_FAR *p = CTX->PC + 1;
+        const UBYTE FAR *p = CTX->PC + 1;
     INT16 a_idx = (INT16)vm_fetch16(&p);
         CTX->PC = p;
         vm_actor_set_anim_moving(CTX, a_idx);

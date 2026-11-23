@@ -49,7 +49,7 @@ extern UBYTE allocated_hardware_sprites;
 #ifdef __ia16__
 /* Shared WSC sprite path: follows LCDC_REG's 8x8/8x16 mode, takes 16-bit
  * signed screen coordinates and draws tiles from the 256+ range. */
-UBYTE actor_draw_metasprite_wsc(const metasprite_t __far *ms, UBYTE base_tile,
+UBYTE actor_draw_metasprite_wsc(const metasprite_t FAR *ms, UBYTE base_tile,
                                 INT16 x, INT16 y);
 #endif
 

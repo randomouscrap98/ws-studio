@@ -1,0 +1,22 @@
+{
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
+  "build": "gamerom",
+  "boot": "town",
+  "marker": {
+    "symbol": "wsc_test_marker",
+    "size": 1,
+    "equals": "0x01",
+    "timeout": 600
+  },
+  "frames": 1,
+  "frame_sha256": null,
+  "ram": [
+    {
+      "symbol": "DIV_REG",
+      "size": 1,
+      "equals": "0x80",
+      "tolerance": 127
+    }
+  ]
+}

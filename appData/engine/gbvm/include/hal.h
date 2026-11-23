@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <gbdk/metasprites.h>
 
+#include "compat.h"
+
 /* WonderSwan Color hardware abstraction used by the GBVM engine port.
  * Background and sprite paths are implemented. */
 
@@ -55,7 +57,7 @@ uint8_t hal_input_read(void);
 /* Load count GB 2bpp tiles at logical tile index first, converting each
  * pixel index i to i+1 so GB background colour 0 stays opaque. */
 void hal_load_bkg_tiles(uint16_t first, uint16_t count,
-                        const uint8_t __far *data, uint8_t bpp);
+                        const uint8_t FAR *data, uint8_t bpp);
 
 /* Same conversion for GB 2bpp data already in near RAM (the UI text tiles
  * are composed in WRAM before upload). */
@@ -65,13 +67,13 @@ void hal_load_bkg_tiles_ram(uint16_t first, uint16_t count,
 /* Load count CGB RGB555 palettes into WSC palettes starting at first.
  * Each palette is four colours written to entries 1-4; entry 0 is cleared. */
 void hal_set_bkg_palette(uint8_t first, uint8_t count,
-                         const uint16_t __far *cgb_colors);
+                         const uint16_t FAR *cgb_colors);
 
 /* Write a w*h rectangle from a 32x32-map/attribute pair (stride map_w) into
  * the WSC screen, converting each pair to one 16-bit screen cell. */
 void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
-                       const uint8_t __far *map,
-                       const uint8_t __far *attrs, uint8_t map_w);
+                       const uint8_t FAR *map,
+                       const uint8_t FAR *attrs, uint8_t map_w);
 
 /* Scroll the background to the given logical pixel position. */
 void hal_scroll_to(int16_t x, int16_t y);
@@ -101,12 +103,12 @@ void hal_clear_bkg(void);
 /* Sprite tiles are plain GB 2bpp, converted without an index shift. Index 0
  * stays transparent. */
 void hal_load_sprite_tiles(uint16_t first, uint16_t count,
-                           const uint8_t __far *data, uint8_t bpp);
+                           const uint8_t FAR *data, uint8_t bpp);
 
 /* Load count CGB RGB555 palettes into sprite palettes starting at first.
  * GB sprite palette p becomes WSC palette 8+p; all four entries are written. */
 void hal_set_sprite_palette(uint8_t first, uint8_t count,
-                            const uint16_t __far *cgb_colors);
+                            const uint16_t FAR *cgb_colors);
 
 /* Metasprite drawing. The offset chain is cumulative, as in GBDK: each
  * entry's dx/dy is relative to the previous entry.
@@ -138,7 +140,7 @@ void hal_set_sprite_palette(uint8_t first, uint8_t count,
 #define HAL_FLIP_HV   3
 
 void hal_sprites_begin(void);
-uint16_t hal_draw_metasprite(const metasprite_t __far *ms, uint16_t base_tile,
+uint16_t hal_draw_metasprite(const metasprite_t FAR *ms, uint16_t base_tile,
                              uint8_t props, int16_t x, int16_t y,
                              uint8_t mode, uint8_t flip);
 void hal_sprites_end(void);

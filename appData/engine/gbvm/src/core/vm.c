@@ -30,11 +30,11 @@ UBYTE vm_loaded_state;
 UBYTE vm_exception_code;
 UBYTE vm_exception_params_length;
 UBYTE vm_exception_params_bank;
-const void VM_FAR * vm_exception_params_offset;
+const void FAR * vm_exception_params_offset;
 
 // The VM stack holds 16-bit words. On the host, a stored "pointer" is an
 // offset from the base of its bank, so it has to be rebuilt on the way back.
-static UWORD vm_ptr_to_offset(SCRIPT_CTX * THIS, const UBYTE VM_FAR * ptr) {
+static UWORD vm_ptr_to_offset(SCRIPT_CTX * THIS, const UBYTE FAR * ptr) {
 #if defined(__SDCC) && defined(NINTENDO)
     (void)THIS;
     return (UWORD)ptr;
@@ -42,7 +42,7 @@ static UWORD vm_ptr_to_offset(SCRIPT_CTX * THIS, const UBYTE VM_FAR * ptr) {
     return (UWORD)(ptr - vm_bank_base(THIS->bank));
 #endif
 }
-static const UBYTE VM_FAR * vm_offset_to_ptr(SCRIPT_CTX * THIS, UWORD offset) {
+static const UBYTE FAR * vm_offset_to_ptr(SCRIPT_CTX * THIS, UWORD offset) {
 #if defined(__SDCC) && defined(NINTENDO)
     (void)THIS;
     return (const UBYTE *)offset;
@@ -52,7 +52,7 @@ static const UBYTE VM_FAR * vm_offset_to_ptr(SCRIPT_CTX * THIS, UWORD offset) {
 }
 // Portable little-endian reads for data embedded after an instruction
 // (RPN operands, switch tables, thread locals).
-static INT16 vm_read_word_le(const UBYTE VM_FAR ** pc) {
+static INT16 vm_read_word_le(const UBYTE FAR ** pc) {
     UWORD value = (UWORD)((*pc)[0]) | ((UWORD)((*pc)[1]) << 8);
     *pc += 2;
     return (INT16)value;
@@ -65,7 +65,7 @@ UBYTE * vm_ram_ptr(UWORD idx) {
 #else
 // C data operands are indexes into the converter-generated far-data table.
 // vm_ram_ptr() is supplied by the portable platform hook (host or WSC).
-const UBYTE VM_FAR * vm_far_data_ptr(UBYTE bank, UWORD idx) {
+const UBYTE FAR * vm_far_data_ptr(UBYTE bank, UWORD idx) {
     (void)bank;
     return vm_far_data[idx];
 }
@@ -83,7 +83,7 @@ static UWORD * vm_slot(INT16 * args, INT16 idx) {
 // then you may declare it without params at all bacause caller clears stack - that is safe
 
 // call absolute instruction
-void vm_call(SCRIPT_CTX * THIS, UBYTE VM_FAR * pc) OLDCALL BANKED {
+void vm_call(SCRIPT_CTX * THIS, UBYTE FAR * pc) OLDCALL BANKED {
     *(THIS->stack_ptr++) = vm_ptr_to_offset(THIS, THIS->PC);
     THIS->PC = pc;
 }
@@ -96,7 +96,7 @@ void vm_ret(SCRIPT_CTX * THIS, UBYTE n) OLDCALL BANKED {
 }
 
 // far call to another bank
-void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE VM_FAR * pc) OLDCALL BANKED {
+void vm_call_far(SCRIPT_CTX * THIS, UBYTE bank, UBYTE FAR * pc) OLDCALL BANKED {
     *(THIS->stack_ptr++) = vm_ptr_to_offset(THIS, THIS->PC);
     *(THIS->stack_ptr++) = THIS->bank;
     THIS->PC = pc;
@@ -124,7 +124,7 @@ UWORD vm_pop(SCRIPT_CTX * THIS, UBYTE n) OLDCALL BANKED {
 }
 
 // loop absolute, callee cleanups stack
-void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 VM_FAR * pc, UBYTE n) OLDCALL BANKED {
+void vm_loop(SCRIPT_CTX * THIS, INT16 idx, UINT8 FAR * pc, UBYTE n) OLDCALL BANKED {
     UWORD * counter;
     if (idx < 0) counter = THIS->stack_ptr + idx; else counter = script_memory + idx;
     if (*counter) {
@@ -144,7 +144,7 @@ void vm_switch(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idx, U
 
     SWITCH_ROM(THIS->bank);             // switch to bytecode bank
 
-    const UBYTE VM_FAR * pc = THIS->PC;
+    const UBYTE FAR * pc = THIS->PC;
     while (size) {
         INT16 test = vm_read_word_le(&pc);
         UWORD target = (UWORD)vm_read_word_le(&pc);
@@ -159,7 +159,7 @@ void vm_switch(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idx, U
 }
 
 // jump absolute
-void vm_jump(SCRIPT_CTX * THIS, UBYTE VM_FAR * pc) OLDCALL BANKED {
+void vm_jump(SCRIPT_CTX * THIS, UBYTE FAR * pc) OLDCALL BANKED {
     THIS->PC = pc;
 }
 
@@ -202,7 +202,7 @@ UBYTE * vm_native_token(UWORD index) {
 #endif
 
 // runs script in a new thread
-void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE VM_FAR * pc, INT16 idx, UBYTE nargs) OLDCALL NONBANKED {
+void vm_beginthread(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, UBYTE bank, UBYTE FAR * pc, INT16 idx, UBYTE nargs) OLDCALL NONBANKED {
     (void)dummy0; (void)dummy1;
     UWORD * A;
     if (idx < 0) A = THIS->stack_ptr + idx; else A = script_memory + idx;
@@ -234,7 +234,7 @@ void vm_terminate(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED {
 // if condition; compares two arguments on VM stack
 // idxA, idxB point to arguments to compare
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE VM_FAR * pc, UBYTE n) OLDCALL BANKED {
+void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE FAR * pc, UBYTE n) OLDCALL BANKED {
     INT16 A, B;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     if (idxB < 0) B = *(THIS->stack_ptr + idxB); else B = script_memory[idxB];
@@ -253,7 +253,7 @@ void vm_if(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 idxB, UBYTE VM_
 // if condition; compares argument on VM stack with an immediate value
 // idxA point to arguments to compare, B is a value
 // negative indexes are parameters on the top of VM stack, positive - absolute indexes in stack[] array
-void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE VM_FAR * pc, UBYTE n) OLDCALL BANKED {
+void vm_if_const(SCRIPT_CTX * THIS, UBYTE condition, INT16 idxA, INT16 B, UBYTE FAR * pc, UBYTE n) OLDCALL BANKED {
     INT16 A;
     if (idxA < 0) A = *(THIS->stack_ptr + idxA); else A = script_memory[idxA];
     UBYTE res = FALSE;
@@ -460,10 +460,10 @@ void vm_get_far(DUMMY0_t dummy0, DUMMY1_t dummy1, SCRIPT_CTX * THIS, INT16 idxA,
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
 #if defined(__SDCC) && defined(NINTENDO)
     // The Game Boy keeps the original raw bank/address behaviour.
-    UBYTE VM_FAR * data = (UBYTE VM_FAR *)addr;
+    UBYTE FAR * data = (UBYTE FAR *)addr;
     SWITCH_ROM(bank);             // switch to data bank
 #else
-    const UBYTE VM_FAR * data = vm_far_data_ptr(bank, addr);
+    const UBYTE FAR * data = vm_far_data_ptr(bank, addr);
 #endif
     // Read bytewise so an unaligned 16-bit object is safe.
     *A = (size == 0) ? data[0] : ((UINT16)data[0] | ((UINT16)data[1] << 8));
@@ -484,7 +484,7 @@ void vm_rand(SCRIPT_CTX * THIS, INT16 idx, UINT16 min, UINT16 limit) OLDCALL BAN
 }
 
 // rate limit, jump to label if the last execution of the same instruction was less than N frames ago, otherwise update last execution time
-void vm_rate_limit_const(SCRIPT_CTX * THIS, UWORD n_frames, INT16 idxA, UBYTE VM_FAR * pc) OLDCALL BANKED {
+void vm_rate_limit_const(SCRIPT_CTX * THIS, UWORD n_frames, INT16 idxA, UBYTE FAR * pc) OLDCALL BANKED {
     UINT16 *A;
     if (idxA < 0) A = THIS->stack_ptr + idxA; else A = script_memory + idxA;
     if ((UINT16)(sys_time - *A) >= 0x8000u) {
@@ -748,7 +748,7 @@ void script_runner_init(UBYTE reset) BANKED {
 
 // execute a script in the new allocated context
 // actually, it initializes free context with bytecode and moves it into the active context chain
-SCRIPT_CTX * script_execute(UBYTE bank, const UBYTE VM_FAR * pc, UWORD * handle, UBYTE nargs, ...) BANKED {
+SCRIPT_CTX * script_execute(UBYTE bank, const UBYTE FAR * pc, UWORD * handle, UBYTE nargs, ...) BANKED {
     if (free_ctxs == NULL) return NULL;
 #ifdef SAFE_SCRIPT_EXECUTE
     if (pc == NULL) return NULL;

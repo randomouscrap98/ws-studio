@@ -14,6 +14,12 @@ uint16_t hal_screen_h_px;
 
 static volatile uint16_t hal_vblanks;
 
+/* Script-visible DIV. The ISR advances it so VM_RANDOMIZE sees a value that
+ * keeps moving once the game is running. stubs_wsc.c (or the datarom stub
+ * file) provides the real byte array; the weak copy lets the standalone HAL
+ * test ROM link without the engine stubs. */
+__attribute__((weak)) uint8_t DIV_REG[4];
+
 static uint8_t hal_win_x;
 static uint8_t hal_win_y;
 static uint8_t hal_win_visible;
@@ -33,6 +39,7 @@ volatile ws_screen_t hal_win_screen
 
 static void __attribute__((interrupt)) hal_vblank_isr(void) {
     hal_vblanks++;
+    DIV_REG[0] += 1 + inportb(WS_DISPLAY_LINE_PORT);
     ws_int_ack(WS_INT_ACK_VBLANK);
 }
 

@@ -24,10 +24,10 @@ void vm_actor_set_dir(SCRIPT_CTX * THIS, INT16 idx, direction_e dir) OLDCALL BAN
 void vm_actor_deactivate(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_actor_set_anim(SCRIPT_CTX * THIS, INT16 idx, INT16 idx_anim) OLDCALL BANKED;
 void vm_actor_set_pos(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
-void vm_actor_emote(SCRIPT_CTX * THIS, INT16 idx, UBYTE emote_tiles_bank, VM_C_DATA(unsigned char) emote_tiles) OLDCALL BANKED;
+void vm_actor_emote(SCRIPT_CTX * THIS, INT16 idx, UBYTE emote_tiles_bank, const unsigned char FAR * emote_tiles) OLDCALL BANKED;
 void vm_actor_set_bounds(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
-void vm_actor_set_spritesheet(SCRIPT_CTX * THIS, INT16 idx, UBYTE spritesheet_bank, VM_C_DATA(spritesheet_t) spritesheet) OLDCALL BANKED;
-void vm_actor_replace_tile(SCRIPT_CTX * THIS, INT16 idx, UBYTE target_tile, UBYTE tileset_bank, VM_C_DATA(tileset_t) tileset, UBYTE start_tile, UBYTE length) OLDCALL BANKED;
+void vm_actor_set_spritesheet(SCRIPT_CTX * THIS, INT16 idx, UBYTE spritesheet_bank, const spritesheet_t FAR * spritesheet) OLDCALL BANKED;
+void vm_actor_replace_tile(SCRIPT_CTX * THIS, INT16 idx, UBYTE target_tile, UBYTE tileset_bank, const tileset_t FAR * tileset, UBYTE start_tile, UBYTE length) OLDCALL BANKED;
 void vm_actor_get_pos(SCRIPT_CTX * THIS, INT16 idx) OLDCALL BANKED;
 void vm_actor_set_hidden(SCRIPT_CTX * THIS, INT16 idx, UBYTE hidden) OLDCALL BANKED;
 void vm_actor_get_dir(SCRIPT_CTX * THIS, INT16 idx, INT16 dest) OLDCALL BANKED;
