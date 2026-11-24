@@ -26,6 +26,21 @@ ELF		:= $(BUILDDIR)/product.elf
 STAGE		:= $(BUILDDIR)/product_stage1.elf
 D2C		 := $(WSC_DIR)tools/d2c.py
 S2C		 := $(WSC_DIR)tools/s2c.py
+S2C_TS_RUNNER	 := $(WSC_DIR)tools/s2c-ts.js
+S2C_TS		 := $(ROOT_DIR)/src/lib/compiler/wsc/s2c.ts
+
+# s2c runs from TypeScript by default so make:wsc no longer needs python3 for
+# the script converter. `S2C_IMPL=py` keeps the Python oracle available.
+S2C_IMPL	?= ts
+ifeq ($(filter $(S2C_IMPL),ts py),)
+$(error S2C_IMPL must be ts or py, got '$(S2C_IMPL)')
+endif
+S2C_CMD_ts	:= node $(S2C_TS_RUNNER)
+S2C_CMD_py	:= $(PYTHON) $(S2C)
+S2C_CMD		:= $(S2C_CMD_$(S2C_IMPL))
+S2C_DEPS_ts	:= $(S2C_TS) $(S2C_TS_RUNNER)
+S2C_DEPS_py	:= $(S2C)
+S2C_DEPS	:= $(S2C_DEPS_$(S2C_IMPL))
 
 INCLUDEFLAGS	:= -I$(GEN_DIR)/include -I$(S2C_DIR) \
 		   -I$(EXPORT_DIR)/include \
@@ -67,11 +82,11 @@ product-check:
 		echo "run the GB Studio CLI 'export' (or 'make:wsc') first" >&2; \
 		exit 1; }
 
-$(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(S2C) $(GBVM_INCLUDE)/vm.i \
+$(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(S2C_DEPS) $(GBVM_INCLUDE)/vm.i \
 		$(GBVM_INCLUDE)/macro.i | product-check
-	@echo "  S2C     $(S2C_DIR)"
+	@echo "  S2C     $(S2C_DIR) ($(S2C_IMPL))"
 	@mkdir -p $(S2C_DIR)
-	$(PYTHON) $(S2C) --include $(EXPORT_DIR)/include \
+	$(S2C_CMD) --include $(EXPORT_DIR)/include \
 		--out $(S2C_DIR) --name $(S2C_NAME) $(EXPORT_SCRIPTS)
 
 $(D2C_STAMP): $(D2C) $(S2C_H) $(S2C_C) $(EXPORT_DEPS) $(PROJECT_DEPS) \
