@@ -69,6 +69,10 @@ ACTIVE_FLAG = 0x20
 # Platform-state symbols compared alongside the player actor fields. Sizes are
 # the engine's own types; enums are read as one byte on both sides.
 STATE_FIELDS = {
+    "camera_x": 2,
+    "camera_y": 2,
+    "scroll_x": 2,
+    "scroll_y": 2,
     "plat_vel_x": 2,
     "plat_vel_y": 2,
     "plat_delta_x": 2,
@@ -102,6 +106,8 @@ STATE_FIELDS = {
     "last_hit_trigger": 1,
     "player_iframes": 1,
 }
+
+CAMERA_FIELDS = ("camera_x", "camera_y", "scroll_x", "scroll_y")
 
 FIELD_NAMES = ("flags", "pos", "x", "y", "dir", "frame", "animation",
                "move_speed", "collision_group", "size", "count")
@@ -638,7 +644,7 @@ def build_gb_args(config, rom, workdir, layout, symbols, trace):
     return args
 
 
-def build_wsc_args(config, layout, symbols, trace, pokes=()):
+def build_wsc_args(config, layout, symbols, trace, mode, pokes=()):
     start_x = int(config["gb"]["startX"]) * 256
     start_y = int(config["gb"]["startY"]) * 256
     marker = config["wsc"]["readySymbol"]
@@ -651,6 +657,8 @@ def build_wsc_args(config, layout, symbols, trace, pokes=()):
         "--max-ticks", str(config["ticks"]),
         "--trace", trace,
     ]
+    if mode == 160:
+        args.extend(["--screen-width", "160"])
     for address, width, value in pokes:
         args.extend(["--poke", "{}:{}:{}".format(address, width, value)])
     player = symbols["actors"]
@@ -675,6 +683,31 @@ def excluded_actor_fields(config):
         if item.get("category") == "actor_fields":
             result[int(item["actor"])] = set(item.get("fields", ()))
     return result
+
+
+def screen_modes(config):
+    """Logical widths to run. "both" (the default) runs 160 and 224."""
+    width = config.get("screenWidth", "both")
+    if width == "both":
+        return (160, 224)
+    if width in (160, 224):
+        return (width,)
+    raise OracleError("invalid screenWidth {!r} (expected 160, 224 or "
+                      "\"both\")".format(width))
+
+
+def mode_exclusions(config, mode):
+    """Exclusions that apply to one width mode.
+
+    A 160 px logical screen is the same viewport as the GB, so camera/scroll
+    is compared and viewport-caused differences are not excluded.
+    """
+    exclusions = config.get("compare", {}).get("excluded", [])
+    if mode == 160:
+        return [item for item in exclusions
+                if item.get("category") not in (
+                    "camera_scroll", "off_screen_actor_activation")]
+    return exclusions
 
 
 def skip_viewport_animation_phase(config):
@@ -702,7 +735,7 @@ def actor_in_gb_view(gb, position_side, index):
     return (left <= x < left + 160 and top <= y < top + 144)
 
 
-def compare_traces(config, gb, wsc):
+def compare_traces(config, mode, gb, wsc):
     ticks = sorted(set(gb.trace.records) & set(wsc.trace.records))
     if not ticks:
         raise OracleError("the two traces share no ticks")
@@ -715,13 +748,19 @@ def compare_traces(config, gb, wsc):
             ticks[0], ticks[-1], expected))
 
     fields = config.get("compare", {})
-    player_fields = fields.get("playerFields", (
-        "x", "y", "dir", "flags", "frame", "animation", "move_speed"))
+    player_fields = list(fields.get("playerFields", (
+        "x", "y", "dir", "flags", "frame", "animation", "move_speed")))
+    if mode == 160:
+        # GB-width mode has the same viewport as the GB, so the camera and
+        # scroll values are part of the comparison.
+        for field in CAMERA_FIELDS:
+            if field not in player_fields:
+                player_fields.append(field)
     actor_fields = fields.get("actorFields", (
         "x", "y", "dir", "frame", "animation"))
     projectile_fields = fields.get("projectileFields", ())
     skip_actor_fields = excluded_actor_fields(config)
-    skip_phase = skip_viewport_animation_phase(config)
+    skip_phase = mode != 160 and skip_viewport_animation_phase(config)
     phase_actors = set()
     skipped_phase_values = 0
     actor_count = gb.layout["count"]
@@ -767,10 +806,11 @@ def compare_traces(config, gb, wsc):
             gb_active = bool(gb.actor(index, "flags") & ACTIVE_FLAG)
             wsc_active = bool(wsc.actor(index, "flags") & ACTIVE_FLAG)
             if gb_active != wsc_active:
-                # Only require equal activation inside the GB viewport; the
-                # WSC's wider screen intentionally activates more actors.
+                # At 160 px the viewports are identical, so any activation
+                # difference is a bug. At 224 the WSC's wider screen
+                # intentionally activates more actors outside the GB view.
                 position_side = gb if gb_active else wsc
-                if actor_in_gb_view(gb, position_side, index):
+                if mode == 160 or actor_in_gb_view(gb, position_side, index):
                     return (tick, "actor[{}].active".format(index),
                             int(gb_active), int(wsc_active), compared)
                 ignored_activation += 1
@@ -809,7 +849,6 @@ def run_pair(config, workdir):
     wsc_lay = wsc_layout(workdir)
 
     gb_trace = trace_path(workdir, "gb")
-    wsc_trace = trace_path(workdir, "wsc")
     print("gbdiff: running GB oracle ROM", file=sys.stderr)
     run(build_gb_args(config, rom, workdir, gb_lay, gb_symbols, gb_trace),
         cwd=ROOT, what="GB oracle run")
@@ -828,43 +867,51 @@ def run_pair(config, workdir):
         gb_start.current = 1
         pokes.append((target, 2, gb_start.u16(seed)))
 
-    print("gbdiff: running WSC gamerom", file=sys.stderr)
-    run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, pokes),
-        cwd=ROOT, what="WSC oracle run")
-
     gb = Side("GB", read_trace(gb_trace, GBTrace), gb_symbols, gb_lay, "_")
-    wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms, wsc_lay, "")
-    result = compare_traces(config, gb, wsc)
-    if result[0] is not None:
-        tick, field, a, b, compared = result
-        print("DIVERGED tick {} field {}: GB={} (0x{:X}) WSC={} (0x{:X}) "
-              "after {} compared values".format(
-                  tick, field, a, a, b, b, compared))
-        return 1
+    fields = config["compare"]
+    for mode in screen_modes(config):
+        wsc_trace = trace_path(workdir, "wsc-{}".format(mode))
+        print("gbdiff: running WSC gamerom at {} px".format(mode),
+              file=sys.stderr)
+        run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, mode, pokes),
+            cwd=ROOT, what="WSC oracle run")
 
-    _, compared, ignored_activation, phase_actors, skipped_phase = result
-    exclusions = config.get("compare", {}).get("excluded", [])
-    print("match: {} ticks, {} compared values".format(config["ticks"],
-                                                       compared))
-    projectile_fields = config["compare"].get("projectileFields", ())
-    print("fields: player {}; active actor {}; projectiles {}".format(
-        ",".join(config["compare"]["playerFields"]),
-        ",".join(config["compare"]["actorFields"]),
-        ",".join(projectile_fields) or "not compared"))
-    if ignored_activation:
-        print("ignored {} off-screen activation differences".format(
-            ignored_activation))
-    if skipped_phase:
-        print("ignored {} viewport-caused animation-phase values for "
-              "actor[s] {}".format(
-                  skipped_phase, ",".join(str(i) for i in phase_actors)))
-    for item in exclusions:
-        why = item.get("why", "")
-        if item.get("category") == "actor_fields":
-            print("excluded actor[{}] {} ({}).".format(
-                item["actor"], item.get("name", "fields"), why))
-        else:
-            print("excluded {} ({}).".format(item["category"], why))
+        wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms, wsc_lay,
+                   "")
+        result = compare_traces(config, mode, gb, wsc)
+        if result[0] is not None:
+            tick, field, a, b, compared = result
+            print("DIVERGED [{} px] tick {} field {}: GB={} (0x{:X}) "
+                  "WSC={} (0x{:X}) after {} compared values".format(
+                      mode, tick, field, a, a, b, b, compared))
+            return 1
+
+        _, compared, ignored_activation, phase_actors, skipped_phase = result
+        print("[{} px] match: {} ticks, {} compared values".format(
+            mode, config["ticks"], compared))
+        player_fields = list(fields["playerFields"])
+        if mode == 160:
+            player_fields.extend(f for f in CAMERA_FIELDS
+                                 if f not in player_fields)
+        projectile_fields = fields.get("projectileFields", ())
+        print("fields: player {}; active actor {}; projectiles {}".format(
+            ",".join(player_fields),
+            ",".join(fields["actorFields"]),
+            ",".join(projectile_fields) or "not compared"))
+        if ignored_activation:
+            print("ignored {} off-screen activation differences".format(
+                ignored_activation))
+        if skipped_phase:
+            print("ignored {} viewport-caused animation-phase values for "
+                  "actor[s] {}".format(
+                      skipped_phase, ",".join(str(i) for i in phase_actors)))
+        for item in mode_exclusions(config, mode):
+            why = item.get("why", "")
+            if item.get("category") == "actor_fields":
+                print("excluded actor[{}] {} ({}).".format(
+                    item["actor"], item.get("name", "fields"), why))
+            else:
+                print("excluded {} ({}).".format(item["category"], why))
     return 0
 
 

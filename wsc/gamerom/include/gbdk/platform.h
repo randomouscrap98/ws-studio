@@ -54,18 +54,20 @@ typedef uint8_t BOOLEAN;
 #define ENABLE_RAM_MBC5
 #define DISABLE_RAM_MBC5
 
-/* Screen/device constants. The visible size is a HAL variable so vertical
- * mode can change it at runtime. */
+/* Screen/device constants. The logical viewport is a HAL variable so a
+ * GB-width or vertical mode can change it at runtime. DEVICE_SCREEN_* stay
+ * the physical WSC display size; engine code that means the visible game
+ * viewport uses SCREEN_TILES_W/H or hal_screen_w/h. */
 extern uint8_t hal_screen_w;
 extern uint8_t hal_screen_h;
 extern uint16_t hal_screen_w_px;
 extern uint16_t hal_screen_h_px;
 void hal_display_on(void);
 void hal_display_off(void);
-#define DEVICE_SCREEN_WIDTH hal_screen_w
-#define DEVICE_SCREEN_HEIGHT hal_screen_h
-#define DEVICE_SCREEN_PX_WIDTH hal_screen_w_px
-#define DEVICE_SCREEN_PX_HEIGHT hal_screen_h_px
+#define DEVICE_SCREEN_WIDTH 28    /* 224 px hardware display */
+#define DEVICE_SCREEN_HEIGHT 18
+#define DEVICE_SCREEN_PX_WIDTH 224
+#define DEVICE_SCREEN_PX_HEIGHT 144
 #define DEVICE_WINDOW_PX_OFFSET_X 7
 #define MAXWNDPOSY 143
 #define SCREENWIDTH hal_screen_w_px

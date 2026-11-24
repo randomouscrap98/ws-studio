@@ -24,7 +24,7 @@ Nothing is re-downloaded or rebuilt when everything is already up to date.
 wsc/build/wsrun --core SO --rom ROM --frames N \
     [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
     [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
-    [--poke ADDR:SIZE:VALUE] \
+    [--screen-width N] [--poke ADDR:SIZE:VALUE] \
     [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
 
@@ -55,6 +55,10 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
 - `--boot-id N` patches the byte following the `WSCBOOT` marker in the
   loaded ROM image. The gamerom image uses it to select a start scene from
   its run-time table; the patch is in memory only.
+- `--screen-width N` patches the byte after the boot id in the `WSCBOOT`
+  slot. The gamerom uses it to pick its logical screen width (160 or 224 px)
+  before the first scene loads. Without the option the ROM default (224) is
+  used.
 - On success one line is printed to stdout:
 
   ```

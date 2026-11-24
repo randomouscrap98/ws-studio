@@ -42,6 +42,23 @@ extern uint8_t hal_screen_h;      /* tiles */
 extern uint16_t hal_screen_w_px;  /* pixels */
 extern uint16_t hal_screen_h_px;  /* pixels */
 
+/* Scroll streaming margins. On the GB the visible map is surrounded by
+ * 1/2-cell padding; the WSC map wraps instead, so the full 224 px mode uses
+ * no padding. GB-width mode keeps the GB values so row/column activation and
+ * refresh happen at the same ticks as on the GB. */
+extern uint8_t hal_scroll_pad_left;
+extern uint8_t hal_scroll_pad_right;
+extern uint8_t hal_scroll_pad_top;
+extern uint8_t hal_scroll_pad_bottom;
+extern uint8_t hal_scroll_refresh_w;
+extern uint8_t hal_scroll_refresh_h;
+
+/* Set the logical screen width before the engine loads its first scene. The
+ * hardware display stays 224 px wide; a narrower logical screen is centred
+ * and only that part of the display is rendered. 224 and 160 are the only
+ * supported widths. */
+void hal_screen_set_width(uint16_t width_px);
+
 /* Display and frame timing. hal_display_init also installs and enables the
  * vblank interrupt used by hal_wait_vblank/hal_vblank_count. */
 void hal_display_init(void);

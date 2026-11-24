@@ -47,6 +47,7 @@ void hal_sprites_begin(void) {
 static void hal_sprite_add(uint16_t tile, int16_t x, int16_t y,
                            uint16_t attr) {
     volatile ws_sprite_t *sprite;
+    int16_t origin_x = (int16_t)((WS_DISPLAY_WIDTH_PIXELS - hal_screen_w_px) >> 1);
 
     /* Cull a whole 8x8 entry that cannot touch the runtime screen.  A partly
      * visible left/top entry is kept: its 8-bit coordinate (e.g. -4 -> 252)
@@ -57,6 +58,7 @@ static void hal_sprite_add(uint16_t tile, int16_t x, int16_t y,
     if (hal_sprite_entries >= WS_SPRITE_MAX_COUNT)
         return;
 
+    x = (int16_t)(x + origin_x);
     sprite = &hal_sprite_table.entry[hal_sprite_entries++];
     /* WSC sprites default to behind screen 2.  GB sprites are drawn above the
      * window, so put every entry in front; actor rendering hides covered

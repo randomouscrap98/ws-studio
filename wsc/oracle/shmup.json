@@ -1,8 +1,9 @@
 {
-  "name": "shmup-short",
-  "description": "Diagnostic only, used for the C24 shmup break/restore check. 60 ticks stop before the first viewport-caused enemy activation, and shooter_dest (which is 80 px vs 112 px half-width dependent) is omitted so a scroll-speed change is visible.",
-  "ticks": 60,
-  "frames": 3000,
+  "name": "shmup",
+  "description": "Space Battle SHMUP movement, auto-scroll, screen clamps, enemy scripts and projectiles. Runs at the GB's 160 px logical width: the scene's shooter_dest, player clamp, actor activation window and projectile culling are all defined by the GB viewport, and the WSC's native 224 px width changes all four.",
+  "screenWidth": 160,
+  "ticks": 700,
+  "frames": 6000,
   "marker_timeout": 1500,
   "input": "inputs/shmup.txt",
   "gb": {
@@ -18,7 +19,7 @@
     "playerFields": [
       "x", "y", "dir", "flags", "frame", "animation", "move_speed",
       "player_moving", "shooter_scroll_speed", "shooter_reached_end",
-      "shooter_direction", "player_iframes"
+      "shooter_dest", "shooter_direction", "player_iframes"
     ],
     "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
     "projectileFields": ["x", "y", "delta_x", "delta_y", "frame", "life_time"],

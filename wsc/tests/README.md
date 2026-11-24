@@ -110,7 +110,9 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
 
 All engine tests run `wsc/gamerom/gamerom.wsc`. `wsrun --boot-id N` patches
 the one-byte id after the `WSCBOOT` marker in the loaded ROM image, and the
-ROM's `wsc_boot_select()` reads it in `bootstrap_init()`. This survives the
+ROM's `wsc_boot_select()` reads it in `bootstrap_init()`. The next byte in
+the same slot is the logical screen width; `wsrun --screen-width 160`
+selects the GB-width oracle mode (the default is 224). This survives the
 CRT's IRAM initialisation, unlike a RAM poke before the first frame. The
 table lives in `wsc/gamerom/src/platform.c`; `BOOT_SCENES` in `run.py` maps
 the names used by `test.json` to the ids in `test_scenes.h`.

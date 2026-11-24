@@ -12,9 +12,11 @@
 #include "d2c_manifest.h"
 #include "test_scenes.h"
 
-/* wsrun patches the byte after this magic in the ROM image before boot. */
-const volatile __far uint8_t wsc_boot_slot[8] = {
-    'W', 'S', 'C', 'B', 'O', 'O', 'T', 0
+/* wsrun patches these bytes after the magic in the ROM image before boot:
+ * byte 7 is the boot id, byte 8 the logical screen width in pixels (0 or
+ * 224 keep the default full-width display). */
+const volatile __far uint8_t wsc_boot_slot[9] = {
+    'W', 'S', 'C', 'B', 'O', 'O', 'T', 0, 224
 };
 
 struct boot_entry {
@@ -50,6 +52,10 @@ static const struct boot_entry __far boot_table[BOOT_SCENE_COUNT] = {
 void wsc_boot_select(far_ptr_t *scene, INT16 *x, INT16 *y) {
     UBYTE id = wsc_boot_slot[7];
     const struct boot_entry __far *entry;
+
+    /* Before the first scene load, so every engine and HAL path sees the
+     * selected logical width. */
+    hal_screen_set_width(wsc_boot_slot[8]);
 
     if (id >= BOOT_SCENE_COUNT) id = 0;
     entry = &boot_table[id];

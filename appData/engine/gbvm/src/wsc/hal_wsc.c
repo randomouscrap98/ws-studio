@@ -11,6 +11,12 @@ uint8_t hal_screen_w;
 uint8_t hal_screen_h;
 uint16_t hal_screen_w_px;
 uint16_t hal_screen_h_px;
+uint8_t hal_scroll_pad_left;
+uint8_t hal_scroll_pad_right;
+uint8_t hal_scroll_pad_top;
+uint8_t hal_scroll_pad_bottom;
+uint8_t hal_scroll_refresh_w;
+uint8_t hal_scroll_refresh_h;
 
 static volatile uint16_t hal_vblanks;
 
@@ -45,16 +51,46 @@ static void __attribute__((interrupt)) hal_vblank_isr(void) {
     ws_int_ack(WS_INT_ACK_VBLANK);
 }
 
+/* Distance from the left edge of the physical display to the logical screen.
+ * Zero at the full 224 px width. */
+static int16_t hal_screen_origin_x(void) {
+    return (int16_t)((WS_DISPLAY_WIDTH_PIXELS - hal_screen_w_px) >> 1);
+}
+
+void hal_screen_set_width(uint16_t width_px) {
+    if (width_px != WS_DISPLAY_WIDTH_PIXELS && width_px != 160)
+        return;
+    hal_screen_w_px = width_px;
+    hal_screen_w = (uint8_t)(width_px >> 3);
+
+    if (width_px == 160) {
+        /* Match the GB's scroll padding so the same rows/columns activate
+         * at the same ticks as the oracle's GB build. */
+        hal_scroll_pad_left = 1;
+        hal_scroll_pad_right = 2;
+        hal_scroll_pad_top = 1;
+        hal_scroll_pad_bottom = 2;
+        hal_scroll_refresh_w = (uint8_t)(hal_screen_w + 3);
+        hal_scroll_refresh_h = (uint8_t)(hal_screen_h + 3);
+    } else {
+        hal_scroll_pad_left = 0;
+        hal_scroll_pad_right = 0;
+        hal_scroll_pad_top = 0;
+        hal_scroll_pad_bottom = 0;
+        hal_scroll_refresh_w = (uint8_t)(hal_screen_w + 1);
+        hal_scroll_refresh_h = (uint8_t)(hal_screen_h + 1);
+    }
+}
+
 void hal_display_init(void) {
     uint16_t i;
 
     ws_display_set_control(0);
     ws_system_set_mode(WS_MODE_COLOR_4BPP);
 
-    hal_screen_w = WS_DISPLAY_WIDTH_TILES;
     hal_screen_h = WS_DISPLAY_HEIGHT_TILES;
-    hal_screen_w_px = WS_DISPLAY_WIDTH_PIXELS;
     hal_screen_h_px = WS_DISPLAY_HEIGHT_PIXELS;
+    hal_screen_set_width(WS_DISPLAY_WIDTH_PIXELS);
 
     ws_display_set_screen1_address((const void __wf_iram *)&hal_screen);
     ws_display_set_screen2_address((const void __wf_iram *)&hal_win_screen);
@@ -100,18 +136,19 @@ void hal_window_hide(void) {
 
 void hal_window_set(int16_t x, int16_t y) {
     uint8_t control;
+    int16_t origin_x = hal_screen_origin_x();
 
     if (x < 0 || y < 0 || x >= hal_screen_w_px || y >= hal_screen_h_px) {
         hal_window_hide();
         return;
     }
 
-    ws_display_set_screen2_window((uint8_t)x, (uint8_t)y,
+    ws_display_set_screen2_window((uint8_t)(origin_x + x), (uint8_t)y,
                                   (uint8_t)(hal_screen_w_px - x),
                                   (uint8_t)(hal_screen_h_px - y));
-    /* Screen 2 has a fixed origin.  Scrolling it by -x/-y puts window-map
-     * cell (0, 0) at the window's top-left corner, as on the GB. */
-    ws_display_scroll_screen2_to((uint8_t)(-x), (uint8_t)(-y));
+    /* Screen 2 has a fixed origin.  Scrolling it by -(origin + x)/-y puts
+     * window-map cell (0, 0) at the window's top-left corner, as on the GB. */
+    ws_display_scroll_screen2_to((uint8_t)(-(origin_x + x)), (uint8_t)(-y));
 
     control = ws_display_get_control();
     control |= WS_DISPLAY_CTRL_SCR2_ENABLE |
@@ -229,5 +266,6 @@ uint8_t hal_input_read(void) {
 }
 
 void hal_scroll_to(int16_t x, int16_t y) {
-    ws_display_scroll_screen1_to((uint8_t)x, (uint8_t)y);
+    ws_display_scroll_screen1_to((uint8_t)(x - hal_screen_origin_x()),
+                                 (uint8_t)y);
 }

@@ -71,6 +71,7 @@ struct options {
     struct marker pokes[MAX_POKES];
     unsigned poke_count;
     int boot_id;
+    int screen_width;
     uint32_t tick_address;
     unsigned tick_width;
     bool have_tick;
@@ -768,26 +769,28 @@ static void usage(FILE *stream)
             "usage: wsrun --core SO --rom ROM --frames N [--input FILE] "
             "[--png OUT] [--raw OUT] [--ram OUT]\n"
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
-            "[--boot-id N]\n"
+            "[--boot-id N] [--screen-width N]\n"
             "             [--poke ADDR:SIZE:VALUE] "
             "[--tick ADDR:SIZE [--trace OUT] [--max-ticks N] "
             "[--input-tick]]\n");
 }
 
-/* The gamerom image carries this marker next to a one-byte boot-scene id.
- * Patching the loaded ROM image survives the CRT's IRAM initialisation,
- * unlike a poke into system RAM before the first frame. */
+/* The gamerom image carries this marker next to a one-byte boot-scene id and
+ * a one-byte logical screen width. Patching the loaded ROM image survives the
+ * CRT's IRAM initialisation, unlike a poke into system RAM before the first
+ * frame. */
+#define BOOT_SLOT_BYTES 9
 static const uint8_t boot_magic[] = { 'W', 'S', 'C', 'B', 'O', 'O', 'T' };
 
-static bool patch_boot_id(uint8_t *rom, size_t size, unsigned id)
+static bool patch_boot_slot(uint8_t *rom, size_t size, int id, int width)
 {
     size_t matches = 0;
     size_t offset = 0;
     size_t i;
 
-    if (id == 0)
+    if (id < 0 && width < 0)
         return true;
-    while (offset + sizeof(boot_magic) < size) {
+    while (offset + BOOT_SLOT_BYTES <= size) {
         bool same = true;
 
         for (i = 0; i < sizeof(boot_magic); i++) {
@@ -798,13 +801,16 @@ static bool patch_boot_id(uint8_t *rom, size_t size, unsigned id)
         }
         if (same) {
             matches++;
-            rom[offset + sizeof(boot_magic)] = (uint8_t)id;
+            if (id >= 0)
+                rom[offset + sizeof(boot_magic)] = (uint8_t)id;
+            if (width >= 0)
+                rom[offset + sizeof(boot_magic) + 1] = (uint8_t)width;
         }
         offset++;
     }
     if (matches != 1) {
         fprintf(stderr,
-                "error: ROM has %zu boot-id slots (expected exactly 1)\n",
+                "error: ROM has %zu boot slots (expected exactly 1)\n",
                 matches);
         return false;
     }
@@ -870,6 +876,7 @@ int main(int argc, char **argv)
     int rc = 1;
 
     opts.boot_id = -1;
+    opts.screen_width = -1;
 
     for (i = 1; i < (uint32_t)argc; i++) {
         const char *arg = argv[i];
@@ -932,6 +939,19 @@ int main(int argc, char **argv)
                 return 2;
             }
             opts.boot_id = (int)id;
+        } else if (strcmp(arg, "--screen-width") == 0) {
+            uint32_t width;
+
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_u32(argv[i], &width) ||
+                (width != 160 && width != 224)) {
+                fprintf(stderr, "error: invalid screen width '%s' "
+                        "(expected 160 or 224)\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
+            opts.screen_width = (int)width;
         } else if (strcmp(arg, "--input") == 0) {
             if (++i >= (uint32_t)argc)
                 goto bad_args;
@@ -1014,8 +1034,8 @@ bad_args:
 
     if (!read_file(opts.rom, &rom_data, &rom_size))
         return 1;
-    if (opts.boot_id >= 0 &&
-        !patch_boot_id(rom_data, rom_size, (unsigned)opts.boot_id))
+    if (!patch_boot_slot(rom_data, rom_size, opts.boot_id,
+                         opts.screen_width))
         goto cleanup;
 
     if (!init_directories())

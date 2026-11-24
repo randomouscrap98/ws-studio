@@ -14,12 +14,12 @@
 #define SCROLL_BANK 1
 #define SCREEN_TILES_W (hal_screen_w)
 #define SCREEN_TILES_H (hal_screen_h)
-#define SCREEN_PAD_LEFT 0
-#define SCREEN_PAD_RIGHT 0
-#define SCREEN_PAD_TOP 0
-#define SCREEN_PAD_BOTTOM 0
-#define SCREEN_TILE_REFRES_W ((hal_screen_w) + 1)
-#define SCREEN_TILE_REFRES_H ((hal_screen_h) + 1)
+#define SCREEN_PAD_LEFT (hal_scroll_pad_left)
+#define SCREEN_PAD_RIGHT (hal_scroll_pad_right)
+#define SCREEN_PAD_TOP (hal_scroll_pad_top)
+#define SCREEN_PAD_BOTTOM (hal_scroll_pad_bottom)
+#define SCREEN_TILE_REFRES_W (hal_scroll_refresh_w)
+#define SCREEN_TILE_REFRES_H (hal_scroll_refresh_h)
 #define PENDING_BATCH_SIZE 11
 #else
 #define SCROLL_BANK 1

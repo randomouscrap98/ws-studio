@@ -29,18 +29,32 @@ regressions and the POINTNCLICK scene:
 `gb-oracle` runs that one in `--platform-smoke` mode and the rest as full
 comparisons.
 
-`blocked/shmup.json` is not run by `gb-oracle`. It is the Space Battle SHMUP
-comparison that found the wider-WSC-screen design question described in the
-C24 report: `shooter_dest` and the player's horizontal clamp use
-`SCREEN_WIDTH_HALF` (80 px on GB, 112 px on WSC), and enemy update scripts
-activate 4 tiles earlier on the wider WSC viewport. Both change gameplay, so
-the config deliberately cannot match and is kept out of the passing suite
-until that design question is decided.
+Every WSC comparison runs in both logical screen widths by default:
+`"screenWidth": "both"` runs 160 px and 224 px. `wsrun --screen-width 160` patches the byte
+after the boot id in the gamerom's `WSCBOOT` ROM slot, so the engine starts
+with a GB-sized viewport before it loads its first scene. In 160 px mode
+`gbdiff` additionally compares `camera_x`, `camera_y`, `scroll_x` and
+`scroll_y`, and it does not ignore off-screen activation or viewport-caused
+animation phases: the WSC viewport is now identical to the GB one, so any
+such difference is a real bug. The 224 px run keeps the older exclusions.
+
+`shmup.json` is the Space Battle SHMUP comparison (movement, screen clamps,
+auto-scroll, enemy scripts, projectiles and the player hit). It sets
+`"screenWidth": 160` because the scene's `shooter_dest`, player clamp, actor
+activation window and projectile culling are all defined by the GB's 160 px
+viewport and would change on the native 224 px WSC playfield.
 
 The comparison front end is `wsc/tools/gbdiff.py`. Each `*.json` here selects
 the start scene, tick count, input script and the explicit intended
 differences. `inputs/*.txt` lines are `TICK BUTTONS` (tick-relative, not
 emulator frames; multiple buttons are comma-separated).
+
+Screen width is selected with the gamerom's `WSCBOOT` slot: byte 7 is the
+boot id and byte 8 the logical width in pixels (default 224). The engine calls
+`hal_screen_set_width()` from `wsc_boot_select()`, before the first scene, so
+`hal_screen_w*`, the scroll padding/refresh sizes, camera and actor activation
+all see the selected width. The WSC display itself stays 224 px wide; a
+160 px logical screen is centred and only that region needs to be correct.
 
 Platform configs add the state-machine/velocity symbols to `playerFields`
 (`plat_vel_x`, `plat_vel_y`, `plat_state`, `plat_grounded`, jump/ladder

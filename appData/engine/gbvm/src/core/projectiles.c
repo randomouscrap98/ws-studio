@@ -68,11 +68,11 @@ void projectiles_update(void) NONBANKED {
     UBYTE draw_scroll_ty = PX_TO_TILE(MAX(0, draw_scroll_y));
     UBYTE clip_x_left = draw_scroll_tx - CLIP_EXT;
     min_x = (clip_x_left < draw_scroll_tx) ? clip_x_left : 0U;
-    UBYTE clip_x_right = draw_scroll_tx + DEVICE_SCREEN_WIDTH + CLIP_EXT;
+    UBYTE clip_x_right = draw_scroll_tx + SCREEN_TILES_W + CLIP_EXT;
     max_x = (clip_x_right > draw_scroll_tx) ? clip_x_right : 255U;
     UBYTE clip_y_top = draw_scroll_ty - CLIP_EXT;
     min_y = (clip_y_top < draw_scroll_ty) ? clip_y_top : 0U;
-    UBYTE clip_y_bottom = draw_scroll_ty + DEVICE_SCREEN_HEIGHT + CLIP_EXT;
+    UBYTE clip_y_bottom = draw_scroll_ty + SCREEN_TILES_H + CLIP_EXT;
     max_y = (clip_y_bottom > draw_scroll_ty) ? clip_y_bottom : 255U;
 
 #if PROJECTILES_COLLISION_SPREAD != EVERY_FRAME
