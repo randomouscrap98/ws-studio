@@ -26,7 +26,7 @@ HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
 .PHONY: test test-negative wsrun gb-core gb-oracle gb-platform-smoke \
-	parallax-visual host-test gen-dispatch s2c-check s2c-equiv product
+	parallax-visual host-test gen-dispatch s2c-check s2c-equiv d2c-equiv product
 
 # Build a product ROM from an exported project. The CLI command `make:wsc`
 # does the export itself; this target is the scripted entry point for tests.
@@ -79,6 +79,10 @@ s2c-check:
 # has and compare every output file byte for byte.
 s2c-equiv:
 	$(PYTHON) $(WSC_DIR)tools/s2c_equiv.py
+
+# Same project sets, but comparing the d2c data-tree output.
+d2c-equiv:
+	$(PYTHON) $(WSC_DIR)tools/d2c_equiv.py
 
 $(S2C_TEST_C) $(S2C_TEST_H): $(S2C_TEST_SRCS) $(S2C) $(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@mkdir -p $(S2C_TEST_DIR)

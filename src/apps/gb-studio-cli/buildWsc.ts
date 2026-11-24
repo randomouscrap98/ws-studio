@@ -2,8 +2,12 @@ import crypto from "crypto";
 import fs from "fs-extra";
 import Path from "path";
 import { spawnSync } from "child_process";
+import { main as runS2C } from "../../lib/compiler/wsc/s2c";
+import { convert as convertD2C } from "../../lib/compiler/wsc/d2c";
 
 const DEFAULT_TOOLCHAIN = "/opt/wonderful";
+const CONVERTER_STATES = "topdown,platform,shmup,pointnclick,adventure";
+const S2C_NAME = "product";
 
 const fail = (message: string): never => {
   throw new Error(message);
@@ -40,6 +44,20 @@ const runTool = (command: string, args: string[]): string | undefined => {
 const sanitize = (name: string): string =>
   name.replace(/[^A-Za-z0-9_.-]+/g, "_") || "project";
 
+/** Script inputs in the same sorted order as the product Makefile. */
+const findScripts = (root: string): string[] => {
+  const files: string[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = Path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".s")) files.push(full);
+    }
+  };
+  walk(root);
+  return files.sort();
+};
+
 export type WscBuildOptions = {
   /** Ejected GBDK/GBVM project produced by the existing export step. */
   exportDir: string;
@@ -74,9 +92,6 @@ export const assertWscPrerequisites = () => {
         `missing ${missing[0]}. Set WONDERFUL_TOOLCHAIN to the ` +
         "Wonderful install (default /opt/wonderful).",
     );
-  }
-  if (runTool("python3", ["--version"]) === undefined) {
-    fail("python3 is required for make:wsc but was not found in PATH");
   }
   if (runTool("make", ["--version"]) === undefined) {
     fail("make is required for make:wsc but was not found in PATH");
@@ -116,8 +131,48 @@ export const buildWsc = async ({
   );
   const buildDir = Path.join(stateDir, "build");
   const genDir = Path.join(stateDir, "gen");
+  const s2cDir = Path.join(genDir, "s2c");
+  const s2cHeader = Path.join(s2cDir, `${S2C_NAME}.h`);
+  const s2cSource = Path.join(s2cDir, `${S2C_NAME}.c`);
   const romPath = Path.join(stateDir, "product.wsc");
   await fs.ensureDir(stateDir);
+
+  // Run the converters in-process; the make step only compiles their output.
+  const scripts = findScripts(Path.join(exportDir, "src", "data"));
+  const s2cStatus = runS2C([
+    "--include",
+    Path.join(exportDir, "include"),
+    "--out",
+    s2cDir,
+    "--name",
+    S2C_NAME,
+    ...scripts,
+  ]);
+  if (s2cStatus !== 0) {
+    return fail(`WSC script conversion failed (s2c exit ${s2cStatus})`);
+  }
+  await fs.remove(Path.join(genDir, "data"));
+  await fs.remove(Path.join(genDir, "include"));
+  try {
+    const converted = convertD2C(
+      exportDir,
+      genDir,
+      s2cHeader,
+      s2cSource,
+      CONVERTER_STATES,
+    );
+    console.log(
+      `d2c: ${converted.scenes} scenes, ${converted.scripts} scripts, ` +
+        `${converted.stubs} RAM stubs`,
+    );
+  } catch (error) {
+    return fail(
+      `WSC data conversion failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  await fs.writeFile(Path.join(genDir, "d2c.stamp"), "");
 
   const result = spawnSync(
     "make",
@@ -129,6 +184,7 @@ export const buildWsc = async ({
       `BUILDDIR=${buildDir}`,
       `GEN_DIR=${genDir}`,
       `ROM=${romPath}`,
+      "CONVERTERS=prebuilt",
       "all",
     ],
     {

@@ -106,5 +106,6 @@ node out/cli/gb-studio-cli.js make:wsc PROJECT.gbsproj OUT.wsc
 
 `wsc/export/run.sh` and `wsc/tools/build_product.sh` share
 `wsc/tools/ensure-cli.sh` for the dependency install/CLI bundle step. The
-`make:wsc` command checks `WONDERFUL_TOOLCHAIN` (default `/opt/wonderful`),
-`python3` and `make` before starting the export.
+`make:wsc` command checks `WONDERFUL_TOOLCHAIN` (default `/opt/wonderful`) and
+`make` before starting the export. It runs the s2c and d2c TypeScript ports
+in-process, so the default path does not use `python3`.

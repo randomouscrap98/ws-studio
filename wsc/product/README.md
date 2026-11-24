@@ -22,9 +22,14 @@ holds `build/` and `gen/`; the CLI keeps the exporter's own temporary tree
 separate.
 
 `make -C wsc product PROJECT=... PRODUCT_ROM=... PRODUCT_STATE=...` runs the
-wrapper. The build needs the Wonderful toolchain (`WONDERFUL_TOOLCHAIN`,
-default `/opt/wonderful`), `python3` and `make`; the CLI checks all three and
-reports a clear error if one is missing.
+wrapper. The CLI runs both converters (`src/lib/compiler/wsc/s2c.ts` and
+`d2c.ts`) in-process and passes their output to the make step, so it needs
+only the Wonderful toolchain (`WONDERFUL_TOOLCHAIN`, default `/opt/wonderful`)
+and `make`; it reports a clear error if either is missing.
+
+Direct `make -C wsc/product` builds run the converters themselves. They
+default to the TypeScript ports; `S2C_IMPL=py D2C_IMPL=py` selects the Python
+oracles, and `CONVERTERS=prebuilt` compiles an already-generated tree.
 
 If a project does not fit the 512 KiB ROM or the IRAM regions, the link or
 the Wonderful ROM builder fails. The Makefile adds a short message around

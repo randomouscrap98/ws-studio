@@ -25,15 +25,21 @@ ROM		?= $(BUILDDIR)/product.wsc
 ELF		:= $(BUILDDIR)/product.elf
 STAGE		:= $(BUILDDIR)/product_stage1.elf
 D2C		 := $(WSC_DIR)tools/d2c.py
+D2C_TS_RUNNER	 := $(WSC_DIR)tools/d2c-ts.js
+D2C_TS		 := $(ROOT_DIR)/src/lib/compiler/wsc/d2c.ts
 S2C		 := $(WSC_DIR)tools/s2c.py
 S2C_TS_RUNNER	 := $(WSC_DIR)tools/s2c-ts.js
 S2C_TS		 := $(ROOT_DIR)/src/lib/compiler/wsc/s2c.ts
 
-# s2c runs from TypeScript by default so make:wsc no longer needs python3 for
-# the script converter. `S2C_IMPL=py` keeps the Python oracle available.
+# Both converters run from TypeScript by default so make:wsc no longer needs
+# python3. `S2C_IMPL=py` / `D2C_IMPL=py` keep the Python oracles available.
 S2C_IMPL	?= ts
+D2C_IMPL	?= ts
 ifeq ($(filter $(S2C_IMPL),ts py),)
 $(error S2C_IMPL must be ts or py, got '$(S2C_IMPL)')
+endif
+ifeq ($(filter $(D2C_IMPL),ts py),)
+$(error D2C_IMPL must be ts or py, got '$(D2C_IMPL)')
 endif
 S2C_CMD_ts	:= node $(S2C_TS_RUNNER)
 S2C_CMD_py	:= $(PYTHON) $(S2C)
@@ -41,6 +47,25 @@ S2C_CMD		:= $(S2C_CMD_$(S2C_IMPL))
 S2C_DEPS_ts	:= $(S2C_TS) $(S2C_TS_RUNNER)
 S2C_DEPS_py	:= $(S2C)
 S2C_DEPS	:= $(S2C_DEPS_$(S2C_IMPL))
+D2C_CMD_ts	:= node $(D2C_TS_RUNNER)
+D2C_CMD_py	:= $(PYTHON) $(D2C)
+D2C_CMD		:= $(D2C_CMD_$(D2C_IMPL))
+D2C_DEPS_ts	:= $(D2C_TS) $(D2C_TS_RUNNER)
+D2C_DEPS_py	:= $(D2C)
+D2C_DEPS	:= $(D2C_DEPS_$(D2C_IMPL))
+
+# `make:wsc` runs both converters in-process and passes CONVERTERS=prebuilt,
+# so make only compiles the generated tree. Direct make invocations run the
+# converter commands above.
+CONVERTERS	?= make
+ifeq ($(filter $(CONVERTERS),make prebuilt),)
+$(error CONVERTERS must be make or prebuilt, got '$(CONVERTERS)')
+endif
+ifeq ($(CONVERTERS),prebuilt)
+CONVERTER_STAMP	:=
+else
+CONVERTER_STAMP	:= $(D2C_STAMP)
+endif
 
 INCLUDEFLAGS	:= -I$(GEN_DIR)/include -I$(S2C_DIR) \
 		   -I$(EXPORT_DIR)/include \
@@ -71,7 +96,7 @@ COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ)
 
 # DATA_SOURCES only exists after d2c runs, so generate it first and re-enter
 # make with the complete source list.
-all: $(D2C_STAMP)
+all: $(CONVERTER_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
 all-rom: $(ROM) $(ELF)
@@ -89,11 +114,11 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(S2C_DEPS) $(GBVM_INCLUDE)/vm.i \
 	$(S2C_CMD) --include $(EXPORT_DIR)/include \
 		--out $(S2C_DIR) --name $(S2C_NAME) $(EXPORT_SCRIPTS)
 
-$(D2C_STAMP): $(D2C) $(S2C_H) $(S2C_C) $(EXPORT_DEPS) $(PROJECT_DEPS) \
+$(D2C_STAMP): $(D2C_DEPS) $(S2C_H) $(S2C_C) $(EXPORT_DEPS) $(PROJECT_DEPS) \
 		| product-check
-	@echo "  D2C     $(GEN_DIR)"
+	@echo "  D2C     $(GEN_DIR) ($(D2C_IMPL))"
 	$(RM) $(GEN_DIR)/data $(GEN_DIR)/include
-	$(PYTHON) $(D2C) --export $(EXPORT_DIR) \
+	$(D2C_CMD) --export $(EXPORT_DIR) \
 		--out $(GEN_DIR) --s2c-header $(S2C_H) --s2c-source $(S2C_C) \
 		--states topdown,platform,shmup,pointnclick,adventure
 	@touch $@
@@ -116,12 +141,12 @@ $(STAGE): $(COMMON_OBJS) $(BOOTSTRAP_OBJ)
 
 $(foreach src,$(ENGINE_SOURCES),$(eval $(call WSC_ENGINE_RULE,$(src))))
 
-$(OBJDIR)/data/%.o: $(GEN_DIR)/data/%.c $(D2C_STAMP)
+$(OBJDIR)/data/%.o: $(GEN_DIR)/data/%.c $(CONVERTER_STAMP)
 	@echo "  CC      $<"
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
-$(STATES_OBJ): $(GEN_DIR)/states.c $(D2C_STAMP)
+$(STATES_OBJ): $(GEN_DIR)/states.c $(CONVERTER_STAMP)
 	@echo "  CC      $<"
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
@@ -131,7 +156,7 @@ $(S2C_OBJ): $(S2C_C) $(S2C_H)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
-$(BOOTSTRAP_OBJ): $(GEN_DIR)/bootstrap.c $(D2C_STAMP)
+$(BOOTSTRAP_OBJ): $(GEN_DIR)/bootstrap.c $(CONVERTER_STAMP)
 	@echo "  CC      $<"
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
@@ -140,7 +165,7 @@ clean:
 	@echo "  CLEAN"
 	$(RM) $(ROM) $(BUILDDIR) $(GEN_DIR)
 
-usage: $(D2C_STAMP)
+usage: $(CONVERTER_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) usage-rom
 
 usage-rom: $(ELF)
