@@ -1,0 +1,53 @@
+{
+  "name": "shmup-cull",
+  "variant": "shmup-cull",
+  "description": "Space Battle SHMUP with an A-button player bullet. Its variant slows the auto-scroll to 16 subpixels per tick, so the bullet reaches the 20-tile right-hand cull edge about 60 ticks after launch while it still has lifetime left, exercising the C25 projectile-culling fix.",
+  "screenWidth": 160,
+  "ticks": 240,
+  "frames": 6000,
+  "marker_timeout": 1500,
+  "input": "inputs/shmup-cull.txt",
+  "gb": {
+    "startSceneId": "6bcc8670-b44d-4892-a37a-77a35f5a7668",
+    "startX": 8,
+    "startY": 9
+  },
+  "wsc": {
+    "bootId": 16,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving",
+      "shooter_scroll_speed",
+      "shooter_reached_end",
+      "shooter_dest",
+      "shooter_direction",
+      "player_iframes"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "projectileFields": [
+      "x",
+      "y",
+      "delta_x",
+      "delta_y",
+      "frame",
+      "life_time"
+    ],
+    "excluded": []
+  }
+}

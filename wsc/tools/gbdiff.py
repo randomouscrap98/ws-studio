@@ -6,9 +6,12 @@ Game Boy libretro core next to the WSC gamerom, and compares engine RAM by the
 engine's own ``game_time`` tick rather than by emulator frame.
 
 The intended differences (screen width, off-screen actor activation and the
-scene's random-driven actor) live in wsc/oracle/*.json. Every RAM address is
-resolved from the build's own symbols and every struct offset is compiled by
-the toolchain that built that side, with a tiny offsetof probe.
+scene's random-driven actor) live in wsc/oracle/*.json. A config may select a
+project variant from wsc/oracle/variants/: a small list of JSON edits applied
+to both the temporary GB project and a separate WSC export/gamerom build.
+Every RAM address is resolved from the build's own symbols and every struct
+offset is compiled by the toolchain that built that side, with a tiny offsetof
+probe.
 """
 
 import argparse
@@ -29,6 +32,7 @@ WSC_DIR = HERE.parent
 ROOT = WSC_DIR.parent
 BUILD = WSC_DIR / "build"
 ORACLE_DIR = WSC_DIR / "oracle"
+VARIANTS_DIR = ORACLE_DIR / "variants"
 
 # Last GBVM revision before the WSC work began (C03 changed vm.c/vm.h), from
 # the vendored appData/engine/gbvm history. This is GB Studio 4.3.2's engine.
@@ -105,6 +109,42 @@ STATE_FIELDS = {
     "shooter_direction": 1,
     "last_hit_trigger": 1,
     "player_iframes": 1,
+    # Adventure state engine fields and runtime state.
+    "adv_walk_vel": 2,
+    "adv_run_vel": 2,
+    "adv_dec": 2,
+    "adv_turn_acc": 2,
+    "adv_walk_acc": 2,
+    "adv_run_acc": 2,
+    "adv_knockback_vel_x": 2,
+    "adv_knockback_vel_y": 2,
+    "adv_knockback_frames": 1,
+    "adv_dash_active": 1,
+    "adv_dash_mask": 1,
+    "adv_dash_dist": 2,
+    "adv_dash_frames": 1,
+    "adv_dash_ready_frames": 1,
+    "adv_dash_deadzone": 1,
+    "adv_push_delay_frames": 1,
+    "adv_state": 1,
+    "adv_next_state": 1,
+    "adv_vel_x": 2,
+    "adv_vel_y": 2,
+    "adv_knockback_timer": 1,
+    "adv_anim_dirty": 1,
+    "adv_is_actor_attached": 1,
+    "adv_attached_prev_x": 2,
+    "adv_attached_prev_y": 2,
+    "adv_temp_y": 2,
+    "adv_dash_cooldown_timer": 1,
+    "adv_dash_per_frame": 2,
+    "adv_dash_currentframe": 1,
+    "adv_tap_timer": 1,
+    "adv_dash_dir": 1,
+    "adv_camera_deadzone_x": 1,
+    "adv_camera_deadzone_y": 1,
+    "adv_camera_transitioning": 1,
+    "adv_push_timer": 1,
 }
 
 CAMERA_FIELDS = ("camera_x", "camera_y", "scroll_x", "scroll_y")
@@ -220,19 +260,106 @@ def write_stub(path, name):
     path.write_text(text)
 
 
+def load_variant(config):
+    """Load a project variant selected by the config's "variant" field."""
+    name = config.get("variant")
+    if not name:
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
+        raise OracleError("invalid variant name {!r}".format(name))
+    path = VARIANTS_DIR / (name + ".json")
+    try:
+        edits = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise OracleError("cannot read variant {}: {}".format(path, exc)) from exc
+    if not isinstance(edits, list):
+        raise OracleError("variant {} must be a JSON list of edits".format(path))
+    for edit in edits:
+        if not isinstance(edit, dict) or "file" not in edit or "path" not in edit:
+            raise OracleError(
+                "variant {} edit needs file, path and value: {!r}".format(
+                    path, edit))
+    return {
+        "name": name,
+        "path": path,
+        "edits": edits,
+        "digest": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
+def variant_path_parts(path):
+    if isinstance(path, list):
+        parts = [str(part) for part in path]
+    elif isinstance(path, str):
+        parts = path.split(".") if path else []
+    else:
+        raise OracleError("variant path must be a string or list: {!r}".format(
+            path))
+    if not parts or any(part == "" for part in parts):
+        raise OracleError("variant path is empty: {!r}".format(path))
+    return parts
+
+
+def variant_set(root, path, value):
+    """Set a JSON path, appending to a list when the final segment is "-"."""
+    parts = variant_path_parts(path)
+    node = root
+    for part in parts[:-1]:
+        if isinstance(node, list):
+            node = node[int(part)]
+        elif isinstance(node, dict):
+            node = node[part]
+        else:
+            raise OracleError("variant path {!r} walks into a scalar".format(
+                path))
+    last = parts[-1]
+    if isinstance(node, list):
+        if last == "-":
+            node.append(value)
+        else:
+            node[int(last)] = value
+    elif isinstance(node, dict):
+        if last == "-":
+            raise OracleError("variant path {!r} appends to an object".format(
+                path))
+        node[last] = value
+    else:
+        raise OracleError("variant path {!r} ends in a scalar".format(path))
+
+
+def apply_variant(project_dir, variant):
+    """Apply a variant's edits to a project data directory in place."""
+    for edit in variant["edits"]:
+        relative = Path(edit["file"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise OracleError(
+                "variant {} file {} leaves the project".format(
+                    variant["path"], edit["file"]))
+        target = project_dir / relative
+        try:
+            data = json.loads(target.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise OracleError("cannot edit variant file {}: {}".format(
+                target, exc)) from exc
+        variant_set(data, edit["path"], edit.get("value"))
+        target.write_text(json.dumps(data, indent=2) + "\n")
+
+
 def cli_tmp_dir(config):
     """Short, stable CLI temp/cache root (see prepare_gb_project)."""
     digest = hashlib.sha1(config.get("name", "").encode("utf-8")).hexdigest()[:12]
     return ensure_dir(BUILD / "gb-tmp" / digest)
 
 
-def prepare_gb_project(config, workdir):
+def prepare_gb_project(config, workdir, variant=None):
     config_text = json.dumps(config, sort_keys=True)
+    variant_text = variant["digest"] if variant else "none"
+    stamp_text = GB_ENGINE_REV + "\n" + config_text + "\n" + variant_text
     stamp = workdir / "build.stamp"
     rom = workdir / "rom.gb"
     noi = workdir / "rom.noi"
     if (rom.is_file() and noi.is_file() and stamp.is_file() and
-            stamp.read_text() == GB_ENGINE_REV + "\n" + config_text):
+            stamp.read_text() == stamp_text):
         return rom, noi
 
     print("gbdiff: building the GB ROM with engine {}".format(
@@ -247,6 +374,8 @@ def prepare_gb_project(config, workdir):
     shutil.rmtree(cli_tmp / "_gbsbuild", ignore_errors=True)
     ensure_dir(cli_tmp)
     shutil.copytree(ROOT / "appData" / "templates" / "gbs2", project)
+    if variant:
+        apply_variant(project / "project", variant)
 
     engine = ensure_dir(project / "assets" / "engine")
     try:
@@ -307,8 +436,48 @@ def prepare_gb_project(config, workdir):
     if maps:
         shutil.copyfile(maps[0], workdir / "rom.map")
 
-    stamp.write_text(GB_ENGINE_REV + "\n" + config_text)
+    stamp.write_text(stamp_text)
     return rom, noi
+
+
+def ensure_variant_wsc_rom(variant):
+    """Export a variant project and build its own gamerom build tree."""
+    root = ensure_dir(BUILD / "variants" / variant["name"])
+    project = root / "project"
+    export = root / "export"
+    build = root / "build"
+    gen = root / "gen"
+    rom = root / "gamerom.wsc"
+    elf = build / "gamerom.elf"
+    stamp = root / "export.stamp"
+    digest = variant["digest"]
+    exported = (export / "src" / "data" / "scene_sample_town.c").is_file()
+    if (not exported or not stamp.is_file() or
+            stamp.read_text().strip() != digest):
+        print("gbdiff: exporting variant {}".format(variant["name"]),
+              file=sys.stderr)
+        shutil.rmtree(project, ignore_errors=True)
+        shutil.copytree(ROOT / "appData" / "templates" / "gbs2", project)
+        apply_variant(project / "project", variant)
+        env = dict(os.environ)
+        env["TEMPLATE"] = str(project / "project.gbsproj")
+        run([WSC_DIR / "export" / "run.sh", export], cwd=ROOT, env=env,
+            what="variant export")
+        stamp.write_text(digest + "\n")
+    ensure_dir(build)
+    ensure_dir(gen)
+    run([
+        "make", "-C", WSC_DIR / "gamerom",
+        "EXPORT_DIR={}".format(export),
+        "PROJECT_DIR={}".format(project),
+        "BUILDDIR={}".format(build),
+        "GEN_DIR={}".format(gen),
+        "ROM={}".format(rom),
+    ], cwd=ROOT, what="WSC variant gamerom build")
+    for path in (rom, elf):
+        if not path.is_file():
+            raise OracleError("missing variant artifact {}".format(path))
+    return rom, elf
 
 
 def parse_noi(path):
@@ -644,12 +813,12 @@ def build_gb_args(config, rom, workdir, layout, symbols, trace):
     return args
 
 
-def build_wsc_args(config, layout, symbols, trace, mode, pokes=()):
+def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None):
     start_x = int(config["gb"]["startX"]) * 256
     start_y = int(config["gb"]["startY"]) * 256
     marker = config["wsc"]["readySymbol"]
     args = [
-        WSRUN, "--core", WSC_CORE, "--rom", WSC_ROM,
+        WSRUN, "--core", WSC_CORE, "--rom", rom or WSC_ROM,
         "--boot-id", str(config["wsc"]["bootId"]),
         "--frames", str(config.get("frames", 5000)),
         "--marker-timeout", str(config.get("marker_timeout", 1500)),
@@ -839,12 +1008,17 @@ def run_pair(config, workdir):
     workdir = ensure_dir(workdir)
     ensure_wsrun()
     ensure_gb_core()
-    ensure_wsc_rom()
+    variant = load_variant(config)
+    if variant:
+        wsc_rom, wsc_elf = ensure_variant_wsc_rom(variant)
+    else:
+        ensure_wsc_rom()
+        wsc_rom, wsc_elf = WSC_ROM, WSC_ELF
 
     gbdk = ensure_gbdk()
-    rom, noi = prepare_gb_project(config, workdir)
+    rom, noi = prepare_gb_project(config, workdir, variant)
     gb_symbols = parse_noi(noi)
-    wsc_syms = wsc_symbols(WSC_ELF)
+    wsc_syms = wsc_symbols(wsc_elf)
     gb_lay = gb_layout(workdir, gbdk, cli_tmp_dir(config))
     wsc_lay = wsc_layout(workdir)
 
@@ -873,7 +1047,8 @@ def run_pair(config, workdir):
         wsc_trace = trace_path(workdir, "wsc-{}".format(mode))
         print("gbdiff: running WSC gamerom at {} px".format(mode),
               file=sys.stderr)
-        run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, mode, pokes),
+        run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, mode, pokes,
+                           wsc_rom),
             cwd=ROOT, what="WSC oracle run")
 
         wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms, wsc_lay,

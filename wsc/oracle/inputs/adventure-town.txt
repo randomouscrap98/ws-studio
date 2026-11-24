@@ -1,0 +1,17 @@
+# Adventure town: diagonal movement slides along the row-40 wall until the
+# corridor opens, then straight up to the lake's bottom edge, left along the
+# open row, and an A interaction with the Angry Guy. The rest sweeps the open
+# lower area with diagonals and wall bumps.
+10 X2,X1
+120 X1
+265 X4
+315 -
+320 X2
+322 A
+330 -
+400 A
+410 -
+440 X4,X3
+500 X3
+560 X4,X1
+620 X4

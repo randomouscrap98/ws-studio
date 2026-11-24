@@ -18,7 +18,8 @@ Options:
 - First argument: destination directory (default `wsc/build/export`).
 - `TEMPLATE=/path/to/project.gbsproj`: export a different project. The
   default is `appData/templates/gbs2/project.gbsproj`, because the `blank`
-  template has no scenes.
+  template has no scenes. `gbdiff` uses this to export a patched project
+  variant into its own directory; the normal export is not touched.
 
 The script prints the number of exported files and their total byte size at
 the end, for example:

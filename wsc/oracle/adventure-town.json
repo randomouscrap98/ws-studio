@@ -1,0 +1,84 @@
+{
+  "name": "adventure-town",
+  "description": "Sample Town converted to ADVENTURE by the adventure-town variant: 8-way movement, diagonal wall sliding, actor overlap, an NPC interaction and the adventure engine fields.",
+  "variant": "adventure-town",
+  "ticks": 700,
+  "frames": 12000,
+  "marker_timeout": 1500,
+  "input": "inputs/adventure-town.txt",
+  "gb": {
+    "startSceneId": "4e26a44e-ca20-448d-b47a-9982231bf69f",
+    "startX": 14,
+    "startY": 41
+  },
+  "wsc": {
+    "bootId": 2,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving",
+      "adv_walk_vel",
+      "adv_run_vel",
+      "adv_dec",
+      "adv_turn_acc",
+      "adv_walk_acc",
+      "adv_run_acc",
+      "adv_knockback_vel_x",
+      "adv_knockback_vel_y",
+      "adv_knockback_frames",
+      "adv_dash_active",
+      "adv_dash_mask",
+      "adv_dash_dist",
+      "adv_dash_frames",
+      "adv_dash_ready_frames",
+      "adv_dash_deadzone",
+      "adv_push_delay_frames",
+      "adv_state",
+      "adv_next_state",
+      "adv_vel_x",
+      "adv_vel_y",
+      "adv_knockback_timer",
+      "adv_anim_dirty",
+      "adv_is_actor_attached",
+      "adv_attached_prev_x",
+      "adv_attached_prev_y",
+      "adv_temp_y",
+      "adv_dash_cooldown_timer",
+      "adv_dash_per_frame",
+      "adv_dash_currentframe",
+      "adv_tap_timer",
+      "adv_dash_dir",
+      "adv_camera_deadzone_x",
+      "adv_camera_deadzone_y",
+      "adv_camera_transitioning",
+      "adv_push_timer"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": [
+      {
+        "category": "camera_scroll",
+        "why": "the WSC screen is 224x144 and the GB screen is 160x144; scroll and screen-space values differ by design, so only world-space state is compared"
+      },
+      {
+        "category": "off_screen_actor_activation",
+        "why": "the WSC viewport is wider, so actors can be active on only one side; activation is required to match only inside the GB viewport, which is the area both screens show"
+      }
+    ]
+  },
+  "rngSync": true
+}

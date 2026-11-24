@@ -108,6 +108,7 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(GBVM_CORE)/system.c \
 		   $(GBVM_CORE)/ui.c $(GBVM_CORE)/vm_ui.c \
 		   $(GBVM_STATES)/topdown.c \
+		   $(GBVM_STATES)/adventure.c \
 		   $(GBVM_STATES)/shmup.c $(GBVM_STATES)/pointnclick.c \
 		   $(GBVM_WSC)/bankdata_wsc.c $(GBVM_WSC)/hal_wsc.c \
 		   $(GBVM_WSC)/hal_wsc_bg.c $(GBVM_WSC)/hal_wsc_spr.c \
@@ -198,7 +199,7 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS
 	$(RM) $(GEN_DIR)/data $(GEN_DIR)/include
 	$(PYTHON) $(WSC_DIR)/tools/d2c.py --export $(EXPORT_DIR) \
 		--out $(GEN_DIR) --s2c-header $(S2C_H) --s2c-source $(S2C_C) \
-		--states topdown,platform,shmup,pointnclick
+		--states topdown,platform,shmup,pointnclick,adventure
 	$(PYTHON) $(C18_GEN) --out $(C18_DATA_DIR)
 	@touch $@
 

@@ -1,0 +1,32 @@
+[
+  {
+    "file": "scenes/town/sample_town/scene.gbsres",
+    "path": "type",
+    "value": "ADVENTURE"
+  },
+  {
+    "file": "engine_field_values.gbsres",
+    "path": "engineFieldValues.-",
+    "value": { "id": "adv_walk_vel", "value": 3584 }
+  },
+  {
+    "file": "engine_field_values.gbsres",
+    "path": "engineFieldValues.-",
+    "value": { "id": "adv_walk_acc", "value": 896 }
+  },
+  {
+    "file": "engine_field_values.gbsres",
+    "path": "engineFieldValues.-",
+    "value": { "id": "adv_dec", "value": 896 }
+  },
+  {
+    "file": "engine_field_values.gbsres",
+    "path": "engineFieldValues.-",
+    "value": { "id": "adv_turn_acc", "value": 640 }
+  },
+  {
+    "file": "engine_field_values.gbsres",
+    "path": "engineFieldValues.-",
+    "value": { "id": "adv_knockback_frames", "value": 8 }
+  }
+]

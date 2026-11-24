@@ -1,0 +1,15 @@
+# Space Battle SHMUP with player fire. The A press comes after the scene init
+# script releases the VM; the player has moved up away from the first enemy,
+# so the right-moving player bullet reaches the 20-tile viewport edge before
+# its lifetime ends and is culled there.
+10 X1
+40 -
+50 X3
+90 -
+100 X1
+130 A
+132 -
+140 X3
+180 -
+190 X2
+220 -

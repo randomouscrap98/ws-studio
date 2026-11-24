@@ -29,6 +29,20 @@ regressions and the POINTNCLICK scene:
 `gb-oracle` runs that one in `--platform-smoke` mode and the rest as full
 comparisons.
 
+`adventure-town` runs the Sample Town scene with its type changed to
+ADVENTURE. The change comes from `variants/adventure-town.json`, not from the
+template: `gbdiff` patches the same project copy it builds for the GB side and
+exports a patched copy for a separate WSC gamerom build. The route slides
+diagonally along the row-40 wall, climbs the corridor, interacts with the
+Angry Guy script and then sweeps the lower area with diagonals. It compares
+the adventure engine fields and runtime state (`adv_*`) in both screen widths.
+
+`shmup-cull` is a 160 px Space Battle route with an A-button player bullet.
+Its variant slows the shooter auto-scroll to `16` subpixels per tick so the
+bullet reaches the 20-tile right-hand cull edge while it still has lifetime
+left; this is the C25 culling path. Reverting the culling fix to the physical
+28-tile device width makes this config diverge at 160 px.
+
 Every WSC comparison runs in both logical screen widths by default:
 `"screenWidth": "both"` runs 160 px and 224 px. `wsrun --screen-width 160` patches the byte
 after the boot id in the gamerom's `WSCBOOT` ROM slot, so the engine starts
@@ -49,6 +63,27 @@ the start scene, tick count, input script and the explicit intended
 differences. `inputs/*.txt` lines are `TICK BUTTONS` (tick-relative, not
 emulator frames; multiple buttons are comma-separated).
 
+A config can add `"variant": "<name>"`. Variants live in `variants/<name>.json`
+as a JSON list of `{"file", "path", "value"}` edits. `file` is relative to
+the template's `project/` data directory, `path` is a dot-separated JSON path
+(numeric segments index arrays, a final `-` appends), and `value` is the new
+JSON value. For example, `adventure-town.json` sets
+`scenes/town/sample_town/scene.gbsres` path `type` to `"ADVENTURE"` and
+appends non-default `adv_*` engine field values to
+`engine_field_values.gbsres`.
+
+With a variant, gbdiff applies the edits to its temporary GB project copy
+before the CLI builds the GB ROM. For WSC it writes a separate project copy
+under `wsc/build/variants/<name>/project`, exports it with
+`wsc/export/run.sh`'s `TEMPLATE` override into
+`wsc/build/variants/<name>/export`, and builds that export with its own
+`BUILDDIR`, `GEN_DIR` and `ROM` under the same directory. The normal
+gamerom (`wsc/gamerom/gamerom.wsc`, `wsc/build/gamerom`, `wsc/build/export`)
+is not touched by a variant. The GB ROM cache key includes the variant file's
+SHA-256, so editing a variant rebuilds the GB ROM; the WSC export is skipped
+until the variant digest changes, while `make` still relinks when engine
+sources change.
+
 Screen width is selected with the gamerom's `WSCBOOT` slot: byte 7 is the
 boot id and byte 8 the logical width in pixels (default 224). The engine calls
 `hal_screen_set_width()` from `wsc_boot_select()`, before the first scene, so
@@ -60,9 +95,11 @@ Platform configs add the state-machine/velocity symbols to `playerFields`
 (`plat_vel_x`, `plat_vel_y`, `plat_state`, `plat_grounded`, jump/ladder
 counters, and so on). SHMUP adds `shooter_scroll_speed`,
 `shooter_reached_end`, `shooter_dest`, `shooter_direction` and
-`player_iframes`; POINTNCLICK adds `last_hit_trigger`. Their sizes are listed
-in `STATE_FIELDS` in `gbdiff.py` and resolved from each side's own symbol
-table, like the existing player fields. A config with `projectileFields`
+`player_iframes`; POINTNCLICK adds `last_hit_trigger`; ADVENTURE adds the
+`adv_*` engine fields and runtime state (walk/run/knockback/dash/push
+configuration, velocity, state, attached-actor tracking and timers). Their
+sizes are listed in `STATE_FIELDS` in `gbdiff.py` and resolved from each
+side's own symbol table, like the existing player fields. A config with `projectileFields`
 walks `projectiles_active_head` on both sides and compares each active
 projectile's position, delta, frame and remaining lifetime; the
 `projectile_t`/`projectile_def_t` offsets come from the same compiled
