@@ -527,6 +527,7 @@ def write_states(out_dir, tables, implemented):
         '#include "data_manager.h"',
         '#include "states_caller.h"',
         '#include "states/topdown.h"',
+        '#include "states/platform.h"',
         "",
         "typedef void (*state_fn_t)(void);",
         "",

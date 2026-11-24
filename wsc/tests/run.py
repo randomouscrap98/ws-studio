@@ -33,6 +33,9 @@ BOOT_SCENES = {
     "c17-edge": 9,
     "c18-big": 10,
     "c18-blank": 11,
+    "platform-deeper": 12,
+    "platform-path": 13,
+    "platform-parallax": 14,
 }
 
 # Sections that wf-wswantool places in IRAM, which is what wsrun's system-RAM

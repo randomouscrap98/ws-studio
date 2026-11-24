@@ -66,6 +66,37 @@ GB_ENGINE_STUBS = (
 
 ACTIVE_FLAG = 0x20
 
+# Platform-state symbols compared alongside the player actor fields. Sizes are
+# the engine's own types; enums are read as one byte on both sides.
+STATE_FIELDS = {
+    "plat_vel_x": 2,
+    "plat_vel_y": 2,
+    "plat_delta_x": 2,
+    "plat_delta_y": 2,
+    "plat_state": 1,
+    "plat_next_state": 1,
+    "plat_jump_type": 1,
+    "plat_run_stage": 1,
+    "plat_grounded": 1,
+    "plat_on_slope": 1,
+    "plat_slope_y": 1,
+    "plat_hold_jump_timer": 1,
+    "plat_coyote_timer": 1,
+    "plat_jump_buffer_timer": 1,
+    "plat_extra_jumps_counter": 1,
+    "plat_wall_jump_counter": 1,
+    "plat_wall_col": 1,
+    "plat_drop_timer": 1,
+    "plat_ladder_block_h": 1,
+    "plat_ladder_block_v": 1,
+    "plat_is_actor_attached": 1,
+    "plat_dash_pressed": 1,
+    "plat_dash_cooldown_timer": 1,
+    "plat_dash_currentframe": 1,
+    "plat_tap_timer": 1,
+    "plat_anim_dirty": 1,
+}
+
 FIELD_NAMES = ("flags", "pos", "x", "y", "dir", "frame", "animation",
                "move_speed", "collision_group", "size", "count")
 
@@ -494,6 +525,9 @@ class Side:
     def player_moving(self):
         return self.trace.u8(self.symbol("player_moving"))
 
+    def state_field(self, name):
+        return self.trace.read(self.symbol(name), STATE_FIELDS[name])
+
     def scroll(self, axis):
         return self.trace.u16(self.symbol("scroll_" + axis))
 
@@ -607,6 +641,8 @@ def compare_traces(config, gb, wsc):
         for field in player_fields:
             if field == "player_moving":
                 a, b = gb.player_moving(), wsc.player_moving()
+            elif field in STATE_FIELDS:
+                a, b = gb.state_field(field), wsc.state_field(field)
             else:
                 a, b = gb.actor(0, field), wsc.actor(0, field)
             compared += 1

@@ -11,6 +11,9 @@ HOST_CFLAGS := -std=gnu99 -Wall -Wextra -Werror=pointer-to-int-cast \
 	-fno-omit-frame-pointer -fno-builtin -Wno-unknown-pragmas \
 	-Wno-pointer-sign -DNINTENDO
 S2C := $(WSC_DIR)tools/s2c.py
+# Every config in wsc/oracle/ is run. platform.json is the GB-only jump trace
+# used by gb-platform-smoke, so gb-oracle invokes it in --platform-smoke mode.
+ORACLE_CONFIGS := $(wildcard $(WSC_DIR)oracle/*.json)
 S2C_TEST_SRCS := $(WSC_DIR)tests/scripts/s2c_main.s $(WSC_DIR)tests/scripts/s2c_far.s
 S2C_TEST_DIR := $(WSC_DIR)build/scripts_test
 S2C_TEST_C := $(S2C_TEST_DIR)/s2c_test.c
@@ -33,7 +36,14 @@ gb-core:
 
 gb-oracle: wsrun gb-core
 	$(MAKE) -C $(WSC_DIR)gamerom
-	$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $(WSC_DIR)oracle/topdown.json
+	@set -e; for config in $(ORACLE_CONFIGS); do \
+		echo "== $$(basename $$config)"; \
+		case "$$config" in \
+			*/oracle/platform.json) extra=--platform-smoke ;; \
+			*) extra= ;; \
+		esac; \
+		$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $$config $$extra; \
+	done
 
 gb-platform-smoke: wsrun gb-core
 	$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $(WSC_DIR)oracle/platform.json \

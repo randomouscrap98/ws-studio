@@ -1,13 +1,23 @@
 # GB differential oracle
 
 `make -C wsc gb-oracle` builds the GB oracle ROM with the pre-WSC GB Studio
-engine, builds the WSC gamerom, and compares the town topdown scene tick by
-tick. `make -C wsc gb-platform-smoke` records the GB-only platform jump trace.
+engine, builds the WSC gamerom, and compares every config in `wsc/oracle/`
+tick by tick. Today those are the town topdown walk and the three PLATFORM
+scenes (`platform-deeper`, `platform-path`, `platform-parallax`).
+`platform.json` is the GB-only jump trace used by `gb-platform-smoke`, so
+`gb-oracle` runs that one in `--platform-smoke` mode and the rest as full
+comparisons.
 
 The comparison front end is `wsc/tools/gbdiff.py`. Each `*.json` here selects
 the start scene, tick count, input script and the explicit intended
 differences. `inputs/*.txt` lines are `TICK BUTTONS` (tick-relative, not
-emulator frames).
+emulator frames; multiple buttons are comma-separated).
+
+Platform configs add the state-machine/velocity symbols to `playerFields`
+(`plat_vel_x`, `plat_vel_y`, `plat_state`, `plat_grounded`, jump/ladder
+counters, and so on). Their sizes are listed in `STATE_FIELDS` in
+`gbdiff.py` and resolved from each side's own symbol table, like the existing
+player fields.
 
 ## What it builds
 

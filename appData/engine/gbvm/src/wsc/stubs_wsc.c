@@ -36,11 +36,6 @@ volatile UBYTE TAC_REG;
 volatile UBYTE _current_bank;
 volatile UBYTE __current_bank;
 
-/* Platform variables named by the script converter but not assigned by
- * script_engine_init.s in this project. */
-WORD plat_vel_y;
-UBYTE plat_next_state;
-
 /* ---- data symbols named by the script converter ---- */
 uint8_t DIV_REG[4];
 uint8_t __mute_mask_sound_gbstudio_sfx_sav_00[4];

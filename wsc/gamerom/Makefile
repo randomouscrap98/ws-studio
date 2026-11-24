@@ -123,12 +123,16 @@ CFLAGS		+= -DWSC_CAPACITY_TEST
 ENGINE_SOURCES	+= $(CURDIR)/src/capacity_filler.c
 endif
 ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
+# The gamerom's own src/platform.c shares its basename with the engine's
+# states/platform.c, so the state gets its own object name.
+STATE_PLATFORM_SRC := $(GBVM_STATES)/platform.c
+STATE_PLATFORM_OBJ := $(OBJDIR)/engine/platform_state.o
 C18_DATA_OBJ	:= $(OBJDIR)/engine/c18_bg_data.o
 BOOTSTRAP_OBJ	:= $(OBJDIR)/bootstrap.o
 STATES_OBJ	:= $(OBJDIR)/states.o
 S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 
-COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ) \
+COMMON_OBJS	:= $(ENGINE_OBJS) $(STATE_PLATFORM_OBJ) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ) \
 		   $(C18_DATA_OBJ)
 
 .PHONY: all all-rom clean usage usage-rom export-data iram-check
@@ -193,7 +197,7 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS
 	$(RM) $(GEN_DIR)/data $(GEN_DIR)/include
 	$(PYTHON) $(WSC_DIR)/tools/d2c.py --export $(EXPORT_DIR) \
 		--out $(GEN_DIR) --s2c-header $(S2C_H) --s2c-source $(S2C_C) \
-		--states topdown
+		--states topdown,platform
 	$(PYTHON) $(C18_GEN) --out $(C18_DATA_DIR)
 	@touch $@
 
@@ -229,6 +233,11 @@ $(OBJDIR)/engine/$(notdir $(basename $(1))).o: $(1) $(D2C_STAMP)
 endef
 
 $(foreach src,$(ENGINE_SOURCES),$(eval $(call ENGINE_RULE,$(src))))
+
+$(STATE_PLATFORM_OBJ): $(STATE_PLATFORM_SRC) $(D2C_STAMP)
+	@echo "  CC      $<"
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
 $(C18_DATA_OBJ): $(C18_DATA_C) $(D2C_STAMP)
 	@echo "  CC      $<"
