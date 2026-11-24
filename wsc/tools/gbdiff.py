@@ -95,10 +95,23 @@ STATE_FIELDS = {
     "plat_dash_currentframe": 1,
     "plat_tap_timer": 1,
     "plat_anim_dirty": 1,
+    "shooter_scroll_speed": 1,
+    "shooter_reached_end": 1,
+    "shooter_dest": 2,
+    "shooter_direction": 1,
+    "last_hit_trigger": 1,
+    "player_iframes": 1,
 }
 
 FIELD_NAMES = ("flags", "pos", "x", "y", "dir", "frame", "animation",
                "move_speed", "collision_group", "size", "count")
+
+# Projectile probe fields. The active list is walked from
+# projectiles_active_head; pos/delta_pos add their member offsets to the
+# struct base like the actor probe does.
+PROJECTILE_FIELD_NAMES = ("pos", "x", "y", "delta_pos", "delta_x",
+                          "delta_y", "frame", "def", "next", "size",
+                          "life_time", "max")
 
 
 class OracleError(Exception):
@@ -357,6 +370,7 @@ PROBE_SOURCE = """\
 #include <stddef.h>
 #include "gbs_types.h"
 #include "actor.h"
+#include "projectiles.h"
 
 const unsigned int probe_offsets[] = {
     offsetof(actor_t, flags),
@@ -371,28 +385,62 @@ const unsigned int probe_offsets[] = {
     sizeof(actor_t),
     MAX_ACTORS,
 };
+
+const unsigned int projectile_probe_offsets[] = {
+    offsetof(projectile_t, pos),
+    offsetof(upoint16_t, x),
+    offsetof(upoint16_t, y),
+    offsetof(projectile_t, delta_pos),
+    offsetof(point16_t, x),
+    offsetof(point16_t, y),
+    offsetof(projectile_t, frame),
+    offsetof(projectile_t, def),
+    offsetof(projectile_t, next),
+    sizeof(projectile_t),
+    offsetof(projectile_t, def) + offsetof(projectile_def_t, life_time),
+    MAX_PROJECTILES,
+};
 """
 
 
-def parse_probe_asm(path, pattern, base):
-    text = path.read_text(errors="replace")
-    marker = text.find("probe_offsets:")
-    if marker < 0:
-        raise OracleError("offset probe has no probe_offsets label")
+def parse_probe_values(text, label, names, pattern, base):
+    # Labels are prefixed by "_" in SDCC assembly. Match them at the start of
+    # a line so "probe_offsets:" does not also match inside
+    # "projectile_probe_offsets:".
+    label_match = re.search(r"(?m)^_?" + re.escape(label), text)
+    if label_match is None:
+        raise OracleError("offset probe has no {} label".format(label))
     values = []
-    for line in text[marker:].splitlines()[1:]:
+    for line in text[label_match.end():].splitlines()[1:]:
         match = re.search(pattern, line)
         if match:
             values.append(int(match.group(1), base))
         elif values:
             break
-    if len(values) < len(FIELD_NAMES):
-        raise OracleError("offset probe produced {} values, expected {}".format(
-            len(values), len(FIELD_NAMES)))
-    raw = dict(zip(FIELD_NAMES, values[:len(FIELD_NAMES)]))
+    if len(values) < len(names):
+        raise OracleError("offset probe produced {} values for {}, expected "
+                          "{}".format(len(values), label, len(names)))
+    return dict(zip(names, values[:len(names)]))
+
+
+def parse_probe_asm(path, pattern, base):
+    text = path.read_text(errors="replace")
+    raw = parse_probe_values(text, "probe_offsets:", FIELD_NAMES, pattern,
+                             base)
     pos = raw["pos"]
     raw["x"] += pos
     raw["y"] += pos
+
+    proj = parse_probe_values(text, "projectile_probe_offsets:",
+                              PROJECTILE_FIELD_NAMES, pattern, base)
+    proj_pos = proj["pos"]
+    proj["x"] += proj_pos
+    proj["y"] += proj_pos
+    delta = proj["delta_pos"]
+    proj["delta_x"] += delta
+    proj["delta_y"] += delta
+    for name, value in proj.items():
+        raw["proj_" + name] = value
     return raw
 
 
@@ -538,6 +586,25 @@ class Side:
     def state_field(self, name):
         return self.trace.read(self.symbol(name), STATE_FIELDS[name])
 
+    def projectiles(self):
+        """Active projectile node addresses, in the engine's list order."""
+        head = self.trace.u16(self.symbol("projectiles_active_head"))
+        nodes = []
+        seen = set()
+        while (head and head not in seen and
+               len(nodes) < self.layout["proj_max"]):
+            seen.add(head)
+            nodes.append(head)
+            head = self.trace.u16(
+                (head + self.layout["proj_next"]) & 0xFFFF)
+        return nodes
+
+    def projectile_field(self, node, field):
+        size = {"x": 2, "y": 2, "delta_x": 2, "delta_y": 2,
+                "frame": 1, "life_time": 1}[field]
+        return self.trace.read((node + self.layout["proj_" + field]) & 0xFFFF,
+                               size)
+
     def scroll(self, axis):
         return self.trace.u16(self.symbol("scroll_" + axis))
 
@@ -652,6 +719,7 @@ def compare_traces(config, gb, wsc):
         "x", "y", "dir", "flags", "frame", "animation", "move_speed"))
     actor_fields = fields.get("actorFields", (
         "x", "y", "dir", "frame", "animation"))
+    projectile_fields = fields.get("projectileFields", ())
     skip_actor_fields = excluded_actor_fields(config)
     skip_phase = skip_viewport_animation_phase(config)
     phase_actors = set()
@@ -677,6 +745,23 @@ def compare_traces(config, gb, wsc):
             compared += 1
             if a != b:
                 return tick, "player." + field, a, b, compared
+
+        if projectile_fields:
+            gb_projectiles = gb.projectiles()
+            wsc_projectiles = wsc.projectiles()
+            compared += 1
+            if len(gb_projectiles) != len(wsc_projectiles):
+                return (tick, "projectiles.count", len(gb_projectiles),
+                        len(wsc_projectiles), compared)
+            for index, (gb_node, wsc_node) in enumerate(zip(
+                    gb_projectiles, wsc_projectiles)):
+                for field in projectile_fields:
+                    a = gb.projectile_field(gb_node, field)
+                    b = wsc.projectile_field(wsc_node, field)
+                    compared += 1
+                    if a != b:
+                        return (tick, "projectile[{}].{}".format(index, field),
+                                a, b, compared)
 
         for index in range(1, actor_count):
             gb_active = bool(gb.actor(index, "flags") & ACTIVE_FLAG)
@@ -761,9 +846,11 @@ def run_pair(config, workdir):
     exclusions = config.get("compare", {}).get("excluded", [])
     print("match: {} ticks, {} compared values".format(config["ticks"],
                                                        compared))
-    print("fields: player {}; active actor {}".format(
+    projectile_fields = config["compare"].get("projectileFields", ())
+    print("fields: player {}; active actor {}; projectiles {}".format(
         ",".join(config["compare"]["playerFields"]),
-        ",".join(config["compare"]["actorFields"])))
+        ",".join(config["compare"]["actorFields"]),
+        ",".join(projectile_fields) or "not compared"))
     if ignored_activation:
         print("ignored {} off-screen activation differences".format(
             ignored_activation))

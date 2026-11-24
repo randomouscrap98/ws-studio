@@ -1,0 +1,25 @@
+{
+  "name": "pointnclick",
+  "description": "Player's House POINTNCLICK cursor movement, screen bounds and trigger dialogue",
+  "ticks": 800,
+  "frames": 5000,
+  "marker_timeout": 1500,
+  "input": "inputs/pointnclick.txt",
+  "gb": {
+    "startSceneId": "c22cad6f-1191-4623-911d-1ec9a7b52fe6",
+    "startX": 10,
+    "startY": 10
+  },
+  "wsc": {
+    "bootId": 17,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x", "y", "dir", "flags", "frame", "animation", "move_speed",
+      "player_moving", "last_hit_trigger"
+    ],
+    "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+    "excluded": []
+  }
+}

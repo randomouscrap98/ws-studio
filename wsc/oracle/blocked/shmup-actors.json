@@ -1,0 +1,26 @@
+{
+  "name": "shmup-actors",
+  "description": "Diagnostic only, not an acceptance config: the same route as shmup.json without the viewport-derived shooter_dest, so the next divergence (viewport-caused enemy activation) is visible.",
+  "ticks": 700,
+  "frames": 6000,
+  "marker_timeout": 1500,
+  "input": "inputs/shmup.txt",
+  "gb": {
+    "startSceneId": "6bcc8670-b44d-4892-a37a-77a35f5a7668",
+    "startX": 8,
+    "startY": 9
+  },
+  "wsc": {
+    "bootId": 16,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x", "y", "dir", "flags", "frame", "animation", "move_speed",
+      "player_moving", "shooter_scroll_speed", "shooter_reached_end",
+      "shooter_direction", "player_iframes"
+    ],
+    "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+    "excluded": []
+  }
+}

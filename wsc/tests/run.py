@@ -36,6 +36,8 @@ BOOT_SCENES = {
     "platform-deeper": 12,
     "platform-path": 13,
     "platform-parallax": 14,
+    "shmup": 16,
+    "pointnclick": 17,
 }
 
 # Sections that wf-wswantool places in IRAM, which is what wsrun's system-RAM

@@ -1,0 +1,27 @@
+{
+  "name": "shmup-short",
+  "description": "Diagnostic only, used for the C24 shmup break/restore check. 60 ticks stop before the first viewport-caused enemy activation, and shooter_dest (which is 80 px vs 112 px half-width dependent) is omitted so a scroll-speed change is visible.",
+  "ticks": 60,
+  "frames": 3000,
+  "marker_timeout": 1500,
+  "input": "inputs/shmup.txt",
+  "gb": {
+    "startSceneId": "6bcc8670-b44d-4892-a37a-77a35f5a7668",
+    "startX": 8,
+    "startY": 9
+  },
+  "wsc": {
+    "bootId": 16,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x", "y", "dir", "flags", "frame", "animation", "move_speed",
+      "player_moving", "shooter_scroll_speed", "shooter_reached_end",
+      "shooter_direction", "player_iframes"
+    ],
+    "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+    "projectileFields": ["x", "y", "delta_x", "delta_y", "frame", "life_time"],
+    "excluded": []
+  }
+}

@@ -1,0 +1,23 @@
+# Space Battle SHMUP: movement in both axes, then hold each horizontal and
+# vertical direction long enough to reach the screen clamp. The engine's
+# auto-scroll runs for the whole script. Ticks are game_time ticks.
+10 X1
+40 -
+50 X3
+90 -
+100 X1
+130 -
+140 X3
+180 -
+190 X2
+220 -
+230 X4
+270 -
+280 X4
+380 -
+390 X2
+500 -
+510 X1
+620 -
+630 X3
+700 -

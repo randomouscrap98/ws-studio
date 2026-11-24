@@ -530,6 +530,8 @@ def write_states(out_dir, tables, implemented):
         '#include "states_caller.h"',
         '#include "states/topdown.h"',
         '#include "states/platform.h"',
+        '#include "states/shmup.h"',
+        '#include "states/pointnclick.h"',
         "",
         "typedef void (*state_fn_t)(void);",
         "",

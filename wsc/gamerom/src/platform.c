@@ -42,6 +42,8 @@ static const struct boot_entry __far boot_table[BOOT_SCENE_COUNT] = {
     { &scene_path_to_sample_town, 1024, 2304 },  /* 4, 9 tiles */
     { &scene_parallax_example, 15360, 3328 },    /* 60, 13 tiles */
     { &scene_path_to_sample_town, 14592, 3328 }, /* 57, 13 tiles */
+    { &scene_space_battle, 2048, 2304 },        /* 8, 9 tiles */
+    { &scene_player_s_house, 2560, 2560 },      /* 10, 10 tiles */
 };
 
 /* Called by the generated bootstrap before the first scene is loaded. */

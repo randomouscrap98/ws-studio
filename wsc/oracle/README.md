@@ -3,8 +3,8 @@
 `make -C wsc gb-oracle` builds the GB oracle ROM with the pre-WSC GB Studio
 engine, builds the WSC gamerom, and compares every config in `wsc/oracle/`
 tick by tick. Today those are the town topdown walk and the PLATFORM scenes
-(`platform-deeper`, `platform-path`, `platform-parallax`) plus four focused
-regressions:
+(`platform-deeper`, `platform-path`, `platform-parallax`) plus the focused
+regressions and the POINTNCLICK scene:
 
 - `platform-deeper-ladder` uses the original ladder-release tick and checks
   that SameBoy's key-bounce emulation does not shift an input edge.
@@ -19,10 +19,23 @@ regressions:
   update script starts, waits, draws a random direction and moves. GB and WSC
   compare every active actor's position, direction and animation; `rngSync`
   makes the two random walks identical.
+- `pointnclick` drives the Player's House cursor to its right, bottom and left
+  bounds and then back onto the window trigger. The final A press opens that
+  trigger's dialogue, so the run covers cursor movement, clamps, trigger
+  hover animation and trigger script execution. The scene has no actors, so
+  there is no actor-click path to cover.
 
 `platform.json` is the GB-only jump trace used by `gb-platform-smoke`, so
 `gb-oracle` runs that one in `--platform-smoke` mode and the rest as full
 comparisons.
+
+`blocked/shmup.json` is not run by `gb-oracle`. It is the Space Battle SHMUP
+comparison that found the wider-WSC-screen design question described in the
+C24 report: `shooter_dest` and the player's horizontal clamp use
+`SCREEN_WIDTH_HALF` (80 px on GB, 112 px on WSC), and enemy update scripts
+activate 4 tiles earlier on the wider WSC viewport. Both change gameplay, so
+the config deliberately cannot match and is kept out of the passing suite
+until that design question is decided.
 
 The comparison front end is `wsc/tools/gbdiff.py`. Each `*.json` here selects
 the start scene, tick count, input script and the explicit intended
@@ -31,9 +44,15 @@ emulator frames; multiple buttons are comma-separated).
 
 Platform configs add the state-machine/velocity symbols to `playerFields`
 (`plat_vel_x`, `plat_vel_y`, `plat_state`, `plat_grounded`, jump/ladder
-counters, and so on). Their sizes are listed in `STATE_FIELDS` in
-`gbdiff.py` and resolved from each side's own symbol table, like the existing
-player fields.
+counters, and so on). SHMUP adds `shooter_scroll_speed`,
+`shooter_reached_end`, `shooter_dest`, `shooter_direction` and
+`player_iframes`; POINTNCLICK adds `last_hit_trigger`. Their sizes are listed
+in `STATE_FIELDS` in `gbdiff.py` and resolved from each side's own symbol
+table, like the existing player fields. A config with `projectileFields`
+walks `projectiles_active_head` on both sides and compares each active
+projectile's position, delta, frame and remaining lifetime; the
+`projectile_t`/`projectile_def_t` offsets come from the same compiled
+offsetof probe as the actor layout.
 
 Script banks are numbered from 1 (`s2c_bank1`, ...) by `s2c.py`, and the
 zero slot in `vm_bank_base()`'s table is unused, so the engine's `.bank`

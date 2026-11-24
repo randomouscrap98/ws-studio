@@ -16,7 +16,15 @@
 #define POINT_N_CLICK_CAMERA_DEADZONE 24
 #endif
 
-UBYTE last_hit_trigger = MAX_TRIGGERS;
+#ifdef __ia16__
+/* The WSC link garbage-collects unreferenced data. This engine field is not
+ * read by the state itself, but the differential oracle compares it. */
+#define LAST_HIT_TRIGGER_RETAIN __attribute__((retain))
+#else
+#define LAST_HIT_TRIGGER_RETAIN
+#endif
+
+UBYTE last_hit_trigger LAST_HIT_TRIGGER_RETAIN = MAX_TRIGGERS;
 
 void pointnclick_init(void) BANKED {
     camera_offset_x = 0;

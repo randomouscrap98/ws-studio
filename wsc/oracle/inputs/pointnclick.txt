@@ -1,0 +1,12 @@
+# Player's House cursor: right bound, bottom bound, left bound, then back to
+# the right edge and up onto the window trigger; the last A click opens its
+# dialogue, which is still on screen at the end of the run.
+# Ticks are engine game_time ticks (--input-tick).
+10 X2
+100 X3
+200 X4
+360 X1
+480 X2
+640 -
+700 A
+800 -
