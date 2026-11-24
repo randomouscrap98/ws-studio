@@ -1,7 +1,7 @@
-#ifndef GAMEROM_GBDK_METASPRITES_H
-#define GAMEROM_GBDK_METASPRITES_H
+#ifndef WSC_GBDK_METASPRITES_H
+#define WSC_GBDK_METASPRITES_H
 
-/* Minimal GBDK metasprite definitions for the WSC engine boot ROM. */
+/* Minimal GBDK metasprite definitions for the WSC engine ROMs. */
 
 #include <stdint.h>
 
@@ -16,4 +16,4 @@ typedef struct metasprite_t {
 #define METASPR_TERM {metasprite_end, 0, 0, 0}
 #define METASPR_ITEM(dy, dx, dtile, props) {(dy), (dx), (dtile), (props)}
 
-#endif
+#endif /* WSC_GBDK_METASPRITES_H */

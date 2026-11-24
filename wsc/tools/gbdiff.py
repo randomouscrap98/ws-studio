@@ -656,7 +656,7 @@ def wsc_layout(workdir):
     probe.write_text(PROBE_SOURCE)
     asm = workdir / "layout_wsc.s"
     include_dirs = [
-        WSC_DIR / "gamerom" / "include",
+        WSC_DIR / "include",
         BUILD / "gamerom" / "include",
         ROOT / "appData" / "engine" / "gbvm" / "include",
         WSC_DIR / "host" / "include",
@@ -674,8 +674,8 @@ def wsc_layout(workdir):
     ]
     for path in include_dirs:
         argv.extend(["-I", path])
-    argv.extend(["-include", WSC_DIR / "gamerom" / "include" /
-                 "gamerom_prelude.h", "-o", asm, probe])
+    argv.extend(["-include", WSC_DIR / "include" /
+                 "wsc_prelude.h", "-o", asm, probe])
     run(argv, what="WSC offsetof probe")
     return parse_probe_asm(asm, r"\.(?:hword|word)\s+(-?\d+)", 10)
 

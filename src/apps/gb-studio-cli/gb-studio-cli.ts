@@ -13,10 +13,11 @@ import { getROMFilename } from "shared/lib/helpers/filePaths";
 import { exportWebBuild } from "lib/compiler/webBuild";
 import { collectBuildUsage } from "lib/compiler/buildUsage";
 import formatBuildUsageReport from "shared/lib/compiler/formatBuildUsageReport";
+import { assertWscPrerequisites, buildWsc } from "./buildWsc";
 
 declare const VERSION: string;
 
-type Command = "export" | "make:rom" | "make:pocket" | "make:web";
+type Command = "export" | "make:rom" | "make:pocket" | "make:web" | "make:wsc";
 
 type CLIOptions = {
   onlyData?: boolean;
@@ -40,6 +41,10 @@ const main = async (
   destination: string,
 ) => {
   await initElectronL10N();
+
+  if (command === "make:wsc") {
+    assertWscPrerequisites();
+  }
 
   // Load project file
   const projectRoot = Path.resolve(Path.dirname(projectFile));
@@ -87,7 +92,8 @@ const main = async (
     outputRoot,
     romFilename,
     debugEnabled: false,
-    make: command !== "export" || Boolean(usage),
+    make:
+      (command !== "export" && command !== "make:wsc") || Boolean(usage),
     progress,
     warnings,
   });
@@ -111,7 +117,14 @@ const main = async (
     throw new Error(buildResult.error);
   }
 
-  if (command === "export") {
+  if (command === "make:wsc") {
+    await buildWsc({
+      exportDir: tmpBuildDir,
+      projectRoot,
+      projectFile,
+      destination,
+    });
+  } else if (command === "export") {
     if (onlyData) {
       // Export src/data and include/data to destination
       const dataSrcTmpPath = Path.join(tmpBuildDir, "src", "data");
@@ -173,6 +186,18 @@ program
   .description("Build for web from project file")
   .action((source, destination) => {
     main("make:web", source, destination);
+  });
+
+program
+  .command("make:wsc <projectFile> <destination.wsc>")
+  .description("Build a WonderSwan Color ROM from project file")
+  .action((source, destination) => {
+    main("make:wsc", source, destination).catch((error) => {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      console.error(`error: ${message.replace(/^Error: /, "")}`);
+      process.exit(1);
+    });
   });
 
 program.option("-d, --onlyData", "Only replace data folder in destination");

@@ -1,0 +1,9 @@
+{
+  "rom": "build/product/tests/product-gbs2/output.wsc",
+  "elf": "build/product/tests/product-gbs2/build/product.elf",
+  "build": "tests/product-gbs2",
+  "frames": 600,
+  "input": "input.txt",
+  "frame_sha256": null,
+  "ram": "build/product/tests/product-gbs2/ram.json"
+}

@@ -1,8 +1,8 @@
-#ifndef WS_GAMEROM_GBDK_PLATFORM_H
-#define WS_GAMEROM_GBDK_PLATFORM_H
+#ifndef WS_WSC_GBDK_PLATFORM_H
+#define WS_WSC_GBDK_PLATFORM_H
 
 /*
- * GBDK shim for the WSC engine boot ROM.
+ * GBDK shim shared by the WSC engine ROM builds.
  *
  * This is not a port of GBDK. It declares the GBDK 2020 names the shared
  * engine sources mention. The WSC HAL replaces the hardware paths; the GB
@@ -278,4 +278,4 @@ void set_sprite_prop(UINT8 num, UINT8 prop);
 extern volatile UBYTE _shadow_OAM_base;
 extern volatile UBYTE __render_shadow_OAM;
 
-#endif /* WS_GAMEROM_GBDK_PLATFORM_H */
+#endif /* WS_WSC_GBDK_PLATFORM_H */

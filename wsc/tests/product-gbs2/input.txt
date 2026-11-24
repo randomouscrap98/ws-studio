@@ -1,0 +1,5 @@
+# Logo fades to the title; skip its await, then choose New Game.
+300 A
+305 -
+360 A
+365 -

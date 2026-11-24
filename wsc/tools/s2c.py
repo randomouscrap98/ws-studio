@@ -1224,21 +1224,24 @@ def write_output(model, out_dir, name):
     native = sorted(
         model.native_addr_symbols, key=lambda sym: (sym != "_wait_frames", sym)
     )
-    if native:
-        # Only the full engine build has the native handlers and defines this
-        # macro. Data-only ROMs (datarom) convert the same scripts but do not
-        # link the VM, so they must not emit an unresolved table.
-        c_lines.append("#if defined(GBVM_ENGINE_HANDLERS)")
-        c_lines.append("/* Native functions reached through vm_invoke/vm_call_native. */")
-        for sym in native:
-            c_lines.append("extern void {}();".format(sym[1:]))
-        c_lines.append("typedef void (* S2C_FAR s2c_native_fn_t)(void);")
-        c_lines.append("s2c_native_fn_t vm_native_fns[] = {")
-        for sym in native:
-            c_lines.append("    (s2c_native_fn_t){}, /* {} */".format(sym[1:], sym))
-        c_lines.append("};")
-        c_lines.append("#endif")
-        c_lines.append("")
+    # Only the full engine build has the native handlers and defines this
+    # macro. Data-only ROMs (datarom) convert the same scripts but do not link
+    # the VM, so they must not emit an unresolved table. A project with no
+    # scripts still needs the symbol because the linked VM references it.
+    c_lines.append("#if defined(GBVM_ENGINE_HANDLERS)")
+    c_lines.append("/* Native functions reached through vm_invoke/vm_call_native. */")
+    for sym in native:
+        c_lines.append("extern void {}();".format(sym[1:]))
+    c_lines.append("typedef void (* S2C_FAR s2c_native_fn_t)(void);")
+    size = "[]" if native else "[1]"
+    c_lines.append("s2c_native_fn_t vm_native_fns{} = {{".format(size))
+    for sym in native:
+        c_lines.append("    (s2c_native_fn_t){}, /* {} */".format(sym[1:], sym))
+    if not native:
+        c_lines.append("    (s2c_native_fn_t)0,")
+    c_lines.append("};")
+    c_lines.append("#endif")
+    c_lines.append("")
     for bank_index, items in enumerate(model.banks):
         total = sum(script.size for script in items)
         bank = bank_index + 1

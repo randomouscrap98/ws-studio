@@ -1,0 +1,8 @@
+{
+  "rom": "build/product/tests/product-blank/output.wsc",
+  "elf": "build/product/tests/product-blank/build/product.elf",
+  "build": "tests/product-blank",
+  "frames": 120,
+  "frame_sha256": null,
+  "ram": "build/product/tests/product-blank/ram.json"
+}

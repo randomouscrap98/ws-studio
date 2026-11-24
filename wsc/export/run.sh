@@ -16,42 +16,9 @@ cli="$repo/out/cli/gb-studio-cli.js"
 
 cd "$repo"
 
-if ! command -v node >/dev/null 2>&1; then
-    echo "error: node is required" >&2
-    exit 1
-fi
-if ! command -v yarn >/dev/null 2>&1; then
-    echo "error: yarn 1.x is required" >&2
-    exit 1
-fi
-
-# package.json declares yarn@4 (for corepack) and .yarnrc points at a Yarn 1
-# binary that is not committed. Use the system Yarn 1.22.22 with the tracked
-# v1 lockfile instead. --ignore-scripts skips Electron's binary download and
-# any native builds; --pure-lockfile is needed because the fork's package.json
-# has entries the committed lockfile does not.
-if [[ ! -d node_modules || ! -x node_modules/.bin/webpack ]]; then
-    echo "== installing dependencies =="
-    SKIP_YARN_COREPACK_CHECK=1 \
-    YARN_IGNORE_PATH=1 \
-    ELECTRON_SKIP_BINARY_DOWNLOAD=1 \
-        yarn install --pure-lockfile --ignore-scripts --non-interactive
-fi
-
-needs_build=0
-if [[ ! -f "$cli" ]]; then
-    needs_build=1
-elif [[ -n "$(find "$repo/src" "$repo/package.json" "$repo/yarn.lock" \
-        -newer "$cli" -print -quit)" ]]; then
-    needs_build=1
-fi
-if ((needs_build)); then
-    echo "== building CLI =="
-    # The tsc type check fails on this Node/@types combination, but the CLI
-    # bundles fine with webpack. This is the same env the repo's start:cli
-    # script uses.
-    NO_TYPE_CHECKING=1 npm run make:cli
-fi
+# shellcheck source=ensure-cli.sh
+source "$here/../tools/ensure-cli.sh"
+ensure_cli "$repo" "$cli"
 
 if [[ ! -f "$template" ]]; then
     echo "error: template not found: $template" >&2

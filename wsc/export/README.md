@@ -94,3 +94,17 @@ Generated `src/data/*.s` files are sdas-syntax bytecode: `vm.i`/`macro.i`
 expansions, `.db`/`.dw`/`.asciz`, labels and symbol references. They contain
 no raw CPU instructions. The engine's `src/core/gb/*.s` files are ordinary
 hand-written Z80/GB assembly.
+
+## WSC product ROMs
+
+The CLI also has `make:wsc`, which runs the same export and then the WSC
+product build (`wsc/product/Makefile`, via `wsc/tools/build_product.sh`):
+
+```sh
+node out/cli/gb-studio-cli.js make:wsc PROJECT.gbsproj OUT.wsc
+```
+
+`wsc/export/run.sh` and `wsc/tools/build_product.sh` share
+`wsc/tools/ensure-cli.sh` for the dependency install/CLI bundle step. The
+`make:wsc` command checks `WONDERFUL_TOOLCHAIN` (default `/opt/wonderful`),
+`python3` and `make` before starting the export.

@@ -1,0 +1,13 @@
+[cartridge]
+# 8 x 64 KiB = 512 KiB. All eight banks are inside the WSC's default
+# linear window, so the engine can grow without bank switching.
+rom_banks = 8
+publisher_id = 0x00
+game_id = 0
+game_version = 0
+
+# Four 8 KiB SRAM banks. The engine's save code uses the first three.
+save_type = "SRAM_32KB"
+color = true
+rtc = false
+vertical = false

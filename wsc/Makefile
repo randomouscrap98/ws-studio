@@ -26,7 +26,15 @@ HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
 .PHONY: test test-negative wsrun gb-core gb-oracle gb-platform-smoke \
-	parallax-visual host-test gen-dispatch s2c-check
+	parallax-visual host-test gen-dispatch s2c-check product
+
+# Build a product ROM from an exported project. The CLI command `make:wsc`
+# does the export itself; this target is the scripted entry point for tests.
+PROJECT ?= $(ROOT_DIR)/appData/templates/gbs2/project.gbsproj
+PRODUCT_ROM ?= $(WSC_DIR)build/product/product.wsc
+PRODUCT_STATE ?= $(WSC_DIR)build/product/state
+product:
+	$(WSC_DIR)tools/build_product.sh $(PROJECT) $(PRODUCT_ROM) $(PRODUCT_STATE)
 
 wsrun:
 	$(MAKE) -C $(WSC_DIR)tools/wsrun

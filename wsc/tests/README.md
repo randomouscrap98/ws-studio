@@ -268,3 +268,18 @@ The keypad values used by the input tests correspond to the libws
   (64, 32). Eight lines walk the text tile buffer from `0xCC` to `0xFF`;
   the 32-px border on each side must stay blank. `c18_oracle.py --mode blank`
   renders the background, frame and glyph tiles from the exported data.
+
+- `product-gbs2`: builds a **product** ROM with `tools/build_product.sh`
+  (the CLI's `make:wsc`) from a gbs2 copy whose title "New Game" branch
+  starts Sample Town. The input skips the logo/title await; the RAM checks
+  pin `current_scene` to the product ELF's `scene_sample_town` and the
+  player at subpixel position (2560, 2560). The normal product ROM starts at
+  the project's own start scene (the gbs2 logo).
+- `product-blank`: builds a product ROM from the blank template with one
+  default TOPDOWN scene added (the template itself has no scenes, so GB
+  Studio's exporter rejects it). It boots that scene and checks
+  `current_scene` and the player at (2304, 2304).
+
+The product build is `wsc/product/`; it shares the engine source list, C
+flags and linker flags with `wsc/gamerom` through `wsc/engine.mk`. Its build
+tree is under `wsc/build/product/`.

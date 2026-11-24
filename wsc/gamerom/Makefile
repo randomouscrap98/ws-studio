@@ -10,18 +10,8 @@ PYTHON ?= python3
 # far const data). wsc/tools/capacity_check.sh owns that build.
 CAPACITY_FILLER ?= 0
 
-WONDERFUL_TOOLCHAIN ?= /opt/wonderful
-TARGET = wswan/medium
-include $(WONDERFUL_TOOLCHAIN)/target/$(TARGET)/makedefs.mk
-
 GAMEROM_DIR	:= $(CURDIR)/
-WSC_DIR		:= $(GAMEROM_DIR)..
-ROOT_DIR	:= $(WSC_DIR)/..
-GBVM_DIR	:= $(ROOT_DIR)/appData/engine/gbvm
-GBVM_CORE	:= $(GBVM_DIR)/src/core
-GBVM_STATES	:= $(GBVM_DIR)/src/states
-GBVM_WSC	:= $(GBVM_DIR)/src/wsc
-GBVM_INCLUDE	:= $(GBVM_DIR)/include
+include $(GAMEROM_DIR)../engine.mk
 
 EXPORT_DIR	:= $(WSC_DIR)/build/export
 EXPORT_READY	:= $(EXPORT_DIR)/src/data/scene_sample_town.c
@@ -59,20 +49,12 @@ RAM_WALK_WALL	:= $(BUILDDIR)/ram_walk_wall.json
 IRAM_CHECK	:= $(WSC_DIR)/tools/iram_check.py
 IRAM_STAMP	:= $(BUILDDIR)/iram_check.stamp
 
-INCLUDEFLAGS	:= -I$(CURDIR)/include -I$(GEN_DIR)/include \
-		   -I$(C18_DATA_DIR) \
-		   -I$(S2C_DIR) -I$(WSC_DIR)/host/include \
-		   -I$(GBVM_INCLUDE) -I$(EXPORT_DIR)/include \
+INCLUDEFLAGS	:= -I$(GEN_DIR)/include -I$(C18_DATA_DIR) \
+		   -I$(S2C_DIR) -I$(EXPORT_DIR)/include \
 		   $(foreach path,$(WF_ARCH_LIBDIRS),-isystem $(path)/include)
-LIBDIRSFLAGS	:= $(foreach path,$(WF_ARCH_LIBDIRS),-L$(path)/lib)
 
-CFLAGS		+= -std=gnu11 -Wall $(WF_ARCH_CFLAGS) $(INCLUDEFLAGS) \
-		   -ffunction-sections -fdata-sections -fno-common -O2 \
-		   -fno-builtin -Wno-unknown-pragmas -Wno-pointer-sign \
-		   -DHUGE_TRACKER -DGBVM_ENGINE_HANDLERS \
-		   -include $(CURDIR)/include/gamerom_prelude.h
-LDFLAGS		:= -T$(WF_LDSCRIPT) $(LIBDIRSFLAGS) $(WF_ARCH_LDFLAGS) \
-		   -lwsx -lws
+CFLAGS		:= $(WSC_CFLAGS)
+LDFLAGS		:= $(WSC_LDFLAGS)
 
 EXPORT_SCRIPTS	:= $(wildcard $(EXPORT_DIR)/src/data/*.s)
 EXPORT_DEPS	:= $(shell find $(EXPORT_DIR)/src/data \
@@ -84,32 +66,7 @@ PROJECT_DEPS	:= $(shell find $(PROJECT_DIR)/project \
 DATA_SOURCES	:= $(shell find $(GEN_DIR)/data -name '*.c' 2>/dev/null | sort)
 DATA_OBJS	:= $(patsubst $(GEN_DIR)/data/%.c,$(OBJDIR)/data/%.o,$(DATA_SOURCES))
 
-ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
-		   $(GBVM_CORE)/core.c $(GBVM_CORE)/data_manager.c \
-		   $(GBVM_CORE)/actor.c $(GBVM_CORE)/scroll.c \
-		   $(GBVM_CORE)/camera.c $(GBVM_CORE)/palette.c \
-		   $(GBVM_CORE)/input.c $(GBVM_CORE)/events.c \
-		   $(GBVM_CORE)/trigger.c $(GBVM_CORE)/collision.c \
-		   $(GBVM_CORE)/projectiles.c $(GBVM_CORE)/vm.c \
-		   $(GBVM_CORE)/vm_dispatch.c \
-		   $(GBVM_CORE)/vm_actor.c $(GBVM_CORE)/vm_gameboy.c \
-		   $(GBVM_CORE)/vm_scene.c $(GBVM_CORE)/vm_camera.c \
-		   $(GBVM_CORE)/vm_palette.c $(GBVM_CORE)/vm_math.c \
-		   $(GBVM_CORE)/vm_music.c $(GBVM_CORE)/vm_projectiles.c \
-		   $(GBVM_CORE)/load_save.c \
-		   $(GBVM_CORE)/vm_load_save.c $(GBVM_CORE)/game_time.c \
-		   $(GBVM_CORE)/math.c $(GBVM_CORE)/math_atan2.c \
-		   $(GBVM_CORE)/system.c \
-		   $(GBVM_CORE)/ui.c $(GBVM_CORE)/vm_ui.c \
-		   $(GBVM_STATES)/topdown.c \
-		   $(GBVM_STATES)/adventure.c \
-		   $(GBVM_STATES)/shmup.c $(GBVM_STATES)/pointnclick.c \
-		   $(GBVM_WSC)/bankdata_wsc.c $(GBVM_WSC)/hal_wsc.c \
-		   $(GBVM_WSC)/hal_wsc_sram.c \
-		   $(GBVM_WSC)/hal_wsc_bg.c $(GBVM_WSC)/hal_wsc_spr.c \
-		   $(GBVM_WSC)/parallax_wsc.c \
-		   $(GBVM_WSC)/scroll_wsc.c $(GBVM_WSC)/stubs_wsc.c \
-		   $(GBVM_WSC)/ui_wsc.c \
+ENGINE_SOURCES	:= $(WSC_ENGINE_SOURCES) \
 		   $(CURDIR)/src/platform.c $(CURDIR)/src/c13_test_scene.c \
 		   $(CURDIR)/src/c14_test_scene.c \
 		   $(CURDIR)/src/c15_test_scene.c \
@@ -216,14 +173,7 @@ $(STAGE): $(COMMON_OBJS) $(BOOTSTRAP_OBJ)
 	@echo "  LD      $@"
 	$(CC) -r -o $@ $^ $(WF_CRT0) $(LDFLAGS)
 
-define ENGINE_RULE
-$(OBJDIR)/engine/$(notdir $(basename $(1))).o: $(1) $(D2C_STAMP)
-	@echo "  CC      $(1)"
-	@mkdir -p $$(@D)
-	$(CC) $(CFLAGS) -MMD -MP -c -o $$@ $(1)
-endef
-
-$(foreach src,$(ENGINE_SOURCES),$(eval $(call ENGINE_RULE,$(src))))
+$(foreach src,$(ENGINE_SOURCES),$(eval $(call WSC_ENGINE_RULE,$(src))))
 
 $(STATE_PLATFORM_OBJ): $(STATE_PLATFORM_SRC) $(D2C_STAMP)
 	@echo "  CC      $<"
