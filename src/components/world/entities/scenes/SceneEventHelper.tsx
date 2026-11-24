@@ -16,7 +16,7 @@ import {
 } from "shared/types";
 import { DialoguePreview } from "components/script/previews/DialoguePreview";
 import { Constant } from "shared/lib/resources/types";
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "consts";
+import { WSC_SCREEN_HEIGHT, WSC_SCREEN_WIDTH } from "consts";
 
 const TILE_SIZE = 8;
 
@@ -34,16 +34,16 @@ const EventHelperWrapper = styled.div`
 
 const CameraPos = styled.div`
   position: absolute;
-  width: 160px;
-  height: 144px;
+  width: ${WSC_SCREEN_WIDTH * TILE_SIZE}px;
+  height: ${WSC_SCREEN_HEIGHT * TILE_SIZE}px;
   outline: 4px solid red;
   box-shadow: 0 0 1000px 1000px rgba(0, 0, 0, 0.6);
 `;
 
 const ScreenMarker = styled.div`
   position: absolute;
-  width: 160px;
-  height: 144px;
+  width: ${WSC_SCREEN_WIDTH * TILE_SIZE}px;
+  height: ${WSC_SCREEN_HEIGHT * TILE_SIZE}px;
   box-shadow: 0 0 1000px 1000px rgba(0, 0, 0, 0.6);
 `;
 
@@ -70,7 +70,7 @@ const DistanceMarker = styled.div`
 
 const OverlayPos = styled.div`
   position: absolute;
-  width: 160px;
+  width: ${WSC_SCREEN_WIDTH * TILE_SIZE}px;
   height: 256px;
   background: blue;
 `;
@@ -101,9 +101,9 @@ const ScanlinePos = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  width: 160px;
-  height: 144px;
-  maxheight: 144px;
+  width: ${WSC_SCREEN_WIDTH * TILE_SIZE}px;
+  height: ${WSC_SCREEN_HEIGHT * TILE_SIZE}px;
+  max-height: ${WSC_SCREEN_HEIGHT * TILE_SIZE}px;
   background: #e0f8cf;
   &:before {
     content: "";
@@ -154,8 +154,8 @@ const AreaPos = styled.div<{
 }>`
   transition: none;
   position: absolute;
-  width: 160px;
-  height: 144px;
+  width: ${WSC_SCREEN_WIDTH * TILE_SIZE}px;
+  height: ${WSC_SCREEN_HEIGHT * TILE_SIZE}px;
   background-color: ${(props) => props.fillColor};
   box-shadow:
     0 0 0 8px ${(props) => props.borderColor},
@@ -284,11 +284,11 @@ export const SceneEventHelper = memo(({ sceneId }: SceneEventHelperProps) => {
             top: (y || 0) * (units === "pixels" ? 1 : TILE_SIZE),
             width: Math.max(
               width * (units === "pixels" ? 1 : TILE_SIZE),
-              SCREEN_WIDTH * TILE_SIZE,
+              WSC_SCREEN_WIDTH * TILE_SIZE,
             ),
             height: Math.max(
               height * (units === "pixels" ? 1 : TILE_SIZE),
-              SCREEN_HEIGHT * TILE_SIZE,
+              WSC_SCREEN_HEIGHT * TILE_SIZE,
             ),
           }}
         />

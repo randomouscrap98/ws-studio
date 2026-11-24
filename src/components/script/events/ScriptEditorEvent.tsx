@@ -31,6 +31,7 @@ import {
   ScriptEventPlaceholder,
   ScriptEventRenameInput,
   ScriptEventRenameInputCompleteButton,
+  ScriptEventWarning,
 } from "ui/scripting/ScriptEvents";
 import { CheckIcon } from "ui/icons/Icons";
 import ScriptEventForm from "./ScriptEventForm";
@@ -46,6 +47,7 @@ import useOnScreen from "ui/hooks/use-on-screen";
 import { ScriptEventSymbolsEditor } from "components/forms/symbols/ScriptEventSymbolsEditor";
 import { ScriptEventSymbolEditorWrapper } from "components/forms/symbols/SymbolEditorWrapper";
 import { EVENT_COMMENT, EVENT_END } from "consts";
+import { isWscHiddenEvent } from "shared/lib/scripts/wscEvents";
 import { selectScriptEventDefs } from "store/features/scriptEventDefs/scriptEventDefsState";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import { ScriptEditorContext } from "components/script/context/ScriptEditorContext";
@@ -307,6 +309,7 @@ const ScriptEditorEvent = React.memo(
     const isConditional = scriptEventDefs[command]?.isConditional ?? false;
     const editableSymbol = scriptEventDefs[command]?.editableSymbol ?? false;
     const description = scriptEventDefs[command]?.description;
+    const isWscUnsupported = isWscHiddenEvent(command);
 
     const onOpenAddMenu = useCallback((before: boolean) => {
       setInsertBefore(before);
@@ -549,6 +552,13 @@ const ScriptEditorEvent = React.memo(
           </div>
           {isOpen && !isDisabled && (
             <ScriptEventFormWrapper data-handler-id={handlerId}>
+              {isWscUnsupported && (
+                <ScriptEventWarning>
+                  <strong>{l10n("FIELD_WSC_UNSUPPORTED_EVENT")}</strong>
+                  <br />
+                  {l10n("FIELD_WSC_UNSUPPORTED_EVENT_INFO")}
+                </ScriptEventWarning>
+              )}
               <ScriptEditorEventHelper event={scriptEvent} />
               {showSymbols && (
                 <ScriptEventSymbolEditorWrapper>

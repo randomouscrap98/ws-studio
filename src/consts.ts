@@ -63,12 +63,19 @@ export const MAX_BACKGROUND_TILES = 16 * 12;
 export const MAX_BACKGROUND_TILES_CGB = 16 * 12 * 2;
 
 // Screen
+// SCREEN_* is the GB Studio 20x18 minimum used by the screen-independent
+// compiler for asset validation. The WonderSwan Color screen is the one the
+// editor presents and is the single 28x18 constant for editor geometry.
 export const SCREEN_WIDTH = 20;
 export const SCREEN_HEIGHT = 18;
+export const WSC_SCREEN_WIDTH = 28;
+export const WSC_SCREEN_HEIGHT = 18;
 export const TILE_SIZE = 8;
 
 export const SCREEN_WIDTH_PX = SCREEN_WIDTH * TILE_SIZE;
 export const SCREEN_HEIGHT_PX = SCREEN_HEIGHT * TILE_SIZE;
+export const WSC_SCREEN_WIDTH_PX = WSC_SCREEN_WIDTH * TILE_SIZE;
+export const WSC_SCREEN_HEIGHT_PX = WSC_SCREEN_HEIGHT * TILE_SIZE;
 
 export const SCENE_MAX_SIZE_PX = 2040;
 

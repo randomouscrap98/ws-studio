@@ -5,6 +5,7 @@ import {
 import { clampN } from "shared/lib/helpers/clamp";
 import { hexDec, wrap8Bit } from "shared/lib/helpers/8bit";
 import { Branded } from "shared/types";
+import { hexToWscRgb } from "shared/lib/helpers/wscColor";
 
 /**
  * Color space overview:
@@ -141,10 +142,9 @@ export const colorizeSpriteData = (
   mutData: Uint8ClampedArray,
   objPalette: MonoOBJPalette,
   palette: string[],
-  colorCorrection: ColorCorrectionSetting,
+  _colorCorrection: ColorCorrectionSetting,
 ) => {
-  const colorCorrectionFn = hex2GBCrgb(colorCorrection);
-  const paletteRGB = palette.map(colorCorrectionFn);
+  const paletteRGB = palette.map(hexToWscRgb);
   for (let index = 0; index < mutData.length; index += 4) {
     const colorIndex = indexSpriteColour(mutData[index + 1], objPalette);
     const color = paletteRGB[colorIndex];

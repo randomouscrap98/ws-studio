@@ -20,8 +20,6 @@ import { useSaveScroll } from "ui/hooks/use-save-scroll";
 import { SettingsSectionColor } from "./section/SettingsSectionColor";
 import { SettingsSectionWeb } from "./section/SettingsSectionWeb";
 import { SettingsSectionBuild } from "./section/SettingsSectionBuild";
-import { SettingsSectionSGB } from "./section/SettingsSectionSGB";
-import { SettingsSectionCart } from "./section/SettingsSectionCart";
 import { SettingsSectionControls } from "./section/SettingsSectionControls";
 import { SettingsSectionUI } from "./section/SettingsSectionUI";
 import { SettingsSectionSprites } from "./section/SettingsSectionSprites";
@@ -88,9 +86,6 @@ const SettingsPage = () => {
             <SettingsMenuItem onClick={onMenuItem("settingsColor")}>
               {l10n("SETTINGS_COLOR")}
             </SettingsMenuItem>
-            <SettingsMenuItem onClick={onMenuItem("settingsSuper")}>
-              {l10n("SETTINGS_SGB")}
-            </SettingsMenuItem>
             <SettingsMenuItem onClick={onMenuItem("settingsSceneTypes")}>
               {l10n("FIELD_SCENE_TYPES")}
             </SettingsMenuItem>
@@ -112,9 +107,6 @@ const SettingsPage = () => {
             <SettingsMenuItem onClick={onMenuItem("settingsControls")}>
               {l10n("SETTINGS_CONTROLS")}
             </SettingsMenuItem>
-            <SettingsMenuItem onClick={onMenuItem("settingsCartType")}>
-              {l10n("SETTINGS_CART_TYPE")}
-            </SettingsMenuItem>
             <SettingsMenuItem onClick={onMenuItem("settingsBuild")}>
               {l10n("SETTINGS_BUILD")}
             </SettingsMenuItem>
@@ -126,13 +118,11 @@ const SettingsPage = () => {
       )}
       <SettingsContentColumn ref={scrollRef}>
         <SettingsSectionColor searchTerm={searchTerm} />
-        <SettingsSectionSGB searchTerm={searchTerm} />
         <SettingsSectionSceneTypes searchTerm={searchTerm} />
         <SettingsSectionEngineFields searchTerm={searchTerm} />
         <SettingsSectionSprites searchTerm={searchTerm} />
         <SettingsSectionUI searchTerm={searchTerm} />
         <SettingsSectionControls searchTerm={searchTerm} />
-        <SettingsSectionCart searchTerm={searchTerm} />
         <SettingsSectionBuild searchTerm={searchTerm} />
         <SettingsSectionWeb searchTerm={searchTerm} />
       </SettingsContentColumn>

@@ -15,6 +15,7 @@ type BuildOptions = {
   outputRoot: string;
   make?: boolean;
   debugEnabled?: boolean;
+  wsc?: boolean;
   useCustomWebTemplate?: boolean;
   progress: (msg: string) => void;
   warnings: (msg: string) => void;
@@ -32,6 +33,7 @@ const buildProject = async (
     outputRoot = "/tmp/testing",
     romFilename,
     debugEnabled = false,
+    wsc = true,
     useCustomWebTemplate = true,
     make = true,
     progress = (_msg: string) => {},
@@ -47,6 +49,7 @@ const buildProject = async (
     outputRoot,
     romFilename,
     debugEnabled,
+    wsc,
     make,
     progress,
     warnings,

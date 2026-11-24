@@ -15,14 +15,12 @@ interface SceneInspectorMenuProps {
   clipboardFormat?: string;
   showNotes: boolean;
   showSymbols: boolean;
-  showColorModeOverride: boolean;
   canAutoTileFlip: boolean;
   showAutoTileFlipOverride: boolean;
   showSpriteModeOverride: boolean;
   onChangeLabelColor: (color: SceneNormalized["labelColor"]) => void;
   onAddNotes: () => void;
   onShowSymbols: () => void;
-  onOverrideColorMode: () => void;
   onOverrideAutoTileFlip: () => void;
   onOverrideSpriteMode: () => void;
   onCopy: () => void;
@@ -40,14 +38,12 @@ const renderSceneInspectorMenu = ({
   clipboardFormat,
   showNotes,
   showSymbols,
-  showColorModeOverride,
   canAutoTileFlip,
   showAutoTileFlipOverride,
   showSpriteModeOverride,
   onChangeLabelColor,
   onAddNotes,
   onShowSymbols,
-  onOverrideColorMode,
   onOverrideAutoTileFlip,
   onOverrideSpriteMode,
   onCopy,
@@ -85,13 +81,6 @@ const renderSceneInspectorMenu = ({
     ? [
         <MenuItem key="symbols" onClick={onShowSymbols}>
           {l10n("FIELD_VIEW_GBVM_SYMBOLS")}
-        </MenuItem>,
-      ]
-    : []),
-  ...(!compact && !showColorModeOverride && colorsEnabled
-    ? [
-        <MenuItem key="colorMode" onClick={onOverrideColorMode}>
-          {l10n("FIELD_SET_COLOR_MODE_OVERRIDE")}
         </MenuItem>,
       ]
     : []),

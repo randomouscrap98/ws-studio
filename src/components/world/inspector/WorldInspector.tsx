@@ -1,10 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { SceneSelect } from "components/forms/SceneSelect";
 import DirectionPicker from "components/forms/DirectionPicker";
-import {
-  castEventToBool,
-  castEventToInt,
-} from "renderer/lib/helpers/castEventValue";
+import { castEventToInt } from "renderer/lib/helpers/castEventValue";
 import { MovementSpeedSelect } from "components/forms/MovementSpeedSelect";
 import { AnimationSpeedSelect } from "components/forms/AnimationSpeedSelect";
 import settingsActions from "store/features/settings/settingsActions";
@@ -29,7 +26,6 @@ import { SettingsState } from "store/features/settings/settingsState";
 import { Label } from "ui/form/Label";
 import { NoteField } from "ui/form/NoteField";
 import { TextField } from "ui/form/TextField";
-import { CheckboxField } from "ui/form/CheckboxField";
 import { Button } from "ui/buttons/Button";
 import l10n from "shared/lib/lang/l10n";
 import { useAppDispatch, useAppSelector } from "store/hooks";
@@ -125,12 +121,6 @@ export const WorldInspector = () => {
     [onChangeSettingProp],
   );
 
-  const onChangeColorsEnabled = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      onChangeSettingProp("colorMode", castEventToBool(e) ? "mixed" : "mono"),
-    [onChangeSettingProp],
-  );
-
   const onOpenSettings = useCallback(() => {
     dispatch(navigationActions.setSection("settings"));
   }, [dispatch]);
@@ -183,12 +173,6 @@ export const WorldInspector = () => {
           <FormDivider />
 
           <FormRow>
-            <CheckboxField
-              name="colorsEnabled"
-              label={l10n("FIELD_EXPORT_IN_COLOR")}
-              checked={settings.colorMode !== "mono"}
-              onChange={onChangeColorsEnabled}
-            />
             <Button onClick={onOpenSettings}>
               {l10n("FIELD_MORE_SETTINGS")}
             </Button>

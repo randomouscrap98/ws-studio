@@ -19,6 +19,8 @@ import {
   TOOL_SELECT,
   TOOL_SCENE,
   TOOL_NOTE,
+  WSC_SCREEN_HEIGHT_PX,
+  WSC_SCREEN_WIDTH_PX,
 } from "consts";
 import {
   sceneSelectors,
@@ -75,8 +77,8 @@ const NewSceneCursor = styled.div`
   cursor: pointer;
   background-color: rgba(3, 54, 99, 0.5);
   color: ${(props) => props.theme.colors.text};
-  width: 160px;
-  height: 144px;
+  width: ${WSC_SCREEN_WIDTH_PX}px;
+  height: ${WSC_SCREEN_HEIGHT_PX}px;
   border-radius: 4px;
   z-index: 2000;
   display: flex;

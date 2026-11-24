@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { hexToWscHex } from "shared/lib/helpers/wscColor";
 import styled from "styled-components";
 import { MonoBGPPalette, MonoOBJPalette } from "shared/lib/resources/types";
 import PaletteBlock from "components/forms/PaletteBlock";
@@ -214,17 +215,17 @@ export const DMGPaletteSelectButton = ({
   const currentColors = useMemo(() => {
     if (isSpritePalette) {
       return [
-        DMG_PALETTE.colors[value[0]],
-        DMG_PALETTE.colors[value[1]],
-        DMG_PALETTE.colors[value[1]],
-        DMG_PALETTE.colors[value[2]],
+        hexToWscHex(DMG_PALETTE.colors[value[0]]),
+        hexToWscHex(DMG_PALETTE.colors[value[1]]),
+        hexToWscHex(DMG_PALETTE.colors[value[1]]),
+        hexToWscHex(DMG_PALETTE.colors[value[2]]),
       ];
     }
     return [
-      DMG_PALETTE.colors[value[0]],
-      DMG_PALETTE.colors[value[1]],
-      DMG_PALETTE.colors[value[2]],
-      DMG_PALETTE.colors[value[3]],
+      hexToWscHex(DMG_PALETTE.colors[value[0]]),
+      hexToWscHex(DMG_PALETTE.colors[value[1]]),
+      hexToWscHex(DMG_PALETTE.colors[value[2]]),
+      hexToWscHex(DMG_PALETTE.colors[value[3]]),
     ];
   }, [isSpritePalette, value]);
 

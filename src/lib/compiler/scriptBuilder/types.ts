@@ -171,6 +171,7 @@ export interface ScriptBuilderOptions<
   debugEnabled: boolean;
   compiledAssetsCache: Record<string, string>;
   disabledSceneTypeIds: string[];
+  wsc: boolean;
   warnings: (msg: string) => void;
   compileEvents: (self: TBuilder, events: ScriptEvent[]) => void;
 }

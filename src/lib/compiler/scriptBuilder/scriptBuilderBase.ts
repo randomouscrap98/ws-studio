@@ -164,6 +164,7 @@ abstract class ScriptBuilderBase {
       additionalScriptsCache: options.additionalScriptsCache ?? {},
       compiledAssetsCache: options.compiledAssetsCache ?? {},
       disabledSceneTypeIds: options.disabledSceneTypeIds || [],
+      wsc: options.wsc ?? false,
       compileEvents: options.compileEvents || ((_self, _e) => {}),
       warnings: options.warnings || (() => {}),
       settings: options.settings || defaultProjectSettings,

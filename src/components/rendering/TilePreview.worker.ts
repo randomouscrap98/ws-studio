@@ -1,5 +1,5 @@
 import { TILE_SIZE } from "consts";
-import { hex2GBCrgb } from "shared/lib/helpers/color";
+import { hexToWscRgb } from "shared/lib/helpers/wscColor";
 
 // eslint-disable-next-line no-restricted-globals
 const workerCtx: Worker = self as unknown as Worker;
@@ -38,8 +38,7 @@ workerCtx.onmessage = async (evt) => {
   const tileIndex = evt.data.tileIndex ?? 0;
   const tileSize = evt.data.tileSize === "16px" ? TILE_SIZE * 2 : TILE_SIZE;
   const palette = evt.data.palette;
-  const colorCorrectionFn = hex2GBCrgb(evt.data.colorCorrection);
-  const paletteRGB = palette.map(colorCorrectionFn);
+  const paletteRGB = palette.map(hexToWscRgb);
 
   let canvas: OffscreenCanvas;
   let ctx: OffscreenCanvasRenderingContext2D;

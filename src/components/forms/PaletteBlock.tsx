@@ -1,5 +1,6 @@
 import React from "react";
 import styled, { css } from "styled-components";
+import { hexToWscHex } from "shared/lib/helpers/wscColor";
 
 export type PaletteBlockType = "tile" | "sprite" | "sgb";
 
@@ -66,7 +67,7 @@ const PaletteBlock = ({
         <Color
           key={index}
           style={{
-            backgroundColor: `#${color}`,
+            backgroundColor: `#${hexToWscHex(color)}`,
           }}
         />
       );

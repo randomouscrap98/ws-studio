@@ -8,7 +8,6 @@ const callbacks = () => ({
   onChangeLabelColor: jest.fn(),
   onAddNotes: jest.fn(),
   onShowSymbols: jest.fn(),
-  onOverrideColorMode: jest.fn(),
   onOverrideAutoTileFlip: jest.fn(),
   onOverrideSpriteMode: jest.fn(),
   onCopy: jest.fn(),
@@ -30,7 +29,6 @@ const renderMenu = (compact: boolean) => {
         clipboardFormat: "scenes",
         showNotes: false,
         showSymbols: false,
-        showColorModeOverride: false,
         canAutoTileFlip: true,
         showAutoTileFlipOverride: false,
         showSpriteModeOverride: false,
@@ -58,13 +56,11 @@ test("full menu includes inspector-specific options", () => {
 
   fireEvent.click(screen.getByText("FIELD_ADD_NOTES"));
   fireEvent.click(screen.getByText("FIELD_VIEW_GBVM_SYMBOLS"));
-  fireEvent.click(screen.getByText("FIELD_SET_COLOR_MODE_OVERRIDE"));
   fireEvent.click(screen.getByText("FIELD_SET_AUTO_TILE_FLIP_OVERRIDE"));
   fireEvent.click(screen.getByText("FIELD_SET_SPRITE_MODE_OVERRIDE"));
 
   expect(handlers.onAddNotes).toHaveBeenCalledTimes(1);
   expect(handlers.onShowSymbols).toHaveBeenCalledTimes(1);
-  expect(handlers.onOverrideColorMode).toHaveBeenCalledTimes(1);
   expect(handlers.onOverrideAutoTileFlip).toHaveBeenCalledTimes(1);
   expect(handlers.onOverrideSpriteMode).toHaveBeenCalledTimes(1);
 });

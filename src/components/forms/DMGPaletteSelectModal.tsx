@@ -1,4 +1,5 @@
 import { DMG_PALETTE } from "consts";
+import { hexToWscHex } from "shared/lib/helpers/wscColor";
 import React, { useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { castEventToInt } from "renderer/lib/helpers/castEventValue";
 import l10n from "shared/lib/lang/l10n";
@@ -138,8 +139,8 @@ export const DMGPaletteSelectModal = ({
             <NumberInput
               key={index}
               style={{
-                backgroundColor: `#${DMG_PALETTE.colors[value[index]]}`,
-                color: `#${DMG_PALETTE.colors[(value[index] + 2) % 4]}`,
+                backgroundColor: `#${hexToWscHex(DMG_PALETTE.colors[value[index]])}`,
+                color: `#${hexToWscHex(DMG_PALETTE.colors[(value[index] + 2) % 4])}`,
               }}
               id={`${name}_${index}`}
               name={`${name}_${index}`}

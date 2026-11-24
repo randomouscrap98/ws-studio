@@ -1,4 +1,5 @@
 import PaletteBlock from "components/forms/PaletteBlock";
+import { hexToWscHex } from "shared/lib/helpers/wscColor";
 import React, { memo, useMemo } from "react";
 import {
   OptionLabelWithPreview,
@@ -35,20 +36,20 @@ const ObjPaletteSelectComponent = ({
         value: "OBP0",
         label: "0: OBP0",
         colors: [
-          DMG_PALETTE.colors[monoPalettes[0][0]],
-          DMG_PALETTE.colors[monoPalettes[0][1]],
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[0][0]]),
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[0][1]]),
           "",
-          DMG_PALETTE.colors[monoPalettes[0][2]],
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[0][2]]),
         ],
       },
       {
         value: "OBP1",
         label: "1: OBP1",
         colors: [
-          DMG_PALETTE.colors[monoPalettes[1][0]],
-          DMG_PALETTE.colors[monoPalettes[1][1]],
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[1][0]]),
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[1][1]]),
           "",
-          DMG_PALETTE.colors[monoPalettes[1][2]],
+          hexToWscHex(DMG_PALETTE.colors[monoPalettes[1][2]]),
         ],
       },
     ];

@@ -1,4 +1,4 @@
-import { SCREEN_HEIGHT, SCREEN_WIDTH, TILE_SIZE } from "consts";
+import { TILE_SIZE, WSC_SCREEN_HEIGHT, WSC_SCREEN_WIDTH } from "consts";
 import React from "react";
 import { SceneBoundsRect } from "shared/lib/resources/types";
 import { useAppSelector } from "store/hooks";
@@ -38,7 +38,7 @@ const SceneScreenGrid = ({
         height: height * TILE_SIZE,
       }}
     >
-      {Array(Math.ceil(width / SCREEN_WIDTH))
+      {Array(Math.ceil(width / WSC_SCREEN_WIDTH))
         .fill("")
         .map((_, i) => {
           const isLeftAligned =
@@ -46,7 +46,7 @@ const SceneScreenGrid = ({
             showSceneScreenGridAlign === "bottomLeft";
 
           const offset =
-            i * SCREEN_WIDTH * TILE_SIZE +
+            i * WSC_SCREEN_WIDTH * TILE_SIZE +
             (isLeftAligned
               ? boundsX * TILE_SIZE
               : (width - boundsX - boundsW) * TILE_SIZE);
@@ -67,7 +67,7 @@ const SceneScreenGrid = ({
           );
         })}
 
-      {Array(Math.ceil(height / SCREEN_HEIGHT))
+      {Array(Math.ceil(height / WSC_SCREEN_HEIGHT))
         .fill("")
         .map((_, i) => {
           const isTopAligned =
@@ -75,7 +75,7 @@ const SceneScreenGrid = ({
             showSceneScreenGridAlign === "topRight";
 
           const offset =
-            i * SCREEN_HEIGHT * TILE_SIZE +
+            i * WSC_SCREEN_HEIGHT * TILE_SIZE +
             (isTopAligned
               ? boundsY * TILE_SIZE
               : (height - boundsY - boundsH) * TILE_SIZE);

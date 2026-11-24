@@ -5,7 +5,7 @@ import {
   TILE_COLOR_PROP_FLIP_VERTICAL,
   TILE_SIZE,
 } from "consts";
-import { hex2GBCrgb } from "shared/lib/helpers/color";
+import { hexToWscRgb } from "shared/lib/helpers/wscColor";
 import {
   buildSceneTilesetReferenceLookup,
   decodeSceneTileReference,
@@ -99,9 +99,8 @@ export const renderTilemapLayers = async (
       tileset ? loadImage(tileset.src) : Promise.resolve(undefined),
     ),
   );
-  const correctColor = hex2GBCrgb(colorCorrection);
-  const palettesRGB = palettes.map((palette) => palette.map(correctColor));
-  const dmgPalette = DMG_PALETTE.colors.map(correctColor);
+  const palettesRGB = palettes.map((palette) => palette.map(hexToWscRgb));
+  const dmgPalette = DMG_PALETTE.colors.map(hexToWscRgb);
   const colorizationKey = JSON.stringify([
     colorCorrection,
     previewAsMono,

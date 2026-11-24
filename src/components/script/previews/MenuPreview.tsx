@@ -6,6 +6,7 @@ import { fontSelectors } from "store/features/entities/entitiesSelectors";
 import { loadFont, drawFrame, drawText } from "./TextPreviewHelper";
 import { assetURL } from "shared/lib/helpers/assets";
 import { FontData } from "shared/lib/helpers/fonts";
+import { WSC_SCREEN_WIDTH, WSC_SCREEN_WIDTH_PX } from "consts";
 
 interface MenuPreviewProps {
   items: string[];
@@ -89,7 +90,7 @@ export const MenuPreview: FC<MenuPreviewProps> = ({ items, layout }) => {
       // eslint-disable-next-line no-self-assign
       canvas.width = canvas.width;
       if (ctx) {
-        const tileWidth = layout === "dialogue" ? 20 : 10;
+        const tileWidth = layout === "dialogue" ? WSC_SCREEN_WIDTH : 10;
         const tileHeight =
           (layout === "dialogue" ? Math.min(items.length, 4) : items.length) +
           2;
@@ -128,10 +129,10 @@ export const MenuPreview: FC<MenuPreviewProps> = ({ items, layout }) => {
   return (
     <canvas
       ref={ref}
-      width={160}
+      width={WSC_SCREEN_WIDTH_PX}
       height={48}
       style={{
-        width: layout === "dialogue" ? 240 : 120,
+        width: layout === "dialogue" ? WSC_SCREEN_WIDTH_PX * 1.5 : 120,
         imageRendering: "pixelated",
         boxShadow: "5px 5px 10px 0px rgba(0,0,0,0.5)",
         borderRadius: 4,

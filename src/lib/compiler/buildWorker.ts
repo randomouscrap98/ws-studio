@@ -22,6 +22,7 @@ export type BuildWorkerData = {
   romFilename: string;
   make: boolean;
   debugEnabled?: boolean;
+  wsc?: boolean;
   l10nData: L10NLookup;
 };
 
@@ -56,6 +57,7 @@ export const buildProject = async ({
   buildType,
   make,
   debugEnabled,
+  wsc = true,
   l10nData,
 }: BuildWorkerData): Promise<BuildWorkerResult> => {
   let artifacts: BuildArtifacts;
@@ -68,6 +70,7 @@ export const buildProject = async ({
       scriptEventHandlers,
       tmpPath,
       debugEnabled,
+      wsc,
       progress,
       warnings,
     });

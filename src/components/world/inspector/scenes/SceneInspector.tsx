@@ -15,8 +15,6 @@ import assetsActions from "store/features/assets/assetsActions";
 import settingsActions from "store/features/settings/settingsActions";
 import { Sidebar, SidebarColumn, SidebarColumns } from "ui/sidebars/Sidebar";
 import {
-  FormColumn,
-  FormColumns,
   FormContainer,
   FormField,
   FormHeader,
@@ -60,8 +58,8 @@ import ParallaxSelect, {
 import { SpriteSheetSelectButton } from "components/forms/SpriteSheetSelectButton";
 import styled from "styled-components";
 import {
-  SCREEN_HEIGHT,
-  SCREEN_WIDTH,
+  WSC_SCREEN_HEIGHT,
+  WSC_SCREEN_WIDTH,
   TOOL_TILES,
   MAX_SCENE_TILE_COUNT,
 } from "consts";
@@ -82,12 +80,8 @@ import { ScriptEditorCtx } from "shared/lib/scripts/context";
 import { TilesetSelect } from "components/forms/TilesetSelect";
 import { FixedSpacer, FlexBreak, FlexGrow } from "ui/spacing/Spacing";
 import CachedScroll from "ui/util/CachedScroll";
-import { ColorModeOverrideSelect } from "components/forms/ColorModeOverrideSelect";
 import {
   ActorDirection,
-  ColorModeOverrideSetting,
-  MonoBGPPalette,
-  MonoOBJPalette,
   SceneBoundsRect,
   SceneParallaxLayer,
   SpriteModeSetting,
@@ -100,7 +94,6 @@ import { AutoPaletteSwatch } from "components/forms/AutoPaletteSwatch";
 import navigationActions from "store/features/navigation/navigationActions";
 import { useEnabledSceneTypeIds } from "store/features/engine/hooks/useEnabledSceneTypeIds";
 import { AutoTileFlipSelect } from "components/forms/AutoTileFlipSelect";
-import { DMGPaletteSelectButton } from "components/forms/DMGPaletteSelectButton";
 import SceneTilemapLayersPane from "components/world/inspector/scenes/tilemap/SceneTilemapLayersPane";
 import SceneTilemapPalettePane from "components/world/inspector/scenes/tilemap/SceneTilemapPalettePane";
 import { SceneBackgroundTypeDropdown } from "components/forms/SceneBackgroundTypeDropdown";
@@ -282,9 +275,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
     (state) => state.clipboard.data?.format,
   );
   const [notesOpen, setNotesOpen] = useState<boolean>(!!scene?.notes);
-  const [colorModeOverrideOpen, setColorModeOverrideOpen] = useState<boolean>(
-    !!(scene?.colorModeOverride && scene?.colorModeOverride !== "none"),
-  );
   const [autoTileFlipOverrideOpen, setAutoTileFlipOverrideOpen] =
     useState<boolean>(background?.autoTileFlipOverride !== undefined);
   const [spriteModeOverrideOpen, setSpriteModeOverrideOpen] = useState<boolean>(
@@ -298,15 +288,9 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
   const projectColorMode = useAppSelector(
     (state) => state.project.present.settings.colorMode,
   );
-  const colorsEnabled = useAppSelector(
-    (state) => state.project.present.settings.colorMode !== "mono",
-  );
-  const colorMode = useAppSelector(
-    (state) => state.project.present.settings.colorMode,
-  );
-  const sgbEnabled = useAppSelector(
-    (state) => state.project.present.settings.sgbEnabled,
-  );
+  // WonderSwan Color is always colour. Mono project values are kept but the
+  // inspector only exposes the colour palettes.
+  const colorsEnabled = true;
   const startSceneId = useAppSelector(
     (state) => state.project.present.settings.startSceneId,
   );
@@ -336,15 +320,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
   );
   const defaultAutoTileFlip = useAppSelector(
     (state) => state.project.present.settings.autoTileFlipEnabled,
-  );
-  const defaultMonoBGP = useAppSelector(
-    (state) => state.project.present.settings.defaultMonoBGP,
-  );
-  const defaultMonoOBP0 = useAppSelector(
-    (state) => state.project.present.settings.defaultMonoOBP0,
-  );
-  const defaultMonoOBP1 = useAppSelector(
-    (state) => state.project.present.settings.defaultMonoOBP1,
   );
   const sceneSpriteMode = scene?.spriteMode ?? defaultSpriteMode;
   const tool = useAppSelector((state) => state.editor.tool);
@@ -484,11 +459,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
     [onChangeSceneProp],
   );
 
-  const onChangeColorModeOverride = useCallback(
-    (e: ColorModeOverrideSetting) => onChangeSceneProp("colorModeOverride", e),
-    [onChangeSceneProp],
-  );
-
   const onChangeBackgroundId = useCallback(
     (e: string) => onChangeSceneProp("backgroundId", e),
     [onChangeSceneProp],
@@ -508,21 +478,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
   const onChangeScrollBounds = useCallback(
     (value: SceneBoundsRect | undefined) =>
       onChangeSceneProp("scrollBounds", value),
-    [onChangeSceneProp],
-  );
-
-  const onChangeMonoBGP = useCallback(
-    (value: MonoBGPPalette | undefined) => onChangeSceneProp("monoBGP", value),
-    [onChangeSceneProp],
-  );
-
-  const onChangeMonoOBP0 = useCallback(
-    (value: MonoOBJPalette | undefined) => onChangeSceneProp("monoOBP0", value),
-    [onChangeSceneProp],
-  );
-
-  const onChangeMonoOBP1 = useCallback(
-    (value: MonoOBJPalette | undefined) => onChangeSceneProp("monoOBP1", value),
     [onChangeSceneProp],
   );
 
@@ -575,15 +530,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
 
   const onAddNotes = () => {
     setNotesOpen(true);
-  };
-
-  const onOverrideColorMode = () => {
-    if (projectColorMode === "mixed") {
-      onChangeColorModeOverride("color");
-    } else {
-      onChangeColorModeOverride("mixed");
-    }
-    setColorModeOverrideOpen(true);
   };
 
   const onChangeAutoTileFlip = useCallback(
@@ -690,8 +636,8 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
             : {
                 x: 0,
                 y: 0,
-                width: scene?.width || SCREEN_WIDTH,
-                height: scene?.height || SCREEN_HEIGHT,
+                width: scene?.width || WSC_SCREEN_WIDTH,
+                height: scene?.height || WSC_SCREEN_HEIGHT,
               },
         },
       }),
@@ -807,13 +753,8 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
   }
 
   const showNotes = scene.notes || notesOpen;
-  const showColorModeOverride =
-    (scene.colorModeOverride && scene.colorModeOverride !== "none") ||
-    colorModeOverrideOpen;
   const showSpriteModeOverride = scene.spriteMode || spriteModeOverrideOpen;
-  const canAutoTileFlip =
-    (colorMode === "color" && scene.colorModeOverride === "none") ||
-    scene.colorModeOverride === "color";
+  const canAutoTileFlip = true;
   const showAutoTileFlipOverride =
     canAutoTileFlip &&
     (background?.autoTileFlipOverride !== undefined ||
@@ -836,12 +777,12 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
     </Button>
   );
 
-  const showParallaxButton = scene.width && scene.width > SCREEN_WIDTH;
+  const showParallaxButton = scene.width && scene.width > WSC_SCREEN_WIDTH;
   const showParallaxOptions = showParallaxButton && scene.parallax;
   const showCommonTilesetButton = scene.type !== "LOGO";
   const showScrollBoundsButton =
-    (scene.width && scene.width > SCREEN_WIDTH) ||
-    (scene.height && scene.height > SCREEN_HEIGHT);
+    (scene.width && scene.width > WSC_SCREEN_WIDTH) ||
+    (scene.height && scene.height > WSC_SCREEN_HEIGHT);
   const showScrollBoundsOptions = showScrollBoundsButton && scene.scrollBounds;
   const numBackgroundButtons =
     (showCommonTilesetButton ? 1 : 0) +
@@ -884,7 +825,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
             clipboardFormat,
             showNotes: Boolean(showNotes),
             showSymbols,
-            showColorModeOverride,
             canAutoTileFlip,
             showAutoTileFlipOverride,
             showSpriteModeOverride: Boolean(showSpriteModeOverride),
@@ -892,7 +832,6 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
               onChangeSceneProp("labelColor", color),
             onAddNotes,
             onShowSymbols: () => setShowSymbols(true),
-            onOverrideColorMode,
             onOverrideAutoTileFlip,
             onOverrideSpriteMode,
             onCopy,
@@ -1213,93 +1152,8 @@ export const SceneInspector = ({ id }: SceneInspectorProps) => {
                   </SidebarColumn>
                 )}
 
-                <SidebarColumn>
-                  <FormColumns>
-                    <FormColumn>
-                      <FormField
-                        name="monoBGPPalette"
-                        label={l10n("FIELD_MONOCHROME_PALETTES")}
-                      >
-                        <PaletteButtons>
-                          <DMGPaletteSelectButton
-                            name="monoBGPPalette"
-                            label="BGP"
-                            value={scene.monoBGP || defaultMonoBGP}
-                            onChange={onChangeMonoBGP}
-                            showName
-                            isOptional
-                          />
-                          <DMGPaletteSelectButton
-                            name="monoOBP1Palette"
-                            label="OBP0"
-                            isSpritePalette
-                            value={scene.monoOBP0 || defaultMonoOBP0}
-                            onChange={onChangeMonoOBP0}
-                            showName
-                            isOptional
-                          />
-                          <DMGPaletteSelectButton
-                            name="monoOBP1Palette"
-                            label="OBP1"
-                            isSpritePalette
-                            value={scene.monoOBP1 || defaultMonoOBP1}
-                            onChange={onChangeMonoOBP1}
-                            showName
-                            isOptional
-                          />
-                        </PaletteButtons>
-                      </FormField>
-                    </FormColumn>
-                    {sgbEnabled && !colorsEnabled && (
-                      <FormColumn>
-                        <FormField
-                          name="playerSpriteSheetId"
-                          label={l10n("FIELD_SCENE_SGB_PALETTES")}
-                        >
-                          <PaletteButtons>
-                            {[4, 5, 6, 7].map((index) => (
-                              <PaletteSelectButton
-                                key={index}
-                                name={`scenePalette${index}`}
-                                value={
-                                  (scene.paletteIds &&
-                                    scene.paletteIds[index]) ||
-                                  ""
-                                }
-                                type={index === 6 ? "tile" : "sgb"}
-                                onChange={onEditPaletteIds[index]}
-                                slotNumber={index + 1}
-                                optional
-                                optionalDefaultPaletteId={
-                                  defaultBackgroundPaletteIds[index] || ""
-                                }
-                                optionalLabel={l10n("FIELD_GLOBAL_DEFAULT")}
-                              />
-                            ))}
-                          </PaletteButtons>
-                        </FormField>
-                      </FormColumn>
-                    )}
-                  </FormColumns>
-                </SidebarColumn>
-
                 {colorsEnabled && (
                   <SidebarColumn>
-                    {showColorModeOverride && (
-                      <FormRow>
-                        <FormField
-                          name="colorModeOverride"
-                          label={l10n("FIELD_COLOR_MODE_OVERRIDE")}
-                        >
-                          <ColorModeOverrideSelect
-                            name="colorModeOverride"
-                            value={scene.colorModeOverride}
-                            onChange={onChangeColorModeOverride}
-                          />
-                        </FormField>
-                      </FormRow>
-                    )}
-
                     <FormRow>
                       <FormField
                         name="playerSpriteSheetId"

@@ -46,6 +46,10 @@ import { IMEUnstyledInput } from "ui/form/IMEInput";
 import { StyledButton } from "ui/buttons/style";
 import { StyledMenu, StyledMenuItem } from "ui/menu/style";
 import { ScriptEventDefs } from "shared/lib/scripts/scriptDefHelpers";
+import {
+  filterWscSupportedEvents,
+  isWscHiddenEvent,
+} from "shared/lib/scripts/wscEvents";
 import { useVariableFieldContext } from "components/script/fields/useVariableFieldContext";
 import { applyCustomEventArgDefaults } from "components/script/events/customEventArgs";
 import {
@@ -662,18 +666,20 @@ const AddScriptEventMenu = ({
   }, [favoriteEvents, selectedCategoryIndex]);
 
   useEffect(() => {
-    const eventList = (
-      Object.values(scriptEventDefs)
-        .filter(identity)
-        .filter((event) => {
-          if (!event.sceneTypes) {
-            return true;
-          }
-          return event.sceneTypes.some(
-            (t) => !disabledSceneTypeIds.includes(t),
-          );
-        }) as ScriptEventDef[]
-    ).filter(notDeprecated);
+    const eventList = filterWscSupportedEvents(
+      (
+        Object.values(scriptEventDefs)
+          .filter(identity)
+          .filter((event) => {
+            if (!event.sceneTypes) {
+              return true;
+            }
+            return event.sceneTypes.some(
+              (t) => !disabledSceneTypeIds.includes(t),
+            );
+          }) as ScriptEventDef[]
+      ).filter(notDeprecated),
+    );
 
     const allEvents = ([] as EventOption[]).concat(
       eventList.map(eventToOption(favoriteEvents)),
@@ -728,6 +734,7 @@ const AddScriptEventMenu = ({
     const allOptions = ([] as (EventOptGroup | EventOption)[]).concat(
       (
         (firstLoad.current ? favoritesCache : favoriteEvents)
+          .filter((id: string) => !isWscHiddenEvent(id))
           .map((id: string) => scriptEventDefs[id])
           .filter(identity)
           .filter(notDeprecated) as ScriptEventDef[]

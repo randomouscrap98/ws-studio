@@ -1,6 +1,12 @@
 import React, { memo, useCallback } from "react";
 import SpriteSheetCanvas from "components/rendering/SpriteSheetCanvas";
-import { MIDDLE_MOUSE, TILE_SIZE, TOOL_COLLISIONS } from "consts";
+import {
+  MIDDLE_MOUSE,
+  TILE_SIZE,
+  TOOL_COLLISIONS,
+  WSC_SCREEN_HEIGHT_PX,
+  WSC_SCREEN_WIDTH_PX,
+} from "consts";
 import {
   actorPrefabSelectors,
   actorSelectors,
@@ -58,8 +64,8 @@ const PinScreenPreview = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  width: 160px;
-  height: 144px;
+  width: ${WSC_SCREEN_WIDTH_PX}px;
+  height: ${WSC_SCREEN_HEIGHT_PX}px;
   pointer-events: none;
   z-index: 100;
   outline: 2000px solid rgba(0, 0, 0, 0.5);

@@ -23,12 +23,12 @@ import clamp from "shared/lib/helpers/clamp";
 import {
   CorrectedHex,
   rgb5BitToGBCHex,
-  hex2GBChex,
   rawHexToCorrectedHex,
   rawHexToClosestRepresentableRawHex,
   CanonicalRawHex,
 } from "shared/lib/helpers/color";
 import { correctedHexToCanonicalHex } from "shared/lib/color/reverseColorCorrection";
+import { hexToWscHex, rgb5BitToWscHex } from "shared/lib/helpers/wscColor";
 import { getSettings } from "store/features/settings/settingsState";
 
 interface CustomPalettePickerProps {
@@ -729,10 +729,7 @@ const CustomPalettePicker = ({
             aria-label={`${palette.name} ${index + 1}`}
             onClick={() => onColorSelect(index)}
             style={{
-              background: `#${hex2GBChex(
-                palette.colors[index],
-                colorCorrection,
-              )}`,
+              background: `#${hexToWscHex(palette.colors[index])}`,
             }}
           >
             {size === "normal" && index === 0 && (
@@ -780,7 +777,7 @@ const CustomPalettePicker = ({
                 value={(colorR || 0) / 31}
                 onChange={(value) => onChangeR(Math.round(Number(value) * 31))}
                 colorAtValue={(value) =>
-                  `#${rgb5BitToGBCHex(Math.round(value * 31), colorG, colorB)}`
+                  `#${rgb5BitToWscHex(Math.round(value * 31), colorG, colorB)}`
                 }
               />
             </ColorValueFormItem>
@@ -801,7 +798,7 @@ const CustomPalettePicker = ({
                 value={(colorG || 0) / 31}
                 onChange={(value) => onChangeG(Math.round(value * 31))}
                 colorAtValue={(value) =>
-                  `#${rgb5BitToGBCHex(colorR, Math.round(value * 31), colorB)}`
+                  `#${rgb5BitToWscHex(colorR, Math.round(value * 31), colorB)}`
                 }
               />
             </ColorValueFormItem>
@@ -822,7 +819,7 @@ const CustomPalettePicker = ({
                 value={(colorB || 0) / 31}
                 onChange={(value) => onChangeB(Math.round(value * 31))}
                 colorAtValue={(value) =>
-                  `#${rgb5BitToGBCHex(colorR, colorG, Math.round(value * 31))}`
+                  `#${rgb5BitToWscHex(colorR, colorG, Math.round(value * 31))}`
                 }
               />
             </ColorValueFormItem>

@@ -407,6 +407,7 @@ const precompilePalettes = async (
   settings: SettingsState,
   palettes: Palette[],
   backgrounds: Record<string, PrecompiledBackground>,
+  wsc: boolean,
 ) => {
   const usedPalettes: PrecompiledPalette[] = [];
   const usedPalettesCache: Record<string, number> = {};
@@ -414,7 +415,8 @@ const precompilePalettes = async (
   const sceneActorPaletteIndexes: Record<string, number> = {};
   const actorPaletteIndexes = {};
 
-  const isColor = settings.colorMode !== "mono" || settings.sgbEnabled;
+  const isColorMode = settings.colorMode !== "mono" || settings.sgbEnabled;
+  const isColor = wsc || isColorMode;
 
   const palettesLookup = indexById(palettes);
   const defaultBGP = settings.defaultMonoBGP || [0, 1, 2, 3];
@@ -423,6 +425,21 @@ const precompilePalettes = async (
   const defaultBackgroundPaletteIds =
     settings.defaultBackgroundPaletteIds || [];
   const defaultSpritePaletteIds = settings.defaultSpritePaletteIds || [];
+
+  const dmgShadeColors = (
+    shades: string[],
+  ): [string, string, string, string] =>
+    shades.map(
+      (shade) =>
+        DMG_PALETTE.colors[
+          {
+            DMG_WHITE: 0,
+            DMG_LITE_GRAY: 1,
+            DMG_DARK_GRAY: 2,
+            DMG_BLACK: 3,
+          }[shade] ?? 0
+        ],
+    ) as [string, string, string, string];
 
   const getPalette = (id: string, fallbackId: string): Palette => {
     if (id === "dmg") {
@@ -499,9 +516,15 @@ const precompilePalettes = async (
     if (background?.autoPalettes?.[0]) {
     }
 
+    const monoBackgroundColors = dmgShadeColors(
+      getDMGPalette(scene.monoBGP, defaultBGP),
+    );
+
     const scenePalette = {
       dmg: [getDMGPalette(scene.monoBGP, defaultBGP)],
-      colors: isColor
+      colors: wsc && !isColorMode
+        ? Array.from({ length: 8 }, () => monoBackgroundColors)
+        : isColor
         ? [
             getBackgroundPalette(
               0,
@@ -579,7 +602,16 @@ const precompilePalettes = async (
         getDMGPalette(scene.monoOBP0, defaultOBP0),
         getDMGPalette(scene.monoOBP1, defaultOBP1),
       ],
-      colors: isColor
+      colors: wsc && !isColorMode
+        ? Array.from({ length: 8 }, (_, index) =>
+            dmgShadeColors(
+              getDMGPalette(
+                index % 2 === 0 ? scene.monoOBP0 : scene.monoOBP1,
+                index % 2 === 0 ? defaultOBP0 : defaultOBP1,
+              ),
+            ),
+          )
+        : isColor
         ? [
             getSpritePalette(
               sceneSpritePaletteIds[0],
@@ -1182,9 +1214,11 @@ const precompile = async (
   {
     progress,
     warnings,
+    wsc,
   }: {
     progress: (msg: string) => void;
     warnings: (msg: string) => void;
+    wsc: boolean;
   },
 ) => {
   const customEventsLookup = keyBy(projectData.scripts, "id");
@@ -1310,6 +1344,7 @@ const precompile = async (
     projectData.settings,
     projectData.palettes,
     backgroundLookup,
+    wsc,
   );
 
   const usedSounds = usedAssets.referencedSounds;
@@ -1372,6 +1407,7 @@ const compile = async (
     debugEnabled = false,
     progress = (_msg: string) => {},
     warnings = (_msg: string) => {},
+    wsc = false,
   }: {
     projectRoot: string;
     scriptEventHandlers: ScriptEventHandlers;
@@ -1380,6 +1416,7 @@ const compile = async (
     debugEnabled?: boolean;
     progress: (_msg: string) => void;
     warnings: (_msg: string) => void;
+    wsc?: boolean;
   },
 ): Promise<{
   files: Record<string, string>;
@@ -1412,6 +1449,7 @@ const compile = async (
     {
       progress,
       warnings,
+      wsc,
     },
   );
 
@@ -1655,6 +1693,7 @@ const compile = async (
           customEvents: projectData.scripts,
           palettes: projectData.palettes,
           settings: projectData.settings,
+          wsc,
           variablesLookup,
           variableAliasLookup,
           constantsLookup,
@@ -2001,6 +2040,7 @@ const compile = async (
     output[`${paletteSymbol(paletteIndex)}.c`] = compilePalette(
       palette,
       paletteIndex,
+      wsc,
     );
     output[`${paletteSymbol(paletteIndex)}.h`] = compilePaletteHeader(
       palette,

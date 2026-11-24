@@ -1,5 +1,5 @@
 import { DMG_PALETTE } from "consts";
-import { hex2GBCrgb } from "shared/lib/helpers/color";
+import { hexToWscRgb } from "shared/lib/helpers/wscColor";
 
 // eslint-disable-next-line no-restricted-globals
 const workerCtx: Worker = self as unknown as Worker;
@@ -40,11 +40,10 @@ workerCtx.onmessage = async (evt) => {
   const previewAsMono = evt.data.previewAsMono;
   const monoBGP = evt.data.monoBGP ?? [0, 1, 2, 3];
   const palettes = evt.data.palettes;
-  const colorCorrectionFn = hex2GBCrgb(evt.data.colorCorrection);
   const palettesRGB = palettes.map((colors: string[]) =>
-    colors.map(colorCorrectionFn),
+    colors.map(hexToWscRgb),
   );
-  const dmgPalette = DMG_PALETTE.colors.map(colorCorrectionFn);
+  const dmgPalette = DMG_PALETTE.colors.map(hexToWscRgb);
 
   let canvas: OffscreenCanvas;
   let ctx: OffscreenCanvasRenderingContext2D;

@@ -11,6 +11,7 @@ import { loadFont, drawFrame, drawFill, drawText } from "./TextPreviewHelper";
 import { assetURL } from "shared/lib/helpers/assets";
 import { calculateTextBoxHeight } from "shared/lib/helpers/dialogue";
 import { FontData } from "shared/lib/helpers/fonts";
+import { WSC_SCREEN_WIDTH, WSC_SCREEN_WIDTH_PX } from "consts";
 
 interface DialoguePreviewProps {
   text: string;
@@ -149,7 +150,7 @@ export const DialoguePreview: FC<DialoguePreviewProps> = ({
       canvas.width = canvas.width;
       if (ctx) {
         const textLines = textNumNewlines(text);
-        const tileWidth = 20;
+        const tileWidth = WSC_SCREEN_WIDTH;
         const tileHeight = calculateTextBoxHeight({
           textLines,
           textY,
@@ -224,10 +225,10 @@ export const DialoguePreview: FC<DialoguePreviewProps> = ({
   return (
     <canvas
       ref={ref}
-      width={160}
+      width={WSC_SCREEN_WIDTH_PX}
       height={48}
       style={{
-        width: 160 * scale,
+        width: WSC_SCREEN_WIDTH_PX * scale,
         imageRendering: "pixelated",
         opacity: drawn ? 1 : 0,
       }}

@@ -1,5 +1,5 @@
 import { DMG_PALETTE } from "consts";
-import { hex2GBCrgb } from "shared/lib/helpers/color";
+import { hexToWscRgb } from "shared/lib/helpers/wscColor";
 import { autoPalette, autoPaletteUsingTiles } from "shared/lib/tiles/autoColor";
 import { pixelDataToIndexedImage } from "shared/lib/tiles/indexedImage";
 import { tileDataIndexFn } from "shared/lib/tiles/tileData";
@@ -30,7 +30,6 @@ workerCtx.onmessage = async (evt) => {
   const previewAsMono = evt.data.previewAsMono;
   const monoBGP = evt.data.monoBGP ?? [0, 1, 2, 3];
   const uiPalette = evt.data.uiPalette;
-  const colorCorrectionFn = hex2GBCrgb(evt.data.colorCorrection);
 
   let canvas: OffscreenCanvas;
   let ctx: OffscreenCanvasRenderingContext2D;
@@ -140,9 +139,9 @@ workerCtx.onmessage = async (evt) => {
   }
 
   const palettesRGB = paletteData.palettes.map((colors: string[]) =>
-    colors.map(colorCorrectionFn),
+    colors.map(hexToWscRgb),
   );
-  const dmgPalette = DMG_PALETTE.colors.map(colorCorrectionFn);
+  const dmgPalette = DMG_PALETTE.colors.map(hexToWscRgb);
 
   const tiles = paletteData.map;
   const indexedImage = paletteData.indexedImage;

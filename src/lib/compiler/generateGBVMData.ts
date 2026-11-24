@@ -30,6 +30,7 @@ import {
 import { VariableMapData } from "./compileData";
 import { GlobalProjectiles } from "./scriptBuilder/types";
 import { pxToSubpx, tileToPx, tileToSubpx } from "shared/lib/helpers/subpixels";
+import { rgb8ToWscCgb5 } from "shared/lib/helpers/wscColor";
 
 export interface PrecompiledBackground {
   id: string;
@@ -1123,9 +1124,17 @@ export const compileColor = (hex: string): string => {
   return `RGB(${r}, ${g}, ${b})`;
 };
 
+export const compileWscColor = (hex: string): string => {
+  const r = rgb8ToWscCgb5(hexDec(hex.substring(0, 2)));
+  const g = rgb8ToWscCgb5(hexDec(hex.substring(2, 4)));
+  const b = rgb8ToWscCgb5(hexDec(hex.substring(4, 6)));
+  return `RGB(${r}, ${g}, ${b})`;
+};
+
 export const compilePalette = (
   palette: PrecompiledPalette,
   paletteIndex: number,
+  wsc = false,
 ) => `#pragma bank 255
 
 // Palette: ${paletteIndex}
@@ -1150,7 +1159,9 @@ ${palette.dmg
 ${palette.colors
   .map(
     (paletteColors: string[]) =>
-      `        CGB_PALETTE(${paletteColors.map(compileColor).join(", ")})`,
+      `        CGB_PALETTE(${paletteColors
+        .map(wsc ? compileWscColor : compileColor)
+        .join(", ")})`,
   )
   .join(",\n")}
     }`

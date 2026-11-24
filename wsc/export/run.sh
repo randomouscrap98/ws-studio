@@ -37,5 +37,5 @@ ELECTRON_SKIP_BINARY_DOWNLOAD=1 \
     node "$cli" --verbose export "$template" "$dest"
 
 file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
-byte_count="$(find "$dest" -type f -printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')"
+byte_count="$(find "$dest" -type f -exec cat {} + | wc -c | tr -d ' ')"
 echo "exported files: $file_count ($byte_count bytes)"

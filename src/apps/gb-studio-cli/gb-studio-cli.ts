@@ -92,6 +92,7 @@ const main = async (
     outputRoot,
     romFilename,
     debugEnabled: false,
+    wsc: true, // every build in this fork targets the WSC
     make:
       (command !== "export" && command !== "make:wsc") || Boolean(usage),
     progress,

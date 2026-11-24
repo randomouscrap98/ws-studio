@@ -9,6 +9,11 @@ import ScriptBuilderBase from "./scriptBuilder/scriptBuilderBase";
 import { PrecompiledScene } from "./generateGBVMData";
 import { LATEST_PROJECT_VERSION } from "lib/project/migration/migrateProjectResources";
 import { ScriptEvent, SpriteModeSetting } from "shared/lib/resources/types";
+import l10n from "shared/lib/lang/l10n";
+import {
+  WSC_TRUE_BRANCH_EVENT_ID,
+  isWscCompileSkippedEvent,
+} from "shared/lib/scripts/wscEvents";
 
 const STRING_NOT_FOUND = "STRING_NOT_FOUND";
 const VARIABLE_NOT_FOUND = "VARIABLE_NOT_FOUND";
@@ -133,6 +138,26 @@ export const compileEventsWithScriptBuilder = (
       // Skip commented events
       continue;
     }
+    if (scriptBuilder.options.wsc && isWscCompileSkippedEvent(command)) {
+      warnings(
+        l10n("WARNING_WSC_UNSUPPORTED_EVENT", {
+          event: command,
+          scene: location.scene,
+        }),
+      );
+      continue;
+    }
+
+    if (scriptBuilder.options.wsc && command === WSC_TRUE_BRANCH_EVENT_ID) {
+      compileEventsWithScriptBuilder(
+        scriptBuilder,
+        subInput[i].children?.true ?? [],
+        location,
+        warnings,
+      );
+      continue;
+    }
+
     if (scriptEventHandlers[command]) {
       scriptBuilder.addDebugSymbol(scriptSymbolName, subInput[i].id);
 

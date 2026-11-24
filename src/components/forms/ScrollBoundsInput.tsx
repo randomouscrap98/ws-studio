@@ -4,7 +4,7 @@ import { SceneBoundsRect } from "shared/lib/resources/types";
 import styled from "styled-components";
 import clamp from "shared/lib/helpers/clamp";
 import { ensureNumber } from "shared/types";
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "consts";
+import { WSC_SCREEN_HEIGHT, WSC_SCREEN_WIDTH } from "consts";
 
 const ScrollBoundsInputWrapper = styled.div`
   display: grid;
@@ -33,12 +33,12 @@ const ScrollBoundsInput = ({
       const x = clamp(
         ensureNumber(parseInt(e.currentTarget.value, 10), 0),
         0,
-        sceneWidth - SCREEN_WIDTH,
+        sceneWidth - WSC_SCREEN_WIDTH,
       );
       const width = clamp(
         value.width,
-        SCREEN_WIDTH,
-        Math.max(SCREEN_WIDTH, sceneWidth - x),
+        WSC_SCREEN_WIDTH,
+        Math.max(WSC_SCREEN_WIDTH, sceneWidth - x),
       );
       onChange?.({
         ...value,
@@ -53,12 +53,12 @@ const ScrollBoundsInput = ({
       const y = clamp(
         ensureNumber(parseInt(e.currentTarget.value, 10), 0),
         0,
-        sceneHeight - SCREEN_HEIGHT,
+        sceneHeight - WSC_SCREEN_HEIGHT,
       );
       const height = clamp(
         value.height,
-        SCREEN_HEIGHT,
-        Math.max(SCREEN_HEIGHT, sceneHeight - y),
+        WSC_SCREEN_HEIGHT,
+        Math.max(WSC_SCREEN_HEIGHT, sceneHeight - y),
       );
 
       onChange?.({
@@ -73,8 +73,8 @@ const ScrollBoundsInput = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const width = clamp(
         ensureNumber(parseInt(e.currentTarget.value, 10), 0),
-        SCREEN_WIDTH,
-        Math.max(SCREEN_WIDTH, sceneWidth),
+        WSC_SCREEN_WIDTH,
+        Math.max(WSC_SCREEN_WIDTH, sceneWidth),
       );
       const x = clamp(value.x, 0, sceneWidth - width);
       onChange?.({
@@ -89,8 +89,8 @@ const ScrollBoundsInput = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const height = clamp(
         ensureNumber(parseInt(e.currentTarget.value, 10), 0),
-        SCREEN_HEIGHT,
-        Math.max(SCREEN_HEIGHT, sceneHeight),
+        WSC_SCREEN_HEIGHT,
+        Math.max(WSC_SCREEN_HEIGHT, sceneHeight),
       );
       const y = clamp(value.y, 0, sceneHeight - height);
       onChange?.({
@@ -110,7 +110,7 @@ const ScrollBoundsInput = ({
         value={value.x}
         placeholder="0"
         min={0}
-        max={255 - SCREEN_WIDTH}
+        max={255 - WSC_SCREEN_WIDTH}
         onChange={onChangeBoundsX}
       />
       <CoordinateInput
@@ -119,7 +119,7 @@ const ScrollBoundsInput = ({
         value={value.y}
         placeholder="0"
         min={0}
-        max={255 - SCREEN_HEIGHT}
+        max={255 - WSC_SCREEN_HEIGHT}
         onChange={onChangeBoundsY}
       />
       <CoordinateInput
@@ -127,7 +127,7 @@ const ScrollBoundsInput = ({
         coordinate="w"
         value={value.width}
         placeholder={String(sceneWidth)}
-        min={SCREEN_WIDTH}
+        min={WSC_SCREEN_WIDTH}
         max={255}
         onChange={onChangeBoundsWidth}
       />
@@ -136,7 +136,7 @@ const ScrollBoundsInput = ({
         coordinate="h"
         value={value.height}
         placeholder={String(sceneHeight)}
-        min={SCREEN_HEIGHT}
+        min={WSC_SCREEN_HEIGHT}
         max={255}
         onChange={onChangeBoundsHeight}
       />

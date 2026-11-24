@@ -6,8 +6,8 @@ import {
   MAX_NESTED_SCRIPT_DEPTH,
   MAX_ONSCREEN,
   MAX_TRIGGERS,
-  SCREEN_HEIGHT,
-  SCREEN_WIDTH,
+  WSC_SCREEN_HEIGHT,
+  WSC_SCREEN_WIDTH,
 } from "consts";
 import React, { memo, useCallback, useEffect, useState } from "react";
 import {
@@ -372,9 +372,9 @@ const SceneInfo = memo(({ sceneId }: SceneInfoProps) => {
           if (
             otherActor &&
             otherActor.x >= x - 1 &&
-            otherActor.x <= x + 2 + SCREEN_WIDTH &&
+            otherActor.x <= x + 2 + WSC_SCREEN_WIDTH &&
             otherActor.y >= y &&
-            otherActor.y <= y + SCREEN_HEIGHT
+            otherActor.y <= y + WSC_SCREEN_HEIGHT
           ) {
             near++;
           }
@@ -386,8 +386,8 @@ const SceneInfo = memo(({ sceneId }: SceneInfoProps) => {
     const checkScreenCache: Record<string, number> = {};
     const cachedCheckScreenAt = (checkX: number, checkY: number) => {
       if (scene) {
-        const x = clamp(checkX, 0, scene.width - SCREEN_WIDTH);
-        const y = clamp(checkY, 0, scene.height - SCREEN_HEIGHT);
+        const x = clamp(checkX, 0, scene.width - WSC_SCREEN_WIDTH);
+        const y = clamp(checkY, 0, scene.height - WSC_SCREEN_HEIGHT);
         const key = `${x}_${y}`;
         if (checkScreenCache[key] === undefined) {
           checkScreenCache[key] = checkScreenAt(x, y);
@@ -407,10 +407,10 @@ const SceneInfo = memo(({ sceneId }: SceneInfoProps) => {
           }
           const actorX = clamp(actor.x, 0, 255);
           const actorY = clamp(actor.y, 0, 255);
-          for (let x = actorX - SCREEN_WIDTH; x < actorX + SCREEN_WIDTH; x++) {
+          for (let x = actorX - WSC_SCREEN_WIDTH; x < actorX + WSC_SCREEN_WIDTH; x++) {
             for (
-              let y = actorY - SCREEN_HEIGHT;
-              y < actorY + SCREEN_HEIGHT;
+              let y = actorY - WSC_SCREEN_HEIGHT;
+              y < actorY + WSC_SCREEN_HEIGHT;
               y++
             ) {
               const near = cachedCheckScreenAt(x, y);
@@ -474,7 +474,7 @@ const SceneInfo = memo(({ sceneId }: SceneInfoProps) => {
 
   if (scene.type === "LOGO") {
     maxTriggers = 0;
-  } else if (scene.width <= SCREEN_WIDTH && scene.height <= SCREEN_HEIGHT) {
+  } else if (scene.width <= WSC_SCREEN_WIDTH && scene.height <= WSC_SCREEN_HEIGHT) {
     maxActors = MAX_ACTORS_SMALL;
   }
 
