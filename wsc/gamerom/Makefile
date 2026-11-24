@@ -6,6 +6,10 @@
 
 PYTHON ?= python3
 
+# Set to 1 to link the capacity-test filler (48 KiB of code plus 150 KiB of
+# far const data). wsc/tools/capacity_check.sh owns that build.
+CAPACITY_FILLER ?= 0
+
 WONDERFUL_TOOLCHAIN ?= /opt/wonderful
 TARGET = wswan/medium
 include $(WONDERFUL_TOOLCHAIN)/target/$(TARGET)/makedefs.mk
@@ -43,9 +47,9 @@ C18_DATA_DIR	:= $(GEN_DIR)/c18
 C18_DATA_C	:= $(C18_DATA_DIR)/c18_bg_data.c
 LAYOUT_PAD_SCRIPT := $(CURDIR)/src/script_layout_pad.s
 
-BUILDDIR	:= $(CURDIR)/build
+BUILDDIR	?= $(CURDIR)/build
 OBJDIR		:= $(BUILDDIR)/obj
-ROM		:= $(CURDIR)/gamerom.wsc
+ROM		?= $(CURDIR)/gamerom.wsc
 ELF		:= $(BUILDDIR)/gamerom.elf
 STAGE		:= $(BUILDDIR)/gamerom_stage1.elf
 RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
@@ -105,6 +109,10 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(CURDIR)/src/c16_test_scene.c \
 		   $(CURDIR)/src/c17_test_scene.c \
 		   $(CURDIR)/src/c18_test_scene.c
+ifeq ($(CAPACITY_FILLER),1)
+CFLAGS		+= -DWSC_CAPACITY_TEST
+ENGINE_SOURCES	+= $(CURDIR)/src/capacity_filler.c
+endif
 ENGINE_OBJS	:= $(addprefix $(OBJDIR)/engine/,$(notdir $(ENGINE_SOURCES:.c=.o)))
 C18_DATA_OBJ	:= $(OBJDIR)/engine/c18_bg_data.o
 BOOTSTRAP_OBJ	:= $(OBJDIR)/bootstrap.o
@@ -114,7 +122,7 @@ S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ) \
 		   $(C18_DATA_OBJ)
 
-.PHONY: all all-rom clean usage export-data
+.PHONY: all all-rom clean usage usage-rom export-data
 
 # The data source list only exists after d2c runs. Generate it first, then
 # re-enter make so DATA_SOURCES is complete.
@@ -179,11 +187,11 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS
 	$(PYTHON) $(C18_GEN) --out $(C18_DATA_DIR)
 	@touch $@
 
-$(ROM): $(STAGE)
+$(ROM): $(STAGE) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $<
 
-$(ELF): $(ROM)
+$(ELF): $(ROM) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $(ROM) (ELF rebuilt)"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $(STAGE)
 
@@ -229,7 +237,12 @@ clean:
 	@echo "  CLEAN"
 	$(RM) $(ROM) $(BUILDDIR) $(GEN_DIR)
 
-usage: $(ELF)
+# The generated data source list only exists after D2C. Re-enter make like
+# the "all" target so a fresh tree can run usage directly.
+usage: $(D2C_STAMP)
+	@$(MAKE) --no-print-directory -C $(CURDIR) usage-rom
+
+usage-rom: $(ELF)
 	$(ROMUSAGE) $< -g
 
 -include $(wildcard $(OBJDIR)/*.d $(OBJDIR)/engine/*.d $(OBJDIR)/data/*.d)
