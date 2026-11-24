@@ -85,7 +85,7 @@ const metasprite_t emote_metasprite_8_8[]  = {
     {metasprite_end}
 };
 
-actor_t actors[MAX_ACTORS];
+actor_t actors[MAX_ACTORS] WSC_UPPER_RAM;
 actor_t * actors_active_head;
 actor_t * actors_active_tail;
 actor_t * actors_inactive_head;

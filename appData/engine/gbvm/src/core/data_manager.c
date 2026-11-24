@@ -52,7 +52,7 @@ LCD_isr_e scene_LCD_type;
 
 const far_ptr_t spritesheet_none_far = TO_FAR_PTR_T(spritesheet_none);
 
-scene_stack_item_t scene_stack[SCENE_STACK_SIZE];
+scene_stack_item_t scene_stack[SCENE_STACK_SIZE] WSC_UPPER_RAM;
 scene_stack_item_t * scene_stack_ptr;
 
 UBYTE scene_sprites_base_tiles[MAX_SCENE_SPRITES];

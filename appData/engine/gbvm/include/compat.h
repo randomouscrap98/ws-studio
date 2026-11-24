@@ -4,8 +4,13 @@
 /* The only spelling of "far on WSC, nothing elsewhere". */
 #ifdef __ia16__
 #define FAR __far
+/* Plain engine state that is not touched by the display hardware can live in
+ * the colour-only IRAM bank. 0xC000 is above the C18 tile area
+ * (0x4000..0xBFFF) and below the hardware palettes (0xFE00..0xFFFF). */
+#define WSC_UPPER_RAM __attribute__((section(".iramC_C000")))
 #else
 #define FAR
+#define WSC_UPPER_RAM
 #endif
 
 #ifndef OLDCALL

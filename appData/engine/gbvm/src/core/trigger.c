@@ -3,7 +3,7 @@
 #include "trigger.h"
 #include "vm.h"
 
-trigger_t triggers[MAX_TRIGGERS];
+trigger_t triggers[MAX_TRIGGERS] WSC_UPPER_RAM;
 UBYTE triggers_len;                    // default initialized to 0
 UBYTE last_trigger_tx;
 UBYTE last_trigger_ty;

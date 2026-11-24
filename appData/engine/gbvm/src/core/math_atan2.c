@@ -1,8 +1,10 @@
 #pragma bank 255
 
 #include "math.h"
+#include "compat.h"
 
-const uint8_t atan2_table[20][18] = {
+/* Read-only, so keep it in ROM instead of the 16 KiB IRAM window. */
+const uint8_t FAR atan2_table[20][18] = {
     { 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64 },
     {  0, 32, 45, 51, 54, 56, 57, 58, 59, 59, 60, 60, 61, 61, 61, 61, 61, 62 },
     {  0, 19, 32, 40, 45, 48, 51, 53, 54, 55, 56, 57, 57, 58, 58, 59, 59, 59 },

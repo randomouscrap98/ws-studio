@@ -17,7 +17,7 @@ extern const SCRIPT_CMD script_cmds[];
 
 // contexts for executing scripts
 // ScriptRunnerInit(), ExecuteScript(), ScriptRunnerUpdate() manipulate these contexts
-SCRIPT_CTX CTXS[VM_MAX_CONTEXTS];
+SCRIPT_CTX CTXS[VM_MAX_CONTEXTS] WSC_UPPER_RAM;
 SCRIPT_CTX * first_ctx, * free_ctxs;
 // context pointers for script_runner
 SCRIPT_CTX * old_executing_ctx, * executing_ctx;
@@ -720,6 +720,8 @@ __endasm;
 }
 
 // global shared script memory
+// Kept in low IRAM: the standalone vmrom/scriptconv test ROMs link this file
+// without the gamerom build's final-ELF section fixup.
 UWORD script_memory[VM_HEAP_SIZE + (VM_MAX_CONTEXTS * VM_CONTEXT_STACK_SIZE)];
 
 // initialize script runner contexts

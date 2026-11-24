@@ -25,8 +25,10 @@ static uint8_t hal_win_y;
 static uint8_t hal_win_visible;
 static uint8_t hal_win_palette;
 
-uint8_t hal_win_tiles[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES];
-uint8_t hal_win_attrs[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES];
+uint8_t hal_win_tiles[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES]
+    WSC_UPPER_RAM;
+uint8_t hal_win_attrs[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES]
+    WSC_UPPER_RAM;
 
 /* Global tile offset applied by the GB map writers (vm_overlay_set_map). */
 volatile uint8_t _map_tile_offset;

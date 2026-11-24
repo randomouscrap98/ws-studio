@@ -56,6 +56,15 @@ RAM_LOGO	:= $(BUILDDIR)/ram_logo.json
 RAM_TOWN	:= $(BUILDDIR)/ram_town.json
 RAM_WALK_FREE	:= $(BUILDDIR)/ram_walk_free.json
 RAM_WALK_WALL	:= $(BUILDDIR)/ram_walk_wall.json
+IRAM_CHECK	:= $(WSC_DIR)/tools/iram_check.py
+IRAM_STAMP	:= $(BUILDDIR)/iram_check.stamp
+
+# wf-wswantool names the upper-IRAM section .iramC_C000 (the explicit offset
+# keeps it out of the C18 tile area). The final ELF calls it .sbss.upper so
+# the test runner, which classifies RAM-dump symbols by section prefix, can
+# read them. The address is unchanged; iram_check validates it.
+IRAM_SECTION_IN	:= .iramC_C000
+IRAM_SECTION_OUT := .sbss.upper
 
 INCLUDEFLAGS	:= -I$(CURDIR)/include -I$(GEN_DIR)/include \
 		   -I$(C18_DATA_DIR) \
@@ -122,14 +131,15 @@ S2C_OBJ		:= $(OBJDIR)/$(S2C_NAME).o
 COMMON_OBJS	:= $(ENGINE_OBJS) $(DATA_OBJS) $(STATES_OBJ) $(S2C_OBJ) \
 		   $(C18_DATA_OBJ)
 
-.PHONY: all all-rom clean usage usage-rom export-data
+.PHONY: all all-rom clean usage usage-rom export-data iram-check
 
 # The data source list only exists after d2c runs. Generate it first, then
 # re-enter make so DATA_SOURCES is complete.
 all: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) all-rom
 
-all-rom: $(ROM) $(ELF) $(RAM_LOGO) $(RAM_TOWN) $(RAM_WALK_FREE) $(RAM_WALK_WALL)
+all-rom: $(ROM) $(ELF) $(IRAM_STAMP) $(RAM_LOGO) $(RAM_TOWN) \
+	 $(RAM_WALK_FREE) $(RAM_WALK_WALL)
 
 # The walking tests start in the open area around tile (14, 41).
 WALK_FREE_INPUT	:= $(WSC_DIR)/tests/walk-free/input.txt
@@ -187,13 +197,25 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS
 	$(PYTHON) $(C18_GEN) --out $(C18_DATA_DIR)
 	@touch $@
 
+define RENAME_IRAM_SECTION
+	$(OBJCOPY) --rename-section $(IRAM_SECTION_IN)=$(IRAM_SECTION_OUT) $(1) $(1).tmp
+	mv -f $(1).tmp $(1)
+endef
+
 $(ROM): $(STAGE) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $<
+	$(call RENAME_IRAM_SECTION,$(ELF))
 
 $(ELF): $(ROM) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $(ROM) (ELF rebuilt)"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $(STAGE)
+	$(call RENAME_IRAM_SECTION,$(ELF))
+
+$(IRAM_STAMP): $(ELF) $(IRAM_CHECK)
+	@echo "  CHECK   $(ELF)"
+	$(PYTHON) $(IRAM_CHECK) --elf $(ELF)
+	@touch $@
 
 $(STAGE): $(COMMON_OBJS) $(BOOTSTRAP_OBJ)
 	@echo "  LD      $@"
@@ -242,7 +264,7 @@ clean:
 usage: $(D2C_STAMP)
 	@$(MAKE) --no-print-directory -C $(CURDIR) usage-rom
 
-usage-rom: $(ELF)
+usage-rom: $(ELF) $(IRAM_STAMP)
 	$(ROMUSAGE) $< -g
 
 -include $(wildcard $(OBJDIR)/*.d $(OBJDIR)/engine/*.d $(OBJDIR)/data/*.d)

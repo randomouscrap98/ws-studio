@@ -26,8 +26,8 @@
 #define PROJECTILES_COLLISION_SPREAD SPREAD_4
 #endif
 
-projectile_t projectiles[MAX_PROJECTILES];
-projectile_def_t projectile_defs[MAX_PROJECTILE_DEFS];
+projectile_t projectiles[MAX_PROJECTILES] WSC_UPPER_RAM;
+projectile_def_t projectile_defs[MAX_PROJECTILE_DEFS] WSC_UPPER_RAM;
 projectile_t *projectiles_active_head;
 projectile_t *projectiles_inactive_head;
 
