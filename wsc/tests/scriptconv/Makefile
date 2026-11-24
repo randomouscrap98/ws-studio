@@ -46,7 +46,7 @@ $(S2C_TEST_C) $(S2C_TEST_H): $(S2C_TEST_SRCS) $(S2C) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@mkdir -p $(S2C_TEST_DIR)
 	python3 $(S2C) --include $(GBVM_INCLUDE) --out $(S2C_TEST_DIR) \
-		--name s2c_test --bank s2c_far=1 $(S2C_TEST_SRCS)
+		--name s2c_test --bank s2c_far=2 $(S2C_TEST_SRCS)
 
 $(BUILDDIR)/main.o: $(S2C_TEST_H)
 $(BUILDDIR)/vm_hooks.o: $(S2C_TEST_H)

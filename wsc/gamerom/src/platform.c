@@ -57,13 +57,16 @@ void wsc_boot_select(far_ptr_t *scene, INT16 *x, INT16 *y) {
     *y = entry->y;
 }
 
-/* One far const array per converted script bank. */
-static const uint8_t __far *const vm_banks[D2C_BANK_COUNT] = {
+/* One far const array per converted script bank. Slot 0 is unused: script
+ * banks start at 1 and bank 0 means "no script", as on the Game Boy. */
+static const uint8_t __far *const vm_banks[D2C_BANK_COUNT + 1] = {
+    (const uint8_t __far *)0,
     D2C_BANK_LIST
 };
 
 const uint8_t __far *vm_bank_base(UBYTE bank) {
-    return (bank < D2C_BANK_COUNT) ? vm_banks[bank] : vm_banks[0];
+    return (bank >= 1 && bank <= D2C_BANK_COUNT)
+        ? vm_banks[bank] : (const uint8_t __far *)0;
 }
 
 UBYTE *vm_ram_ptr(UWORD idx) {
@@ -84,6 +87,11 @@ void initrand(UWORD seed) {
 }
 
 UWORD randw(void) {
-    rng_state = (UWORD)(rng_state * 1103515245u + 12345u);
-    return rng_state;
+    /* GBDK-2020 4.5.0 libc/asm/sm83/rand.s: X(n+1) = 17*X(n) + 0x5C93.
+     * The GB oracle compares VM_RAND-driven actors tick by tick, so the WSC
+     * platform hook must advance the same 16-bit state the same way. GBDK's
+     * randw returns the new state with its bytes swapped (D is the low byte
+     * and E the high byte of the SDCC return value). */
+    rng_state = (UWORD)(rng_state * 17u + 0x5C93u);
+    return (UWORD)((rng_state << 8) | (rng_state >> 8));
 }

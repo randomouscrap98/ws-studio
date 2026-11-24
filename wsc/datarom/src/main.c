@@ -24,12 +24,15 @@ static const struct scene_t __far *const datarom_scenes[D2C_SCENE_COUNT] = {
     D2C_SCENE_LIST
 };
 
-static const uint8_t __far *const datarom_banks[S2C_BANK_COUNT] = {
+/* Script banks are 1-based, so slot 0 stays unused. */
+static const uint8_t __far *const datarom_banks[S2C_BANK_COUNT + 1] = {
+    (const uint8_t __far *)0,
     D2C_BANK_LIST
 };
 
 const uint8_t __far *vm_bank_base(UBYTE bank) {
-    return datarom_banks[bank];
+    return (bank >= 1 && bank <= S2C_BANK_COUNT)
+        ? datarom_banks[bank] : (const uint8_t __far *)0;
 }
 
 static UBYTE read_u8(const void __far *base, size_t offset, UBYTE bank) {

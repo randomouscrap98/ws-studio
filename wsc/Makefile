@@ -64,7 +64,7 @@ s2c-check:
 $(S2C_TEST_C) $(S2C_TEST_H): $(S2C_TEST_SRCS) $(S2C) $(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@mkdir -p $(S2C_TEST_DIR)
 	$(PYTHON) $(S2C) --include $(GBVM_INCLUDE) --out $(S2C_TEST_DIR) \
-		--name s2c_test --bank s2c_far=1 $(S2C_TEST_SRCS)
+		--name s2c_test --bank s2c_far=2 $(S2C_TEST_SRCS)
 
 $(HOST_BIN): $(HOST_DEPS)
 	@mkdir -p $(dir $@)

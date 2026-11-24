@@ -205,6 +205,8 @@ def write_build_include(out_dir, s2c_header_name, scripts, bank_symbols, scenes)
         "",
         "#include \"gbs_types.h\"",
         "",
+        "/* Script banks are numbered from 1; slot 0 in a bank table means",
+        " * \"no script\" and is never one of these entries. */",
         "#define D2C_BANK_COUNT {}".format(len(bank_symbols)),
         "#define D2C_BANK_LIST {}".format(", ".join(bank_symbols)),
         "#define D2C_SCENE_COUNT {}".format(len(scenes)),

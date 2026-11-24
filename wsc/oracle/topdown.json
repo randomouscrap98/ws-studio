@@ -41,14 +41,8 @@
       {
         "category": "off_screen_actor_activation",
         "why": "the WSC viewport is wider, so actors can be active on only one side; activation is required to match only inside the GB viewport, which is the area both screens show"
-      },
-      {
-        "category": "actor_fields",
-        "actor": 9,
-        "name": "Pet Owner",
-        "fields": ["x", "y", "dir", "frame", "animation", "move_speed"],
-        "why": "its actor_30_update script uses VM_RAND; GB seeds from DIV_REG while WSC seeds from the vblank count, so the two random walks are intentionally unrelated"
       }
     ]
-  }
+  },
+  "rngSync": true
 }

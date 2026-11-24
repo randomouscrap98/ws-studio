@@ -18,7 +18,8 @@
       "--input",
       "tests/walk-free/input.txt"
     ],
-    "precision": "exact"
+    "precision": "exact",
+    "wscActors": true
   },
   "ram": "gamerom/build/ram_walk_free.json",
   "input": "input.txt",

@@ -3,7 +3,7 @@
 `make -C wsc gb-oracle` builds the GB oracle ROM with the pre-WSC GB Studio
 engine, builds the WSC gamerom, and compares every config in `wsc/oracle/`
 tick by tick. Today those are the town topdown walk and the PLATFORM scenes
-(`platform-deeper`, `platform-path`, `platform-parallax`) plus three focused
+(`platform-deeper`, `platform-path`, `platform-parallax`) plus four focused
 regressions:
 
 - `platform-deeper-ladder` uses the original ladder-release tick and checks
@@ -15,6 +15,10 @@ regressions:
   still compared.
 - `platform-path-hazard` falls into the Path to Sample Town pit, which enters
   BLANK state and runs the blank callback attached through `VM_CALL_NATIVE`.
+- `topdown-npc` keeps the town player still for 240 ticks so the Pet Owner's
+  update script starts, waits, draws a random direction and moves. GB and WSC
+  compare every active actor's position, direction and animation; `rngSync`
+  makes the two random walks identical.
 
 `platform.json` is the GB-only jump trace used by `gb-platform-smoke`, so
 `gb-oracle` runs that one in `--platform-smoke` mode and the rest as full
@@ -30,6 +34,19 @@ Platform configs add the state-machine/velocity symbols to `playerFields`
 counters, and so on). Their sizes are listed in `STATE_FIELDS` in
 `gbdiff.py` and resolved from each side's own symbol table, like the existing
 player fields.
+
+Script banks are numbered from 1 (`s2c_bank1`, ...) by `s2c.py`, and the
+zero slot in `vm_bank_base()`'s table is unused, so the engine's `.bank`
+presence tests keep the GB meaning of "bank 0 = no script". The town and
+path scenes have actors with update/interact scripts, so those scripts run on
+WSC exactly as they do on GB.
+
+A config with `"rngSync": true` copies the GB `__rand_seed` value at tick 1
+into the WSC `rng_state` RAM word with a `wsrun --poke` before the first
+counted frame. The WSC `randw()` uses GBDK-2020 4.5.0's 16-bit LCG
+(`X = 17*X + 0x5C93`) and returns it byte-swapped like GBDK's assembly, so
+the `VM_RAND` results match. No RNG is consumed before the first waited
+script, so the copied state stays aligned.
 
 ## What it builds
 
@@ -51,6 +68,10 @@ player fields.
   same order as the bytecode indexes. Entries are far function pointers on
   WSC. The table is guarded by `GBVM_ENGINE_HANDLERS`, so data-only ROMs
   (datarom) can convert the same scripts without linking the VM.
+- Script banks: `s2c.py` packs converted scripts into banks numbered from 1.
+  `d2c.py` writes those numbers into every generated `far_ptr_t` and
+  `D2C_BANK_LIST`, and the gamerom/datarom `vm_bank_base()` tables reserve
+  slot 0 for "no script".
 
 ## Addresses and layouts
 

@@ -535,10 +535,10 @@ static void test_call_far(void) {
 }
 
 static void test_converted_scripts(void) {
-    const UBYTE *main_bank = S2C_SCRIPT_S2C_MAIN_BANK == 0 ? s2c_bank0 :
-                             S2C_SCRIPT_S2C_MAIN_BANK == 1 ? s2c_bank1 : NULL;
-    const UBYTE *far_bank = S2C_SCRIPT_S2C_FAR_BANK == 0 ? s2c_bank0 :
-                            S2C_SCRIPT_S2C_FAR_BANK == 1 ? s2c_bank1 : NULL;
+    const UBYTE *main_bank = S2C_SCRIPT_S2C_MAIN_BANK == 1 ? s2c_bank1 :
+                             S2C_SCRIPT_S2C_MAIN_BANK == 2 ? s2c_bank2 : NULL;
+    const UBYTE *far_bank = S2C_SCRIPT_S2C_FAR_BANK == 1 ? s2c_bank1 :
+                            S2C_SCRIPT_S2C_FAR_BANK == 2 ? s2c_bank2 : NULL;
     s2c_ram_i8 = 0;
     s2c_ram_i16 = 0;
     s2c_ram_bytes[0] = 0x11;

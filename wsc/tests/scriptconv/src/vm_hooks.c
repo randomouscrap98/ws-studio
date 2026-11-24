@@ -12,8 +12,9 @@
 #include "s2c_test.h"
 
 static const uint8_t __far *const vm_banks[] = {
-    s2c_bank0,
+    (const uint8_t __far *)0,
     s2c_bank1,
+    s2c_bank2,
 };
 
 const uint8_t __far *vm_bank_base(UBYTE bank) {

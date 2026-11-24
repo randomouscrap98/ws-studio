@@ -571,7 +571,7 @@ def build_gb_args(config, rom, workdir, layout, symbols, trace):
     return args
 
 
-def build_wsc_args(config, layout, symbols, trace):
+def build_wsc_args(config, layout, symbols, trace, pokes=()):
     start_x = int(config["gb"]["startX"]) * 256
     start_y = int(config["gb"]["startY"]) * 256
     marker = config["wsc"]["readySymbol"]
@@ -584,6 +584,8 @@ def build_wsc_args(config, layout, symbols, trace):
         "--max-ticks", str(config["ticks"]),
         "--trace", trace,
     ]
+    for address, width, value in pokes:
+        args.extend(["--poke", "{}:{}:{}".format(address, width, value)])
     player = symbols["actors"]
     args.extend([
         "--marker", "{}:1:1".format(symbols[marker]),
@@ -726,8 +728,23 @@ def run_pair(config, workdir):
     print("gbdiff: running GB oracle ROM", file=sys.stderr)
     run(build_gb_args(config, rom, workdir, gb_lay, gb_symbols, gb_trace),
         cwd=ROOT, what="GB oracle run")
+
+    pokes = []
+    if config.get("rngSync"):
+        # The two platforms seed the LCG differently (GB DIV_REG, WSC vblank
+        # count). Copy the GB state into WSC once, after the start marker and
+        # before the tick trace: the WSC platform hook uses GBDK's LCG, so the
+        # sequences then match. Both seeds are plain 16-bit RAM words.
+        seed = gb_symbols.get("___rand_seed")  # GBDK's __rand_seed
+        target = wsc_syms.get("rng_state")
+        if seed is None or target is None:
+            raise OracleError("rngSync needs GB __rand_seed and WSC rng_state")
+        gb_start = GBTrace(gb_trace)
+        gb_start.current = 1
+        pokes.append((target, 2, gb_start.u16(seed)))
+
     print("gbdiff: running WSC gamerom", file=sys.stderr)
-    run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace),
+    run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, pokes),
         cwd=ROOT, what="WSC oracle run")
 
     gb = Side("GB", read_trace(gb_trace, GBTrace), gb_symbols, gb_lay, "_")

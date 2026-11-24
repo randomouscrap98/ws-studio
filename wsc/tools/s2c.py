@@ -954,17 +954,20 @@ class Converter:
         raise ConversionError("unknown far-data index expression {!r}".format(expr))
 
     def layout(self):
+        # Script banks are numbered from 1, like GB Studio's exported banks.
+        # Bank 0 means "no script" to the engine, so no script ever lives in
+        # the first list slot; s2c_bank1 is banks[0].
         banks = []
         for script in self.scripts:
             forced = self.forced_banks.get(script.name)
             if forced is not None:
-                while len(banks) <= forced:
+                target = forced - 1
+                while len(banks) <= target:
                     banks.append([])
-                target = forced
                 used = sum(item.size for item in banks[target])
                 if used + script.size > MAX_BANK:
                     raise ConversionError(
-                        "script {} does not fit in forced bank {}".format(script.name, target)
+                        "script {} does not fit in forced bank {}".format(script.name, forced)
                     )
                 banks[target].append(script)
                 continue
@@ -980,7 +983,7 @@ class Converter:
         for bank_index, items in enumerate(banks):
             offset = 0
             for script in items:
-                script.bank = bank_index
+                script.bank = bank_index + 1
                 script.offset = offset
                 offset += script.size
         self.banks = banks
@@ -1149,7 +1152,9 @@ def write_output(model, out_dir, name):
         "",
     ]
     for bank_index in range(len(model.banks)):
-        lines.append("extern const uint8_t S2C_FAR s2c_bank{}[];".format(bank_index))
+        lines.append(
+            "extern const uint8_t S2C_FAR s2c_bank{}[];".format(bank_index + 1)
+        )
     lines.extend([
         "",
         "/* Index tables consumed by vm_ram_ptr() and vm_far_data_ptr(). */",
@@ -1236,10 +1241,11 @@ def write_output(model, out_dir, name):
         c_lines.append("")
     for bank_index, items in enumerate(model.banks):
         total = sum(script.size for script in items)
+        bank = bank_index + 1
         c_lines.append("/* bank {}: {} bytes, {} script(s) */".format(
-            bank_index, total, len(items)
+            bank, total, len(items)
         ))
-        c_lines.append("const uint8_t S2C_FAR s2c_bank{}[] = {{".format(bank_index))
+        c_lines.append("const uint8_t S2C_FAR s2c_bank{}[] = {{".format(bank))
         offset = 0
         for script in items:
             c_lines.append("    /* {} at 0x{:04X}, {} bytes */".format(
@@ -1305,9 +1311,12 @@ def main(argv=None):
             parser.error("--bank needs NAME=N")
         name, value = item.rsplit("=", 1)
         try:
-            forced[name.lstrip("_")] = int(value, 0)
+            number = int(value, 0)
         except ValueError:
             parser.error("bad bank number {!r}".format(value))
+        if number < 1:
+            parser.error("bank numbers start at 1, got {!r}".format(value))
+        forced[name.lstrip("_")] = number
 
     try:
         defs = Definitions(args.include)

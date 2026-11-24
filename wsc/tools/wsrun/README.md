@@ -24,6 +24,7 @@ Nothing is re-downloaded or rebuilt when everything is already up to date.
 wsc/build/wsrun --core SO --rom ROM --frames N \
     [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
     [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
+    [--poke ADDR:SIZE:VALUE] \
     [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
 
@@ -39,6 +40,11 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
   or `0x` notation. The option may be repeated; every marker must match in
   the same run. If the values are not seen within `--marker-timeout` frames
   (default 600), `wsrun` exits nonzero.
+- `--poke ADDR:SIZE:VALUE` writes the little-endian `SIZE` (1, 2 or 4)
+  bytes at `ADDR` in system RAM once, after the marker (if any) has been
+  observed and before the first counted frame. The syntax matches `--marker`
+  and the option may be repeated. `gbdiff.py` uses it to give the WSC engine
+  the GB side's random-generator state at the start marker.
 - `--tick ADDR:SIZE` makes `wsrun` watch an engine tick counter (for example
   `game_time`) after every `retro_run`. A tick is counted whenever the value
   changes. `--trace OUT` writes a binary trace: an 8-byte `GBOTRACE` magic,

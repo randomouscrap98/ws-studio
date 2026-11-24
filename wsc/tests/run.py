@@ -334,7 +334,7 @@ def compare_frames(actual_path, reference_path, precision, width):
     )
 
 
-def run_reference(test_dir, out_dir, spec, raw_path, width):
+def run_reference(test_dir, out_dir, spec, raw_path, ram_path, width):
     ref_spec = spec.get("reference")
     if ref_spec is None:
         return
@@ -356,6 +356,11 @@ def run_reference(test_dir, out_dir, spec, raw_path, width):
     reference_path = out_dir / "reference.rgb"
     argv = [sys.executable, script_path]
     argv.extend(str(arg) for arg in args)
+    if ref_spec.get("wscActors"):
+        elf_path = resolve(spec["elf"])
+        if not elf_path.is_file():
+            raise TestError("ELF {} does not exist after build".format(elf_path))
+        argv.extend(["--wsc-ram", str(ram_path), "--wsc-elf", str(elf_path)])
     argv.extend(["--out", reference_path])
     run_command(argv, what="reference ({})".format(test_dir.name))
     compare_frames(
@@ -441,7 +446,7 @@ def run_test(test_json, update_golden):
 
     build_test(spec)
     raw_path, ram_path, width, _height = run_wsrun(test_dir, out_dir, spec)
-    run_reference(test_dir, out_dir, spec, raw_path, width)
+    run_reference(test_dir, out_dir, spec, raw_path, ram_path, width)
 
     if update_golden:
         digest = hashlib.sha256(read_bytes(raw_path, "wsrun frame")).hexdigest()

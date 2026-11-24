@@ -9,8 +9,8 @@ volatile UWORD scriptconv_done;
 volatile UWORD scriptconv_frames;
 
 static const uint8_t __far *main_bank(void) {
-    if (S2C_SCRIPT_S2C_MAIN_BANK == 0) return s2c_bank0;
     if (S2C_SCRIPT_S2C_MAIN_BANK == 1) return s2c_bank1;
+    if (S2C_SCRIPT_S2C_MAIN_BANK == 2) return s2c_bank2;
     return 0;
 }
 

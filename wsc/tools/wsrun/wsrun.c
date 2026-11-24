@@ -47,6 +47,7 @@ struct core_api {
 };
 
 #define MAX_MARKERS 16
+#define MAX_POKES 16
 
 struct marker {
     uint32_t address;
@@ -67,6 +68,8 @@ struct options {
     unsigned marker_count;
     uint32_t marker_timeout;
     bool have_marker;
+    struct marker pokes[MAX_POKES];
+    unsigned poke_count;
     int boot_id;
     uint32_t tick_address;
     unsigned tick_width;
@@ -342,6 +345,47 @@ static bool parse_marker(const char *text, struct options *opts)
     opts->markers[opts->marker_count].value = value;
     opts->marker_count++;
     opts->have_marker = true;
+    ok = true;
+done:
+    free(copy);
+    return ok;
+}
+
+/* ADDR:SIZE:VALUE, same syntax as --marker. Applied to system RAM once,
+ * after the marker (if any) has been observed and before the first frame. */
+static bool parse_poke(const char *text, struct options *opts)
+{
+    char *copy;
+    char *first;
+    char *second;
+    uint32_t address;
+    uint32_t width;
+    uint32_t value;
+    bool ok = false;
+
+    copy = strdup(text);
+    if (!copy)
+        return false;
+    first = strchr(copy, ':');
+    if (!first)
+        goto done;
+    *first++ = '\0';
+    second = strchr(first, ':');
+    if (!second)
+        goto done;
+    *second++ = '\0';
+    if (!parse_u32_base(copy, 0, &address) ||
+        !parse_u32(first, &width) ||
+        !parse_u32_base(second, 0, &value))
+        goto done;
+    if (width != 1 && width != 2 && width != 4)
+        goto done;
+    if (opts->poke_count == MAX_POKES)
+        goto done;
+    opts->pokes[opts->poke_count].address = address;
+    opts->pokes[opts->poke_count].width = (unsigned)width;
+    opts->pokes[opts->poke_count].value = value;
+    opts->poke_count++;
     ok = true;
 done:
     free(copy);
@@ -725,7 +769,8 @@ static void usage(FILE *stream)
             "[--png OUT] [--raw OUT] [--ram OUT]\n"
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
             "[--boot-id N]\n"
-            "             [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] "
+            "             [--poke ADDR:SIZE:VALUE] "
+            "[--tick ADDR:SIZE [--trace OUT] [--max-ticks N] "
             "[--input-tick]]\n");
 }
 
@@ -777,6 +822,18 @@ static bool ram_value(const uint8_t *ram, size_t ram_size, uint32_t address,
     for (i = 0; i < width; i++)
         value |= (uint32_t)ram[address + i] << (8 * i);
     *out = value;
+    return true;
+}
+
+static bool ram_write(uint8_t *ram, size_t ram_size, uint32_t address,
+                      unsigned width, uint32_t value)
+{
+    unsigned i;
+
+    if ((uint64_t)address + width > ram_size)
+        return false;
+    for (i = 0; i < width; i++)
+        ram[address + i] = (uint8_t)(value >> (8 * i));
     return true;
 }
 
@@ -852,6 +909,15 @@ int main(int argc, char **argv)
             if (!parse_u32(argv[i], &opts.marker_timeout)) {
                 fprintf(stderr, "error: invalid marker timeout '%s'\n",
                         argv[i]);
+                usage(stderr);
+                return 2;
+            }
+        } else if (strcmp(arg, "--poke") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_poke(argv[i], &opts)) {
+                fprintf(stderr, "error: invalid poke '%s' "
+                        "(expected ADDR:SIZE:VALUE)\n", argv[i]);
                 usage(stderr);
                 return 2;
             }
@@ -1055,6 +1121,22 @@ bad_args:
     }
 
     /* Input frame numbers are relative to the marker when one is used. */
+    if (opts.poke_count) {
+        if (!ram_data || ram_size == 0) {
+            fprintf(stderr, "error: core did not expose system RAM\n");
+            goto cleanup;
+        }
+        for (i = 0; i < opts.poke_count; i++) {
+            if (!ram_write(ram_data, ram_size, opts.pokes[i].address,
+                           opts.pokes[i].width, opts.pokes[i].value)) {
+                fprintf(stderr,
+                        "error: poke address 0x%X is outside the %zu-byte "
+                        "RAM dump\n", opts.pokes[i].address, ram_size);
+                goto cleanup;
+            }
+        }
+    }
+
     if (opts.have_tick) {
         uint32_t previous;
         uint32_t logical_ticks = 0;

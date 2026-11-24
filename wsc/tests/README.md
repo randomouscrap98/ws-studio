@@ -92,6 +92,11 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   marker. Without a marker they are absolute run indexes.
 - `frame_sha256` is the SHA-256 of `wsrun --raw` output, or `null` to skip
   the frame check. The raw RGB24 file is always written.
+- `reference` (optional) runs a Python oracle that must write the expected
+  raw frame through `--out`. With `"wscActors": true` the harness also
+  passes `--wsc-ram <run ram.bin> --wsc-elf <spec elf>`, so a reference can
+  use live actor positions and frames from the WSC RAM dump instead of
+  assuming the scene stayed static.
 - `ram` (optional) lists little-endian value checks, read after the final
   frame. `equals` may be a hex string such as `"0x1234"`. An optional
   `offset` (bytes) is added to the symbol's address, for example
@@ -180,7 +185,11 @@ The keypad values used by the input tests correspond to the libws
   (right) for four tiles, 17 marker-relative frames after the scene loads.
   `wsc/tools/walk_oracle.py` simulates the topdown
   collision rules from the exported collision map, then uses the camera rules
-  and `ref_render.py` for an exact frame. The RAM checks pin the player at
+  and `ref_render.py` for an exact frame. The town Pet Owner has an update
+  script and moves during the 117 frames, so the reference asks `run.py` for
+  the live WSC actor transforms (`"wscActors": true`) and renders the
+  map/tiles/palettes/sprites from exported data with those positions and
+  frames. The RAM checks pin the player at
   (144, 352) and the camera at (152, 360) pixels, i.e. scroll (40, 288).
 - `walk-wall`: the same ROM holds X3 from marker-relative frame 17. The player walks down
   until the solid last rows stop it at tile (14, 51); the RAM check pins

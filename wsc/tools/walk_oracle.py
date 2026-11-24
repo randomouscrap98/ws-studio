@@ -20,6 +20,7 @@ ROOT = WSC.parent
 sys.path.insert(0, str(HERE))
 
 import boot_oracle as boot  # noqa: E402
+import gbdiff  # noqa: E402
 import ref_render  # noqa: E402
 
 DEFAULT_EXPORT = WSC / "build" / "export"
@@ -347,6 +348,41 @@ def simulate(export, scene_symbol, start_x, start_y, start_dir, grid, speed,
     return x >> 5, y >> 5, direction
 
 
+def wsc_actor_overrides(ram_path, elf_path):
+    """Read the live actor transforms from the WSC RAM dump.
+
+    Actors with update scripts (the town Pet Owner) move while the walk test
+    runs. The map, tiles, palettes and sprite drawing still come from the
+    exported data; only each actor's position and metasprite frame come from
+    the emulated WSC so the reference frame matches what the engine rendered.
+    """
+    ram = Path(ram_path).read_bytes()
+    symbols = gbdiff.wsc_symbols(Path(elf_path))
+    workdir = WSC / "build" / "walk-oracle-layout"
+    workdir.mkdir(parents=True, exist_ok=True)
+    layout = gbdiff.wsc_layout(workdir)
+    if "actors" not in symbols:
+        raise WalkError("actors symbol not found in {}".format(elf_path))
+    base = symbols["actors"]
+    overrides = {}
+    # build_scene() numbers the exported actor array from 0; the engine keeps
+    # the player in actors[0], so engine index = exported index + 1.
+    for index in range(0, layout["count"] - 1):
+        engine_index = index + 1
+        def read(field, size):
+            offset = base + engine_index * layout["size"] + layout[field]
+            if offset + size > len(ram):
+                raise WalkError("actor {} is outside the RAM dump".format(
+                    engine_index))
+            return int.from_bytes(ram[offset:offset + size], "little")
+        overrides[index] = {
+            "x": read("x", 2),
+            "y": read("y", 2),
+            "frame": read("frame", 1),
+        }
+    return overrides
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--export", default=str(DEFAULT_EXPORT))
@@ -361,6 +397,10 @@ def main(argv=None):
     parser.add_argument("--out", help="write the expected RGB24 frame")
     parser.add_argument("--ram-out", help="write the RAM checks JSON")
     parser.add_argument("--elf", help="ELF used by the RAM checks")
+    parser.add_argument("--wsc-ram",
+                        help="WSC system-RAM dump used for live actor transforms")
+    parser.add_argument("--wsc-elf",
+                        help="WSC ELF that defines the actor layout")
     args = parser.parse_args(argv)
 
     try:
@@ -379,12 +419,20 @@ def main(argv=None):
             speed, bounds, events, args.frames
         )
 
+        final = {}
+        if args.wsc_ram or args.wsc_elf:
+            if not (args.wsc_ram and args.wsc_elf):
+                raise WalkError("--wsc-ram and --wsc-elf go together")
+            final["actor_overrides"] = wsc_actor_overrides(
+                args.wsc_ram, args.wsc_elf
+            )
+
         # build_scene() applies the camera and scroll rules to this position,
         # renders the visible cells from the exported map and writes the
         # expected camera/player RAM values.
         _scene, _background, actor_info, scenario, expected = boot.build_scene(
             export, args.project_dir, args.scene, final_x, final_y, final_dir,
-            args.frames
+            args.frames, final=final
         )
 
         if args.out:
