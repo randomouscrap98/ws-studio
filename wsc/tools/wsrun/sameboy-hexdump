@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Minimal hexdump for SameBoy's boot-ROM build rule.
+
+SameBoy runs: hexdump -v -e '/1 "0x%02x, "' FILE
+This prints the file as C array bytes, which is all the build needs.
+"""
+
+import sys
+
+
+def main():
+    args = sys.argv[1:]
+    fmt = None
+    files = []
+    i = 0
+    while i < len(args):
+        if args[i] in ("-e", "--format"):
+            i += 1
+            if i == len(args):
+                break
+            fmt = args[i]
+        elif not args[i].startswith("-"):
+            files.append(args[i])
+        i += 1
+    if fmt is None or len(files) != 1 or "/1" not in fmt:
+        sys.stderr.write("sameboy-hexdump: expected -v -e '/1 FORMAT' FILE\n")
+        return 1
+    with open(files[0], "rb") as handle:
+        data = handle.read()
+    sys.stdout.write("".join("0x%02x, " % byte for byte in data))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

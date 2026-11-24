@@ -1,0 +1,11 @@
+# Tick-relative input for the town topdown comparison. The player starts on
+# tile (14, 41). Walk right six tiles, then up sixteen tiles into the open
+# area, left two tiles beside the Angry Guy, and hold up into the solid row
+# 24 wall so the last part of the trace is a wall bump. This brings several
+# NPCs into the GB viewport, so their activation and world positions are
+# compared instead of only the player.
+20 X2
+70 X1
+200 X4
+220 X1
+240 -

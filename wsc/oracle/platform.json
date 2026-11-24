@@ -1,0 +1,19 @@
+{
+  "name": "platform",
+  "description": "GB-only deeper_underground walk and jump trace for the C23 platform port",
+  "ticks": 200,
+  "frames": 3000,
+  "marker_timeout": 1500,
+  "input": "inputs/platform.txt",
+  "gb": {
+    "startSceneId": "a15eed10-615c-488a-b972-b4b37ccfc14e",
+    "startX": 5,
+    "startY": 4
+  },
+  "compare": {
+    "playerFields": ["x", "y", "dir", "flags", "frame", "animation",
+                     "move_speed", "player_moving"],
+    "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+    "excluded": []
+  }
+}

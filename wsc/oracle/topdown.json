@@ -1,0 +1,54 @@
+{
+  "name": "topdown",
+  "description": "Town topdown walk with wall bumps, GB vs WSC on game_time ticks",
+  "ticks": 320,
+  "frames": 5000,
+  "marker_timeout": 1500,
+  "input": "inputs/topdown.txt",
+  "gb": {
+    "startSceneId": "4e26a44e-ca20-448d-b47a-9982231bf69f",
+    "startX": 14,
+    "startY": 41
+  },
+  "wsc": {
+    "bootId": 2,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": [
+      {
+        "category": "camera_scroll",
+        "why": "the WSC screen is 224x144 and the GB screen is 160x144; scroll and screen-space values differ by design, so only world-space state is compared"
+      },
+      {
+        "category": "off_screen_actor_activation",
+        "why": "the WSC viewport is wider, so actors can be active on only one side; activation is required to match only inside the GB viewport, which is the area both screens show"
+      },
+      {
+        "category": "actor_fields",
+        "actor": 9,
+        "name": "Pet Owner",
+        "fields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+        "why": "its actor_30_update script uses VM_RAND; GB seeds from DIV_REG while WSC seeds from the vblank count, so the two random walks are intentionally unrelated"
+      }
+    ]
+  }
+}

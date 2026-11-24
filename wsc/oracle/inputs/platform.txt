@@ -1,0 +1,6 @@
+# GB-only platform smoke: walk right briefly, then jump with A. The player
+# starts above the floor in caves/Deeper Underground and lands before the jump.
+10 X2
+25 -
+30 A
+50 -

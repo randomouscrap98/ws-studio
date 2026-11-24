@@ -22,10 +22,22 @@ HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
 	$(WSC_DIR)host/vm_host.c $(WSC_DIR)vmtest/vmtest.c $(S2C_TEST_C)
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
-.PHONY: test test-negative wsrun host-test gen-dispatch s2c-check
+.PHONY: test test-negative wsrun gb-core gb-oracle gb-platform-smoke \
+	host-test gen-dispatch s2c-check
 
 wsrun:
 	$(MAKE) -C $(WSC_DIR)tools/wsrun
+
+gb-core:
+	bash $(WSC_DIR)tools/wsrun/fetch-gb-core.sh
+
+gb-oracle: wsrun gb-core
+	$(MAKE) -C $(WSC_DIR)gamerom
+	$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $(WSC_DIR)oracle/topdown.json
+
+gb-platform-smoke: wsrun gb-core
+	$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $(WSC_DIR)oracle/platform.json \
+		--platform-smoke
 
 test: wsrun
 	cd $(WSC_DIR) && $(PYTHON) tests/run.py

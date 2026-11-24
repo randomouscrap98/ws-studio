@@ -1,9 +1,10 @@
 # wsrun
 
 `wsrun` is a small headless libretro frontend for running WonderSwan Color
-ROMs in the beetle-wswan core for a fixed number of frames, optionally
-synchronising on a RAM marker first. It saves the last video frame as RGB24
-and PNG, plus a dump of the console's 64 KiB system RAM.
+(and, with another libretro core, Game Boy) ROMs for a fixed number of frames,
+optionally synchronising on RAM markers first. It saves the last video frame
+as RGB24 and PNG, plus a dump of the console's system RAM. It can also sample
+RAM whenever an engine tick counter changes and schedule input by tick.
 
 ## Build
 
@@ -22,7 +23,8 @@ Nothing is re-downloaded or rebuilt when everything is already up to date.
 ```sh
 wsc/build/wsrun --core SO --rom ROM --frames N \
     [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
-    [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N]
+    [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
+    [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
 
 - `--frames N` runs `retro_run` exactly N times, as fast as possible. With
@@ -34,8 +36,16 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
 - `--marker ADDR:SIZE:VALUE` polls system RAM after each `retro_run` until
   the little-endian `SIZE` (1, 2 or 4) bytes at `ADDR` equal `VALUE`; only
   then does it start the `--frames` count. `ADDR` and `VALUE` accept decimal
-  or `0x` notation. If the value is not seen within `--marker-timeout`
-  frames (default 600), `wsrun` exits nonzero.
+  or `0x` notation. The option may be repeated; every marker must match in
+  the same run. If the values are not seen within `--marker-timeout` frames
+  (default 600), `wsrun` exits nonzero.
+- `--tick ADDR:SIZE` makes `wsrun` watch an engine tick counter (for example
+  `game_time`) after every `retro_run`. A tick is counted whenever the value
+  changes. `--trace OUT` writes a binary trace: an 8-byte `GBOTRACE` magic,
+  version/tick-width/RAM-size u32s, then one `tick u32, RAM size u32, RAM
+  bytes` record per tick. `--max-ticks N` stops after N ticks (frames remains
+  a safety limit). `--input-tick` makes input-file frame numbers mean logical
+  tick numbers instead of `retro_run` indices.
 - `--boot-id N` patches the byte following the `WSCBOOT` marker in the
   loaded ROM image. The gamerom image uses it to select a start scene from
   its run-time table; the patch is in memory only.

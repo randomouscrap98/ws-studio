@@ -46,6 +46,14 @@ struct core_api {
     size_t (*get_memory_size)(unsigned);
 };
 
+#define MAX_MARKERS 16
+
+struct marker {
+    uint32_t address;
+    unsigned width;
+    uint32_t value;
+};
+
 struct options {
     const char *core;
     const char *rom;
@@ -55,12 +63,18 @@ struct options {
     const char *ram;
     uint32_t frames;
     bool have_frames;
-    uint32_t marker_address;
-    unsigned marker_width;
-    uint32_t marker_value;
+    struct marker markers[MAX_MARKERS];
+    unsigned marker_count;
     uint32_t marker_timeout;
     bool have_marker;
     int boot_id;
+    uint32_t tick_address;
+    unsigned tick_width;
+    bool have_tick;
+    uint32_t max_ticks;
+    bool have_max_ticks;
+    const char *trace;
+    bool input_tick;
 };
 
 struct input_event {
@@ -264,6 +278,35 @@ static bool parse_u32(const char *text, uint32_t *out)
     return parse_u32_base(text, 10, out);
 }
 
+/* ADDR:SIZE, both in C notation. */
+static bool parse_address_size(const char *text, uint32_t *address,
+                               unsigned *width)
+{
+    char *copy;
+    char *sep;
+    uint32_t addr;
+    uint32_t size;
+    bool ok = false;
+
+    copy = strdup(text);
+    if (!copy)
+        return false;
+    sep = strchr(copy, ':');
+    if (!sep)
+        goto done;
+    *sep++ = '\0';
+    if (!parse_u32_base(copy, 0, &addr) || !parse_u32(sep, &size))
+        goto done;
+    if (size != 1 && size != 2 && size != 4)
+        goto done;
+    *address = addr;
+    *width = (unsigned)size;
+    ok = true;
+done:
+    free(copy);
+    return ok;
+}
+
 /* ADDR:SIZE:VALUE, all in C notation (0x... or decimal). */
 static bool parse_marker(const char *text, struct options *opts)
 {
@@ -292,9 +335,12 @@ static bool parse_marker(const char *text, struct options *opts)
         goto done;
     if (width != 1 && width != 2 && width != 4)
         goto done;
-    opts->marker_address = address;
-    opts->marker_width = width;
-    opts->marker_value = value;
+    if (opts->marker_count == MAX_MARKERS)
+        goto done;
+    opts->markers[opts->marker_count].address = address;
+    opts->markers[opts->marker_count].width = (unsigned)width;
+    opts->markers[opts->marker_count].value = value;
+    opts->marker_count++;
     opts->have_marker = true;
     ok = true;
 done:
@@ -618,6 +664,22 @@ static bool write_file(const char *path, const void *data, size_t size)
     return ok;
 }
 
+static bool write_bytes(FILE *file, const void *data, size_t size)
+{
+    return size == 0 || fwrite(data, 1, size, file) == size;
+}
+
+static bool write_u32(FILE *file, uint32_t value)
+{
+    uint8_t bytes[4];
+
+    bytes[0] = (uint8_t)value;
+    bytes[1] = (uint8_t)(value >> 8);
+    bytes[2] = (uint8_t)(value >> 16);
+    bytes[3] = (uint8_t)(value >> 24);
+    return write_bytes(file, bytes, sizeof(bytes));
+}
+
 static bool ensure_dir(const char *path)
 {
     struct stat st;
@@ -662,7 +724,9 @@ static void usage(FILE *stream)
             "usage: wsrun --core SO --rom ROM --frames N [--input FILE] "
             "[--png OUT] [--raw OUT] [--ram OUT]\n"
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
-            "[--boot-id N]\n");
+            "[--boot-id N]\n"
+            "             [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] "
+            "[--input-tick]]\n");
 }
 
 /* The gamerom image carries this marker next to a one-byte boot-scene id.
@@ -818,6 +882,33 @@ int main(int argc, char **argv)
             if (++i >= (uint32_t)argc)
                 goto bad_args;
             opts.ram = argv[i];
+        } else if (strcmp(arg, "--tick") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_address_size(argv[i], &opts.tick_address,
+                                    &opts.tick_width)) {
+                fprintf(stderr, "error: invalid tick address '%s' "
+                        "(expected ADDR:SIZE)\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
+            opts.have_tick = true;
+        } else if (strcmp(arg, "--max-ticks") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_u32(argv[i], &opts.max_ticks)) {
+                fprintf(stderr, "error: invalid max tick count '%s'\n",
+                        argv[i]);
+                usage(stderr);
+                return 2;
+            }
+            opts.have_max_ticks = true;
+        } else if (strcmp(arg, "--trace") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            opts.trace = argv[i];
+        } else if (strcmp(arg, "--input-tick") == 0) {
+            opts.input_tick = true;
         } else {
             fprintf(stderr, "error: unknown argument '%s'\n", arg);
             usage(stderr);
@@ -835,6 +926,16 @@ bad_args:
         opts.marker_timeout = 600;
     if (!opts.have_marker && opts.marker_timeout != 600) {
         fprintf(stderr, "error: --marker-timeout requires --marker\n");
+        return 2;
+    }
+    if (!opts.have_tick &&
+        (opts.trace || opts.have_max_ticks || opts.input_tick)) {
+        fprintf(stderr, "error: --trace, --max-ticks and --input-tick "
+                "require --tick\n");
+        return 2;
+    }
+    if (opts.input_tick && !opts.input) {
+        fprintf(stderr, "error: --input-tick requires --input\n");
         return 2;
     }
 
@@ -879,11 +980,6 @@ bad_args:
     core.init();
     did_init = true;
 
-    if (pixel_format == RETRO_PIXEL_FORMAT_UNKNOWN) {
-        fprintf(stderr, "error: core did not choose XRGB8888 or RGB565\n");
-        goto cleanup;
-    }
-
     core.set_video_refresh(video_cb);
     core.set_audio_sample(audio_sample_cb);
     core.set_audio_sample_batch(audio_sample_batch_cb);
@@ -902,6 +998,13 @@ bad_args:
     }
     did_load = true;
 
+    /* Some cores pick their pixel format in retro_init, others in
+     * retro_load_game. */
+    if (pixel_format == RETRO_PIXEL_FORMAT_UNKNOWN) {
+        fprintf(stderr, "error: core did not choose XRGB8888 or RGB565\n");
+        goto cleanup;
+    }
+
     ram_data = core.get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
     ram_size = core.get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
 
@@ -913,7 +1016,8 @@ bad_args:
             goto cleanup;
         }
         for (i = 0; i < opts.marker_timeout; i++) {
-            uint32_t value;
+            bool all_match = true;
+            unsigned j;
 
             input_mask = 0;
             core.run();
@@ -921,14 +1025,22 @@ bad_args:
                 fprintf(stderr, "error: %s\n", video_error_message);
                 goto cleanup;
             }
-            if (!ram_value(ram_data, ram_size, opts.marker_address,
-                           opts.marker_width, &value)) {
-                fprintf(stderr,
-                        "error: marker address 0x%X is outside the %zu-byte "
-                        "RAM dump\n", opts.marker_address, ram_size);
-                goto cleanup;
+            for (j = 0; j < opts.marker_count; j++) {
+                uint32_t value;
+
+                if (!ram_value(ram_data, ram_size,
+                               opts.markers[j].address,
+                               opts.markers[j].width, &value)) {
+                    fprintf(stderr,
+                            "error: marker address 0x%X is outside the "
+                            "%zu-byte RAM dump\n",
+                            opts.markers[j].address, ram_size);
+                    goto cleanup;
+                }
+                if (value != opts.markers[j].value)
+                    all_match = false;
             }
-            if (value == opts.marker_value) {
+            if (all_match) {
                 marker_frame = i;
                 found = true;
                 break;
@@ -936,20 +1048,99 @@ bad_args:
         }
         if (!found) {
             fprintf(stderr,
-                    "error: marker 0x%X at 0x%X was not reached in %u frames\n",
-                    opts.marker_value, opts.marker_address,
+                    "error: markers were not reached in %u frames\n",
                     opts.marker_timeout);
             goto cleanup;
         }
     }
 
     /* Input frame numbers are relative to the marker when one is used. */
-    for (i = 0; i < opts.frames; i++) {
-        input_mask = mask_for_frame(i);
-        core.run();
-        if (video_error) {
-            fprintf(stderr, "error: %s\n", video_error_message);
+    if (opts.have_tick) {
+        uint32_t previous;
+        uint32_t logical_ticks = 0;
+        FILE *trace = NULL;
+
+        if (!ram_data || ram_size == 0) {
+            fprintf(stderr, "error: core did not expose system RAM\n");
             goto cleanup;
+        }
+        if (!ram_value(ram_data, ram_size, opts.tick_address,
+                       opts.tick_width, &previous)) {
+            fprintf(stderr,
+                    "error: tick address 0x%X is outside the %zu-byte RAM "
+                    "dump\n", opts.tick_address, ram_size);
+            goto cleanup;
+        }
+
+        if (opts.trace) {
+            static const char magic[8] = { 'G', 'B', 'O', 'T', 'R', 'A', 'C',
+                                           'E' };
+
+            trace = fopen(opts.trace, "wb");
+            if (!trace) {
+                fprintf(stderr, "error: cannot create '%s': %s\n",
+                        opts.trace, strerror(errno));
+                goto cleanup;
+            }
+            if (!write_bytes(trace, magic, sizeof(magic)) ||
+                !write_u32(trace, 1) || !write_u32(trace, opts.tick_width) ||
+                !write_u32(trace, (uint32_t)ram_size)) {
+                fprintf(stderr, "error: cannot write trace header\n");
+                goto cleanup;
+            }
+        }
+
+        for (i = 0; i < opts.frames; i++) {
+            uint32_t value;
+
+            if (opts.input_tick)
+                input_mask = mask_for_frame(logical_ticks + 1);
+            else
+                input_mask = mask_for_frame(i);
+            core.run();
+            if (video_error) {
+                fprintf(stderr, "error: %s\n", video_error_message);
+                goto cleanup;
+            }
+            if (!ram_value(ram_data, ram_size, opts.tick_address,
+                           opts.tick_width, &value)) {
+                fprintf(stderr, "error: tick address left the RAM dump\n");
+                goto cleanup;
+            }
+            if (value == previous)
+                continue;
+
+            previous = value;
+            logical_ticks++;
+            if (trace &&
+                (!write_u32(trace, logical_ticks) ||
+                 !write_u32(trace, (uint32_t)ram_size) ||
+                 !write_bytes(trace, ram_data, ram_size))) {
+                fprintf(stderr, "error: cannot write trace record\n");
+                goto cleanup;
+            }
+            if (opts.have_max_ticks && logical_ticks >= opts.max_ticks)
+                break;
+        }
+
+        if (trace && fclose(trace) != 0) {
+            trace = NULL;
+            fprintf(stderr, "error: cannot close trace file: %s\n",
+                    strerror(errno));
+            goto cleanup;
+        }
+        if (printf(" ticks=%u\n", logical_ticks) < 0 || fflush(stdout) != 0) {
+            fprintf(stderr, "error: cannot write to stdout\n");
+            goto cleanup;
+        }
+    } else {
+        for (i = 0; i < opts.frames; i++) {
+            input_mask = mask_for_frame(i);
+            core.run();
+            if (video_error) {
+                fprintf(stderr, "error: %s\n", video_error_message);
+                goto cleanup;
+            }
         }
     }
 
