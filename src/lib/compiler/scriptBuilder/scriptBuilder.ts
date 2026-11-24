@@ -5,12 +5,7 @@ import type {
   DistanceUnitType,
   TimeUnitType,
 } from "shared/lib/entities/entitiesTypes";
-import {
-  LYC_SYNC_VALUE,
-  SCENE_MAX_SIZE_PX,
-  SCREEN_HEIGHT_PX,
-  SCREEN_WIDTH_PX,
-} from "consts";
+import { LYC_SYNC_VALUE, SCENE_MAX_SIZE_PX } from "consts";
 import {
   isPropertyField,
   isVariableField,
@@ -1765,32 +1760,26 @@ class ScriptBuilder extends ScriptBuilderBase {
     );
     const [rpnOpsWidth, fetchOpsWidth] = precompileScriptValue(
       optimiseScriptValue(
-        subScriptValueConst(
-          addScriptValueToScriptValue(
-            clampScriptValueConst(
-              scriptValueToPixels(width, units),
-              SCREEN_WIDTH_PX,
-              SCENE_MAX_SIZE_PX,
-            ),
-            scriptValueToPixels(valueX, units),
+        addScriptValueToScriptValue(
+          clampScriptValueConst(
+            scriptValueToPixels(width, units),
+            0,
+            SCENE_MAX_SIZE_PX,
           ),
-          SCREEN_WIDTH_PX,
+          scriptValueToPixels(valueX, units),
         ),
       ),
       "width",
     );
     const [rpnOpsHeight, fetchOpsHeight] = precompileScriptValue(
       optimiseScriptValue(
-        subScriptValueConst(
-          addScriptValueToScriptValue(
-            clampScriptValueConst(
-              scriptValueToPixels(height, units),
-              SCREEN_HEIGHT_PX,
-              SCENE_MAX_SIZE_PX,
-            ),
-            scriptValueToPixels(valueY, units),
+        addScriptValueToScriptValue(
+          clampScriptValueConst(
+            scriptValueToPixels(height, units),
+            0,
+            SCENE_MAX_SIZE_PX,
           ),
-          SCREEN_HEIGHT_PX,
+          scriptValueToPixels(valueY, units),
         ),
       ),
       "height",

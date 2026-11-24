@@ -286,22 +286,24 @@ UBYTE load_scene(const scene_t FAR * scene, UBYTE bank, UBYTE init_data) BANKED 
     load_bkg_palette(scn.palette.ptr, scn.palette.bank);
     load_sprite_palette(scn.sprite_palette.ptr, scn.sprite_palette.bank);
 
-    // Copy parallax settings
+    // Copy parallax settings. The compiler always emits the scene's rows, so
+    // the screen-size gate is applied here where the width is known.
     memcpy(&parallax_rows, &scn.parallax_rows, sizeof(parallax_rows));
-    if (scn.parallax_rows[0].next_y == 0) {
+    if (scn.parallax_rows[0].next_y == 0 || image_width <= SCREEN_WIDTH) {
         scene_LCD_type = (scene_type == SCENE_TYPE_LOGO) ? LCD_fullscreen : LCD_simple;
     } else {
         scene_LCD_type = LCD_parallax;
     }
 
-#ifdef __ia16__
-    hal_clear_bkg();
-    scroll_set_bounds(image_width, image_height);
-#else
+    // Bounds are the raw, screen-independent rectangle; scroll_update()
+    // subtracts the current screen size when it clamps the camera.
     scroll_x_min = scn.scroll_bounds.left;
     scroll_x_max = scn.scroll_bounds.right;
     scroll_y_min = scn.scroll_bounds.top;
     scroll_y_max = scn.scroll_bounds.bottom;
+#ifdef __ia16__
+    hal_clear_bkg();
+    scroll_set_center(image_width, image_height);
 #endif
     scroll_offset_x = scroll_offset_y = 0;
 

@@ -6481,10 +6481,10 @@ describe("cameraSetBoundsToScriptValues", () => {
       /\.R_INT16\s+24\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_min/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+56\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
+      /\.R_INT16\s+216\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+40\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
+      /\.R_INT16\s+184\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
     );
   });
 
@@ -6533,10 +6533,10 @@ describe("cameraSetBoundsToScriptValues", () => {
       /\.R_INT16\s+24\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_min/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+56\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
+      /\.R_INT16\s+216\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+40\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
+      /\.R_INT16\s+184\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
     );
   });
 
@@ -6633,10 +6633,10 @@ describe("cameraSetBoundsToScriptValues", () => {
       /\.R_INT16\s+8\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_min/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+8\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
+      /\.R_INT16\s+168\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_x_max/,
     );
     expect(script).toMatch(
-      /\.R_INT16\s+8\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
+      /\.R_INT16\s+152\s+\.R_REF_MEM_SET \.MEM_I16, _scroll_y_max/,
     );
   });
 

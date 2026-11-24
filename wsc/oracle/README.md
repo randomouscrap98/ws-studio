@@ -37,6 +37,17 @@ diagonally along the row-40 wall, climbs the corridor, interacts with the
 Angry Guy script and then sweeps the lower area with diagonals. It compares
 the adventure engine fields and runtime state (`adv_*`) in both screen widths.
 
+`bounds` covers the screen-independent camera-bounds path. Its variant
+(`variants/bounds.json`) gives Sample Town a custom `scrollBounds` rectangle
+and adds a timer script that calls Set Camera Bounds with a wider rectangle
+at tick 130. The route holds right along the open row-41 corridor, so the
+camera first clamps to the scene's rectangle (right edge 240 px) and then to
+the script's rectangle (right edge 320 px). At 160 px the run compares scroll
+with GB directly. At 224 px `cameraBounds` in the config lists the two
+rectangles and their `fromTick`; `gbdiff` derives the expected WSC scroll as
+`clamp(GB camera centre - 112, left, max(left, right - 224))` (and the
+144-px equivalent for Y) instead of comparing against GB's 160 px clamp.
+
 `save-load` is a two-run comparison. Both runs boot the title screen. The
 `save-title` variant points the title's New Game branch at the Cave save
 point. Run 1 selects New Game, interacts with the save point and writes its
@@ -165,10 +176,15 @@ script, so the copied state stays aligned.
 
 ## What it builds
 
+- GB compiler and engine: both come from the same pinned revision
+  `b242ab79fd8a6aa0fe41d43b51a345685b11f9c3`. `gbdiff` extracts that
+  revision under `wsc/build/gb-cli/<revision>/repo`, symlinks the checkout's
+  `node_modules`, and builds its CLI once (cached). The GB ROM is built by
+  that CLI, so the GB side keeps the pinned compiler's screen-subtracted
+  bounds while the WSC side uses the current compiler's raw rectangles.
 - GB engine: `b242ab79fd8a6aa0fe41d43b51a345685b11f9c3`, the last
-  `appData/engine/gbvm` revision before the WSC port. The CLI builds it from a
-  temporary project copy with a local engine (the WSC-only source files that
-  the CLI would otherwise keep are replaced by empty stubs).
+  `appData/engine/gbvm` revision before the WSC port. The pinned CLI's own
+  engine is used directly; no local-engine overlay or WSC stubs are needed.
 - GBDK: GBDK-2020 4.5.0, SHA-256
   `d7857a5f6d135ee4c249043ca26aad9f2ec8ab5d4106d97720d404114f42605c`.
 - GB emulator: SameBoy libretro, commit

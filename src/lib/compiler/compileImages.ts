@@ -11,6 +11,7 @@ import {
   indexedImageToTilesDataArray,
 } from "lib/tiles/readFileToTiles";
 import promiseLimit from "lib/helpers/promiseLimit";
+import { LOGO_PX_H, LOGO_PX_W, LOGO_TILES_H, LOGO_TILES_W } from "./logo";
 import {
   FLAG_VRAM_BANK_1,
   TILE_BANK_SIZE,
@@ -18,8 +19,6 @@ import {
   MAX_BACKGROUND_TILES,
   MAX_BACKGROUND_TILES_CGB,
   MAX_SCENE_TILE_COUNT,
-  SCREEN_HEIGHT,
-  SCREEN_WIDTH,
   TILE_SIZE,
 } from "consts";
 import { fileExists } from "lib/helpers/fs/fileExists";
@@ -219,24 +218,24 @@ export const compileImage = async (
 
   if (is360) {
     const sourceWidth = Math.ceil(indexedImage.width / TILE_SIZE);
-    const logoTileCount = SCREEN_WIDTH * SCREEN_HEIGHT;
+    const logoTileCount = LOGO_TILES_W * LOGO_TILES_H;
     const sourceAttrs = buildAttr(tileAttrs, autoTileColors, tileData.length);
     const logoTiles = Array.from({ length: logoTileCount }, (_, index) => {
-      const x = index % SCREEN_WIDTH;
-      const y = Math.floor(index / SCREEN_WIDTH);
+      const x = index % LOGO_TILES_W;
+      const y = Math.floor(index / LOGO_TILES_W);
       return tileData[y * sourceWidth + x] ?? BLANK_TILE;
     });
     const attr = Array.from({ length: logoTileCount }, (_, index) => {
-      const x = index % SCREEN_WIDTH;
-      const y = Math.floor(index / SCREEN_WIDTH);
+      const x = index % LOGO_TILES_W;
+      const y = Math.floor(index / LOGO_TILES_W);
       return sourceAttrs[y * sourceWidth + x] ?? 0;
     });
     const tilemap = Array.from({ length: logoTileCount }, (_, index) => index);
     const tiles = tileArrayToTileData(logoTiles);
     return {
       ...img,
-      width: SCREEN_WIDTH,
-      height: SCREEN_HEIGHT,
+      width: LOGO_TILES_W,
+      height: LOGO_TILES_H,
       vramData: [[...tiles], []],
       tilemap,
       attr,
@@ -302,7 +301,10 @@ export const compileImage = async (
     );
   }
 
-  if (is360 && (img.imageWidth !== 160 || img.imageHeight !== 144)) {
+  if (
+    is360 &&
+    (img.imageWidth !== LOGO_PX_W || img.imageHeight !== LOGO_PX_H)
+  ) {
     warnings(
       l10n("WARNING_LOGO_WRONG_SIZE", {
         width: img.imageWidth,

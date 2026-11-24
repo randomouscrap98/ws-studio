@@ -62,6 +62,13 @@ EXPORT_DEPS	:= $(shell find $(EXPORT_DIR)/src/data \
 PROJECT_DEPS	:= $(shell find $(PROJECT_DIR)/project \
 			$(PROJECT_DIR)/assets/backgrounds \
 			-name '*.gbsres' 2>/dev/null)
+# The export is compiler output. Re-export whenever the compiler sources or
+# event definitions are newer than the cached export.
+COMPILER_DEPS	:= $(shell find $(ROOT_DIR)/src/lib/compiler \
+			$(ROOT_DIR)/src/lib/events \
+			$(ROOT_DIR)/src/shared/lib/resources \
+			$(ROOT_DIR)/src/shared/lib/helpers -type f 2>/dev/null) \
+			$(ROOT_DIR)/src/consts.ts
 
 DATA_SOURCES	:= $(shell find $(GEN_DIR)/data -name '*.c' 2>/dev/null | sort)
 DATA_OBJS	:= $(patsubst $(GEN_DIR)/data/%.c,$(OBJDIR)/data/%.o,$(DATA_SOURCES))
@@ -127,7 +134,10 @@ $(RAM_WALK_WALL): $(ROM) $(ELF) $(WSC_DIR)/tools/walk_oracle.py \
 		--start-x 112 --start-y 328 --frames 117 \
 		--input $(WALK_WALL_INPUT)
 
-export-data $(EXPORT_READY):
+export-data:
+	$(WSC_DIR)/export/run.sh
+
+$(EXPORT_READY): $(COMPILER_DEPS) $(PROJECT_DEPS)
 	$(WSC_DIR)/export/run.sh
 
 # One script bank. The layout-pad script is always last, so the whole suite

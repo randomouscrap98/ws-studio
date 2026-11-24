@@ -1,0 +1,54 @@
+[
+  {
+    "file": "scenes/town/sample_town/scene.gbsres",
+    "path": "scrollBounds",
+    "value": {
+      "x": 0,
+      "y": 0,
+      "width": 30,
+      "height": 56
+    }
+  },
+  {
+    "file": "scenes/town/sample_town/scene.gbsres",
+    "path": "script.-",
+    "value": {
+      "id": "c33-bounds-timer",
+      "command": "EVENT_SET_TIMER_SCRIPT",
+      "args": {
+        "timer": 2,
+        "duration": 2,
+        "frames": 120,
+        "units": "frames",
+        "__scriptTabs": "end"
+      },
+      "children": {
+        "script": [
+          {
+            "id": "c33-bounds-set",
+            "command": "EVENT_CAMERA_SET_BOUNDS",
+            "args": {
+              "x": {
+                "type": "number",
+                "value": 0
+              },
+              "y": {
+                "type": "number",
+                "value": 0
+              },
+              "width": {
+                "type": "number",
+                "value": 40
+              },
+              "height": {
+                "type": "number",
+                "value": 56
+              },
+              "units": "tiles"
+            }
+          }
+        ]
+      }
+    }
+  }
+]

@@ -1,4 +1,3 @@
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "consts";
 import {
   compileGameGlobalsInclude,
   compileGameGlobalsHeader,
@@ -180,8 +179,8 @@ describe("compileScrollBounds", () => {
     expect(result).toEqual({
       left: 16,
       top: 24,
-      right: 56,
-      bottom: 40,
+      right: 216,
+      bottom: 184,
     });
   });
 
@@ -198,8 +197,8 @@ describe("compileScrollBounds", () => {
     expect(result).toEqual({
       left: 0,
       top: 0,
-      right: 0,
-      bottom: 0,
+      right: 160,
+      bottom: 144,
     });
   });
 
@@ -216,12 +215,12 @@ describe("compileScrollBounds", () => {
     expect(result).toEqual({
       left: 40,
       top: 80,
-      right: 1880,
-      bottom: 1936,
+      right: 2040,
+      bottom: 2080,
     });
   });
 
-  test("should make sure width/height are greater than screen size", () => {
+  test("should keep bounds smaller than the screen as a raw rectangle", () => {
     const scrollBounds = {
       x: 2,
       y: 2,
@@ -234,18 +233,18 @@ describe("compileScrollBounds", () => {
     expect(result).toEqual({
       left: 16,
       top: 16,
-      right: 16,
-      bottom: 16,
+      right: 136,
+      bottom: 112,
     });
   });
 
-  test("should return the given screen size when scrollBounds is undefined", () => {
+  test("should return the scene size when scrollBounds is undefined", () => {
     const result = compileScrollBounds(undefined, 20, 30);
     expect(result).toEqual({
       left: 0,
       top: 0,
-      right: (20 - SCREEN_WIDTH) * 8,
-      bottom: (30 - SCREEN_HEIGHT) * 8,
+      right: 160,
+      bottom: 240,
     });
   });
 });

@@ -53,22 +53,23 @@ GB_CORE = BUILD / GB_CORE_NAME
 WSC_CORE = BUILD / WSC_CORE_NAME
 WSC_ROM = WSC_DIR / "gamerom" / "gamerom.wsc"
 WSC_ELF = WSC_DIR / "gamerom" / "build" / "gamerom.elf"
-CLI = ROOT / "out" / "cli" / "gb-studio-cli.js"
 
-# Current-only engine sources that the CLI's local-engine overlay leaves in
-# place. The GB oracle must not compile WSC HAL code.
-GB_ENGINE_STUBS = (
-    "src/core/vm_dispatch.c",
-    "src/wsc/bankdata_wsc.c",
-    "src/wsc/hal_wsc.c",
-    "src/wsc/hal_wsc_sram.c",
-    "src/wsc/hal_wsc_bg.c",
-    "src/wsc/hal_wsc_spr.c",
-    "src/wsc/parallax_wsc.c",
-    "src/wsc/scroll_wsc.c",
-    "src/wsc/stubs_wsc.c",
-    "src/wsc/ui_wsc.c",
+# The GB side must be built by the compiler and engine from the same pinned
+# revision. The current compiler will start emitting screen-independent
+# values (C33), so pairing it with the pinned engine would compile one data
+# model with another engine's expectations.
+GB_CLI_ROOT = BUILD / "gb-cli" / GB_ENGINE_REV
+GB_CLI_REPO = GB_CLI_ROOT / "repo"
+GB_CLI = GB_CLI_REPO / "out" / "cli" / "gb-studio-cli.js"
+
+# Inputs whose changes make a cached export stale.
+COMPILER_DIGEST_ROOTS = (
+    ROOT / "src" / "lib" / "compiler",
+    ROOT / "src" / "lib" / "events",
+    ROOT / "src" / "shared" / "lib" / "resources",
+    ROOT / "src" / "shared" / "lib" / "helpers",
 )
+COMPILER_DIGEST_FILES = (ROOT / "src" / "consts.ts",)
 
 ACTIVE_FLAG = 0x20
 
@@ -228,14 +229,59 @@ def ensure_gbdk():
     return root
 
 
-def ensure_cli():
-    if not CLI.is_file():
-        print("gbdiff: building the GB Studio CLI", file=sys.stderr)
-        run([WSC_DIR / "export" / "run.sh"], cwd=ROOT,
-            what="GB Studio CLI/export bootstrap")
-    if not CLI.is_file():
-        raise OracleError("GB Studio CLI was not built at {}".format(CLI))
-    return CLI
+def ensure_pinned_cli():
+    """Build (once) the CLI from the same revision as the pinned GB engine.
+
+    The extracted tree is cached under wsc/build/gb-cli/<revision>/. Its
+    node_modules is a symlink to the checkout's, so the webpack build does
+    not download anything.
+    """
+    if GB_CLI.is_file():
+        return GB_CLI
+    print("gbdiff: building the pinned GB CLI from {}".format(
+        GB_ENGINE_REV[:12]), file=sys.stderr)
+    ensure_dir(GB_CLI_ROOT)
+    if not (GB_CLI_REPO / "package.json").is_file():
+        shutil.rmtree(GB_CLI_REPO, ignore_errors=True)
+        ensure_dir(GB_CLI_REPO)
+        try:
+            archive = subprocess.check_output(
+                ["git", "archive", GB_ENGINE_REV], cwd=str(ROOT))
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise OracleError("cannot archive the pinned GB CLI tree: {}".format(
+                exc)) from exc
+        archive_file = GB_CLI_ROOT / "repo.tar"
+        archive_file.write_bytes(archive)
+        run(["tar", "-x", "-C", GB_CLI_REPO, "-f", archive_file],
+            what="extract pinned GB CLI")
+        archive_file.unlink()
+    node_modules = GB_CLI_REPO / "node_modules"
+    if not node_modules.exists():
+        node_modules.symlink_to(ROOT / "node_modules")
+    env = dict(os.environ)
+    env.update({
+        "NO_TYPE_CHECKING": "1",
+        "SKIP_YARN_COREPACK_CHECK": "1",
+        "ELECTRON_SKIP_BINARY_DOWNLOAD": "1",
+    })
+    run(["npm", "run", "make:cli"], cwd=GB_CLI_REPO, env=env,
+        what="pinned GB CLI build")
+    if not GB_CLI.is_file():
+        raise OracleError("pinned GB CLI was not built at {}".format(GB_CLI))
+    return GB_CLI
+
+
+def compiler_digest():
+    """Fingerprint the compiler/event sources used to produce an export."""
+    digest = hashlib.sha256()
+    paths = []
+    for root in COMPILER_DIGEST_ROOTS:
+        paths.extend(path for path in root.rglob("*") if path.is_file())
+    paths.extend(path for path in COMPILER_DIGEST_FILES if path.is_file())
+    for path in sorted(paths):
+        digest.update(str(path.relative_to(ROOT)).encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
 def ensure_wsrun():
@@ -266,12 +312,6 @@ def ensure_wsc_rom():
         if not path.is_file():
             raise OracleError("missing WSC artifact {}".format(path))
     return WSC_ROM, WSC_ELF
-
-
-def write_stub(path, name):
-    text = ("/* GB oracle stub: {} is not part of the pinned GB engine. */\n"
-            "typedef int gb_oracle_engine_stub;\n".format(name))
-    path.write_text(text)
 
 
 def load_variant(config):
@@ -368,7 +408,10 @@ def cli_tmp_dir(config):
 def prepare_gb_project(config, workdir, variant=None):
     config_text = json.dumps(config, sort_keys=True)
     variant_text = variant["digest"] if variant else "none"
-    stamp_text = GB_ENGINE_REV + "\n" + config_text + "\n" + variant_text
+    # The pinned CLI is part of the build identity: a GB ROM built by the
+    # unpinned checkout's compiler is not comparable with the pinned engine.
+    stamp_text = ("pinned-cli\n" + GB_ENGINE_REV + "\n" + config_text +
+                  "\n" + variant_text)
     stamp = workdir / "build.stamp"
     rom = workdir / "rom.gb"
     noi = workdir / "rom.noi"
@@ -376,7 +419,7 @@ def prepare_gb_project(config, workdir, variant=None):
             stamp.read_text() == stamp_text):
         return rom, noi
 
-    print("gbdiff: building the GB ROM with engine {}".format(
+    print("gbdiff: building the GB ROM with the pinned CLI and engine {}".format(
         GB_ENGINE_REV[:12]), file=sys.stderr)
     project = workdir / "project"
     # SDCC builds temporary file names from TMPDIR into a small fixed buffer.
@@ -390,27 +433,6 @@ def prepare_gb_project(config, workdir, variant=None):
     shutil.copytree(ROOT / "appData" / "templates" / "gbs2", project)
     if variant:
         apply_variant(project / "project", variant)
-
-    engine = ensure_dir(project / "assets" / "engine")
-    try:
-        archive = subprocess.check_output(
-            ["git", "archive", GB_ENGINE_REV, "appData/engine/gbvm"],
-            cwd=str(ROOT))
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise OracleError("cannot archive pinned GB engine: {}".format(
-            exc)) from exc
-    # Feed the archive through tar without a shell (input is bytes, so use a
-    # small temporary file).
-    archive_file = workdir / "engine.tar"
-    archive_file.write_bytes(archive)
-    run(["tar", "-x", "-C", engine, "--strip-components=3", "-f",
-         archive_file], what="extract pinned GB engine")
-    archive_file.unlink()
-
-    for name in GB_ENGINE_STUBS:
-        path = engine / name
-        ensure_dir(path.parent)
-        write_stub(path, name)
 
     settings_path = project / "project" / "settings.gbsres"
     settings = json.loads(settings_path.read_text())
@@ -428,7 +450,7 @@ def prepare_gb_project(config, workdir, variant=None):
     shutil.copyfile(ROOT / "buildTools" / "linux-x64" / "tools_version",
                     tools / "tools_version")
 
-    ensure_cli()
+    pinned_cli = ensure_pinned_cli()
     env = dict(os.environ)
     env.update({
         "TMPDIR": str(cli_tmp),
@@ -436,7 +458,7 @@ def prepare_gb_project(config, workdir, variant=None):
                                            "electron" / "dist"),
         "ELECTRON_SKIP_BINARY_DOWNLOAD": "1",
     })
-    run(["node", CLI, "--verbose", "make:rom",
+    run(["node", pinned_cli, "--verbose", "make:rom",
          project / "project.gbsproj", rom], cwd=ROOT, env=env,
         what="GB ROM build")
 
@@ -464,7 +486,7 @@ def ensure_variant_wsc_rom(variant):
     rom = root / "gamerom.wsc"
     elf = build / "gamerom.elf"
     stamp = root / "export.stamp"
-    digest = variant["digest"]
+    digest = variant["digest"] + ":" + compiler_digest()
     exported = (export / "src" / "data" / "scene_sample_town.c").is_file()
     if (not exported or not stamp.is_file() or
             stamp.read_text().strip() != digest):
@@ -939,6 +961,52 @@ def actor_in_gb_view(gb, position_side, index):
     return (left <= x < left + 160 and top <= y < top + 144)
 
 
+def camera_bounds_at(config, tick):
+    """Return the camera-bounds rectangle in effect at a tick.
+
+    Configs that exercise a bounds rectangle list one entry per phase:
+    ``{"fromTick": N, "left": l, "top": t, "right": r, "bottom": b}``.
+    The values are the same screen-independent pixels the compiler emits.
+    """
+    entries = config.get("cameraBounds")
+    if not entries:
+        return None
+    if not isinstance(entries, list):
+        raise OracleError("cameraBounds must be a list")
+    current = None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise OracleError("cameraBounds entry is not an object")
+        for key in ("fromTick", "left", "top", "right", "bottom"):
+            if key not in entry:
+                raise OracleError(
+                    "cameraBounds entry needs {}: {!r}".format(key, entry))
+        try:
+            from_tick = int(entry["fromTick"])
+        except (TypeError, ValueError) as exc:
+            raise OracleError("invalid cameraBounds fromTick: {!r}".format(
+                entry["fromTick"])) from exc
+        if tick >= from_tick:
+            current = entry
+    if current is None:
+        raise OracleError("no cameraBounds entry covers tick {}".format(tick))
+    return current
+
+
+def clamp(value, minimum, maximum):
+    return max(minimum, min(value, maximum))
+
+
+def expected_scroll(gb, rect, width, height, axis):
+    """Derive the WSC scroll from GB world state and the bounds rectangle."""
+    center = gb.state_field("camera_x" if axis == "x" else "camera_y") >> 5
+    half = width >> 1 if axis == "x" else height >> 1
+    low = rect["left"] if axis == "x" else rect["top"]
+    high = rect["right"] if axis == "x" else rect["bottom"]
+    limit = max(low, high - width) if axis == "x" else max(low, high - height)
+    return clamp(center - half, low, limit)
+
+
 def compare_traces(config, mode, gb, wsc):
     ticks = sorted(set(gb.trace.records) & set(wsc.trace.records))
     if not ticks:
@@ -991,6 +1059,20 @@ def compare_traces(config, mode, gb, wsc):
             compared += 1
             if a != b:
                 return tick, "player." + field, a, b, compared
+
+        if mode != 160:
+            bounds = camera_bounds_at(config, tick)
+            if bounds:
+                # The GB and WSC cameras follow the same world position;
+                # only the clamp differs because the WSC viewport is wider.
+                # Derive the clamped scroll from the same raw rectangle.
+                for axis, field in (("x", "scroll_x"), ("y", "scroll_y")):
+                    expected = expected_scroll(gb, bounds, mode, 144, axis)
+                    actual = wsc.state_field(field)
+                    compared += 1
+                    if expected != actual:
+                        return (tick, "cameraBounds." + field, expected,
+                                actual, compared)
 
         for band in range(3):
             for field in parallax_fields:

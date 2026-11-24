@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import flatten from "lodash/flatten";
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "consts";
+import { LOGO_TILES_H, LOGO_TILES_W } from "./logo";
 import { CompiledFontData } from "lib/fonts/fontData";
 import {
   decHex32Val,
@@ -523,23 +523,22 @@ export const compileScrollBounds = (
   sceneWidth: number,
   sceneHeight: number,
 ): { left: number; right: number; top: number; bottom: number } | undefined => {
+  // Screen-independent rectangle: left/top are the minimum scroll values and
+  // right/bottom are the exclusive world edges. The engine subtracts its
+  // runtime screen size when it applies the bounds.
   if (!scrollBounds) {
     return {
       left: 0,
       top: 0,
-      right: tileToPx(sceneWidth - SCREEN_WIDTH),
-      bottom: tileToPx(sceneHeight - SCREEN_HEIGHT),
+      right: tileToPx(sceneWidth),
+      bottom: tileToPx(sceneHeight),
     };
   }
   return {
     left: tileToPx(scrollBounds.x),
     top: tileToPx(scrollBounds.y),
-    right: tileToPx(
-      scrollBounds.x + Math.max(0, scrollBounds.width - SCREEN_WIDTH),
-    ),
-    bottom: tileToPx(
-      scrollBounds.y + Math.max(0, scrollBounds.height - SCREEN_HEIGHT),
-    ),
+    right: tileToPx(scrollBounds.x + scrollBounds.width),
+    bottom: tileToPx(scrollBounds.y + scrollBounds.height),
   };
 };
 
@@ -560,8 +559,8 @@ export const compileScene = (
     ? scene.playerSprite.symbol
     : "spritesheet_none";
 
-  const sceneWidth = scene.type === "LOGO" ? 20 : scene.width;
-  const sceneHeight = scene.type === "LOGO" ? 18 : scene.height;
+  const sceneWidth = scene.type === "LOGO" ? LOGO_TILES_W : scene.width;
+  const sceneHeight = scene.type === "LOGO" ? LOGO_TILES_H : scene.height;
 
   return toStructDataFile(
     SCENE_TYPE,
@@ -574,9 +573,7 @@ export const compileScene = (
       type: `SCENE_TYPE_${String(scene.type).toUpperCase()}`,
       background: toFarPtr(scene.background.symbol),
       collisions: toFarPtr(sceneCollisionsSymbol(scene.symbol)),
-      parallax_rows: compileParallax(
-        sceneWidth > SCREEN_WIDTH ? scene.parallax : undefined,
-      ),
+      parallax_rows: compileParallax(scene.parallax),
       scroll_bounds: compileScrollBounds(
         scene.scrollBounds,
         sceneWidth,

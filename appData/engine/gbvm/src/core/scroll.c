@@ -71,28 +71,17 @@ void scroll_init(void) BANKED {
 }
 
 #ifdef __ia16__
-/* Rule 4/5: derive camera limits from the scene size and the HAL screen size.
- * A scene smaller than the screen is centred; its source origin stays at 0
- * and scroll_center_* holds the distance to the hardware scroll position. */
-void scroll_set_bounds(UINT16 image_w, UINT16 image_h) {
-    if (image_w >= hal_screen_w_px) {
-        scroll_x_min = 0;
-        scroll_x_max = image_w - hal_screen_w_px;
-        scroll_center_x = 0;
-    } else {
-        scroll_x_min = 0;
-        scroll_x_max = 0;
-        scroll_center_x = (INT16)((hal_screen_w_px - image_w) >> 1);
-    }
-    if (image_h >= hal_screen_h_px) {
-        scroll_y_min = 0;
-        scroll_y_max = image_h - hal_screen_h_px;
-        scroll_center_y = 0;
-    } else {
-        scroll_y_min = 0;
-        scroll_y_max = 0;
-        scroll_center_y = (INT16)((hal_screen_h_px - image_h) >> 1);
-    }
+/* A scene smaller than the screen is centred; its source origin stays at 0
+ * and scroll_center_* holds the distance to the hardware scroll position.
+ * The bounds themselves are the raw, screen-independent rectangle that the
+ * compiler emits (see scroll_update for the screen-size subtraction). */
+void scroll_set_center(UINT16 image_w, UINT16 image_h) {
+    scroll_center_x = (image_w < hal_screen_w_px)
+        ? (INT16)((hal_screen_w_px - image_w) >> 1)
+        : 0;
+    scroll_center_y = (image_h < hal_screen_h_px)
+        ? (INT16)((hal_screen_h_px - image_h) >> 1)
+        : 0;
 }
 #endif
 
@@ -107,20 +96,28 @@ void scroll_reset(void) BANKED {
 
 void scroll_update(void) BANKED {
     INT16 x, y;
+    UINT16 x_max, y_max;
     UBYTE render = FALSE;
+
+    /* scroll_x_max/scroll_y_max are the raw right/bottom edges emitted by
+     * the compiler; the visible scroll range ends one screen earlier. */
+    x_max = (scroll_x_max > SCREENWIDTH) ? scroll_x_max - SCREENWIDTH : 0;
+    y_max = (scroll_y_max > SCREENHEIGHT) ? scroll_y_max - SCREENHEIGHT : 0;
+    if (x_max < scroll_x_min) x_max = scroll_x_min;
+    if (y_max < scroll_y_min) y_max = scroll_y_min;
 
     x = SUBPX_TO_PX(camera_x) - (SCREENWIDTH >> 1);
     y = SUBPX_TO_PX(camera_y) - (SCREENHEIGHT >> 1);
 
     if ((x & 0x8000u) || (x < scroll_x_min)) {  // check for negative signed bit
         x = scroll_x_min;
-    } else if (x > scroll_x_max) {
-        x = scroll_x_max;
+    } else if (x > x_max) {
+        x = x_max;
     }
     if ((y & 0x8000u) || (y < scroll_y_min)) {
         y = scroll_y_min;
-    } else if (y > scroll_y_max) {
-        y = scroll_y_max;
+    } else if (y > y_max) {
+        y = y_max;
     }
 
     current_col = PX_TO_TILE(scroll_x);

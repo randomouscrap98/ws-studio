@@ -1,0 +1,48 @@
+{
+  "name": "bounds",
+  "description": "Sample Town with custom scene scroll bounds and a scene-init camera-set-bounds event; walks along the row-41 corridor into both camera clamps.",
+  "variant": "bounds",
+  "ticks": 520,
+  "frames": 15000,
+  "marker_timeout": 2000,
+  "input": "inputs/bounds.txt",
+  "gb": {
+    "startSceneId": "4e26a44e-ca20-448d-b47a-9982231bf69f",
+    "startX": 14,
+    "startY": 41
+  },
+  "wsc": {
+    "bootId": 2,
+    "readySymbol": "wsc_test_marker"
+  },
+  "cameraBounds": [
+    {
+      "fromTick": 1,
+      "left": 0,
+      "top": 0,
+      "right": 240,
+      "bottom": 448
+    },
+    {
+      "fromTick": 130,
+      "left": 0,
+      "top": 0,
+      "right": 320,
+      "bottom": 448
+    }
+  ],
+  "compare": {
+    "playerFields": [
+      "x", "y", "dir", "flags", "frame", "animation", "move_speed",
+      "player_moving"
+    ],
+    "actorFields": ["x", "y", "dir", "frame", "animation", "move_speed"],
+    "excluded": [
+      {
+        "category": "off_screen_actor_activation",
+        "why": "the WSC viewport is wider, so actors can be active on only one side; activation is required to match only inside the GB viewport, which is the area both screens show"
+      }
+    ]
+  },
+  "rngSync": true
+}

@@ -34,6 +34,7 @@ import {
   decodeSceneTileRef,
 } from "shared/lib/tiles/sceneTilemapData";
 import promiseLimit from "lib/helpers/promiseLimit";
+import { LOGO_TILES_H, LOGO_TILES_W } from "./logo";
 
 type PrecompiledSceneTilemapData = {
   id: string;
@@ -140,24 +141,24 @@ export const compileTilemapLayers = async (
   }
 
   if (scene.type === "LOGO") {
-    const logoTileCount = SCREEN_WIDTH * SCREEN_HEIGHT;
+    const logoTileCount = LOGO_TILES_W * LOGO_TILES_H;
     const logoTiles = Array.from({ length: logoTileCount }, (_, index) => {
-      const x = index % SCREEN_WIDTH;
-      const y = Math.floor(index / SCREEN_WIDTH);
+      const x = index % LOGO_TILES_W;
+      const y = Math.floor(index / LOGO_TILES_W);
       return cellTiles[y * scene.width + x] ?? BLANK_TILE;
     });
     const tilemap = Array.from({ length: logoTileCount }, (_, index) => index);
     const attr = Array.from({ length: logoTileCount }, (_, index) => {
-      const x = index % SCREEN_WIDTH;
-      const y = Math.floor(index / SCREEN_WIDTH);
+      const x = index % LOGO_TILES_W;
+      const y = Math.floor(index / LOGO_TILES_W);
       return attrs[y * scene.width + x] ?? 0;
     });
     return {
       id: scene.id,
       name: scene.name,
       symbol: `${scene.symbol}_bg`,
-      width: SCREEN_WIDTH,
-      height: SCREEN_HEIGHT,
+      width: LOGO_TILES_W,
+      height: LOGO_TILES_H,
       vramData: [[...tileArrayToTileData(logoTiles)], []],
       tilemap,
       attr,

@@ -1,0 +1,6 @@
+# C33 bounds route: from tile (14,41) hold right along the open row-41
+# corridor for the whole run. The camera hits the scene's custom scroll-bound
+# rectangle first and, after the scene init script sets a wider camera
+# rectangle, the second one.
+20 X2
+519 -

@@ -52,7 +52,7 @@ extern UINT8 pending_h_i;
  * when the scene is smaller than the screen (rule 5). */
 extern INT16 scroll_center_x;
 extern INT16 scroll_center_y;
-void scroll_set_bounds(UINT16 image_w, UINT16 image_h);
+void scroll_set_center(UINT16 image_w, UINT16 image_h);
 UINT8 * GetWinAddr(void);
 UINT8 * GetBkgAddr(void);
 void scroll_rect(UBYTE * base_addr, UBYTE w, UBYTE h, UBYTE fill);
