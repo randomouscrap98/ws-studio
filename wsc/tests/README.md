@@ -97,6 +97,14 @@ A test is a directory `wsc/tests/<name>/` containing `test.json`:
   passes `--wsc-ram <run ram.bin> --wsc-elf <spec elf>`, so a reference can
   use live actor positions and frames from the WSC RAM dump instead of
   assuming the scene stayed static.
+- `sequence` (optional) replaces the single run with a list of runs. Each
+  entry takes its own `frames`, `boot`, `input`, `marker`, `ram` and
+  `frame_sha256`, and runs into `wsc/build/tests/<name>/runN/`. The top-level
+  `rom`, `elf` and `build` are built once. `sram_out` writes the run's
+  `RETRO_MEMORY_SAVE_RAM` and `sram_in` loads it in a later run. A run may add
+  `"ram_match": {"run": N, "checks": [{"symbol", "offset", "size"}]}` to
+  compare those RAM bytes with an earlier run, which is how `save-load`
+  checks that the restored values came from the save.
 - `ram` (optional) lists little-endian value checks, read after the final
   frame. `equals` may be a hex string such as `"0x1234"`. An optional
   `offset` (bytes) is added to the symbol's address, for example
@@ -193,6 +201,11 @@ The keypad values used by the input tests correspond to the libws
   map/tiles/palettes/sprites from exported data with those positions and
   frames. The RAM checks pin the player at
   (144, 352) and the camera at (152, 360) pixels, i.e. scroll (40, 288).
+- `save-load`: boots the gamerom at `save-point` (the Cave save point) and
+  interacts twice to save, writing `save.sram`. A second run boots `title`,
+  selects Continue and loads the save. Its player, save actor and
+  `script_memory` words must match the first run. This covers save SRAM and
+  the load path without using the Game Boy oracle.
 - `walk-wall`: the same ROM holds X3 from marker-relative frame 17. The player walks down
   until the solid last rows stop it at tile (14, 51); the RAM check pins
   `y = 408` pixels.

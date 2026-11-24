@@ -134,7 +134,18 @@ void process_VM(void) {
                         music_init_events(FALSE);
                         // load scene
                         far_ptr_t scene;
+#ifdef __ia16__
+                        // The script converter replaces far-data operands
+                        // with a 16-bit vm_far_data[] index.  A scene change
+                        // carries one bank byte (always 0 on WSC) and that
+                        // index, not the GB's inline far pointer.
+                        scene.bank = 0;
+                        scene.ptr = (const void FAR *)vm_far_data_ptr(
+                            0, ReadBankedUWORD(vm_exception_params_offset + 1,
+                                               vm_exception_params_bank));
+#else
                         ReadBankedFarPtr(&scene, vm_exception_params_offset, vm_exception_params_bank);
+#endif
                         fade_in = !(load_scene(scene.ptr, scene.bank, TRUE));
                         break;
                     }

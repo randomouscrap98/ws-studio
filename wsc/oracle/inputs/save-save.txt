@@ -1,0 +1,10 @@
+# Title screen: skip the await, choose New Game (the save-title variant sends
+# that branch to the Cave save point), then interact and pick Save Game.
+20 A
+25 -
+60 A
+65 -
+160 A
+165 -
+200 A
+205 -

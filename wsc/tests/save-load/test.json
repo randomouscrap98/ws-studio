@@ -1,0 +1,47 @@
+{
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
+  "build": "gamerom",
+  "frame_sha256": null,
+  "sequence": [
+    {
+      "frames": 120,
+      "boot": "save-point",
+      "input": "save-input.txt",
+      "marker": {
+        "symbol": "wsc_test_marker",
+        "size": 1,
+        "equals": "0x01",
+        "timeout": 600
+      },
+      "sram_out": "save.sram"
+    },
+    {
+      "frames": 140,
+      "boot": "title",
+      "input": "load-input.txt",
+      "marker": {
+        "symbol": "wsc_test_marker",
+        "size": 1,
+        "equals": "0x01",
+        "timeout": 600
+      },
+      "sram_in": "save.sram",
+      "ram_match": {
+        "run": 0,
+        "checks": [
+          {"symbol": "current_scene", "size": 4, "offset": 2},
+          {"symbol": "actors", "size": 1, "offset": 0},
+          {"symbol": "actors", "size": 2, "offset": 2},
+          {"symbol": "actors", "size": 2, "offset": 4},
+          {"symbol": "actors", "size": 1, "offset": 6},
+          {"symbol": "actors", "size": 1, "offset": 408},
+          {"symbol": "actors", "size": 2, "offset": 410},
+          {"symbol": "actors", "size": 2, "offset": 412},
+          {"symbol": "actors", "size": 1, "offset": 414},
+          {"symbol": "script_memory", "size": 2, "offset": 38}
+        ]
+      }
+    }
+  ]
+}

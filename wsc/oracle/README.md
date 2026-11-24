@@ -37,6 +37,27 @@ diagonally along the row-40 wall, climbs the corridor, interacts with the
 Angry Guy script and then sweeps the lower area with diagonals. It compares
 the adventure engine fields and runtime state (`adv_*`) in both screen widths.
 
+`save-load` is a two-run comparison. Both runs boot the title screen. The
+`save-title` variant points the title's New Game branch at the Cave save
+point. Run 1 selects New Game, interacts with the save point and writes its
+platform-specific SRAM; run 2 starts with that SRAM, selects Continue and
+loads it. Player, actor and script variable state is compared in both runs,
+including the ticks after the load. A run is:
+
+```json
+{"name": "save", "ticks": 260, "frames": 6000,
+ "input": "inputs/save-save.txt", "save": "run1"}
+```
+
+`save` writes `<side>-<stem>.sram` under the config's work directory and
+`load` reads it back. `gbdiff` passes the file through `wsrun --sram-out` /
+`--sram-in`. A run may set `"settleSceneChange": true`: the tick where
+`current_scene` changes is sampled from the next complete tick. The engine
+resets `game_time` inside the scene-change exception handler, so a frontend
+frame boundary can fall inside the handler and record the actors before and
+after activation on the two sides. The following tick is complete, and the
+save/load run does not need this option.
+
 `shmup-cull` is a 160 px Space Battle route with an A-button player bullet.
 Its variant slows the shooter auto-scroll to `16` subpixels per tick so the
 bullet reaches the 20-tile right-hand cull edge while it still has lifetime
@@ -99,9 +120,11 @@ counters, and so on). SHMUP adds `shooter_scroll_speed`,
 `adv_*` engine fields and runtime state (walk/run/knockback/dash/push
 configuration, velocity, state, attached-actor tracking and timers). Their
 sizes are listed in `STATE_FIELDS` in `gbdiff.py` and resolved from each
-side's own symbol table, like the existing player fields. A config with `projectileFields`
-walks `projectiles_active_head` on both sides and compares each active
-projectile's position, delta, frame and remaining lifetime; the
+side's own symbol table, like the existing player fields. A config with `"variableIndices"` compares those 16-bit words of
+`script_memory` on every tick. The `save-load` config compares words 0-39,
+which covers the menu and save-point local variables. A config with
+`projectileFields` walks `projectiles_active_head` on both sides and compares
+each active projectile's position, delta, frame and remaining lifetime; the
 `projectile_t`/`projectile_def_t` offsets come from the same compiled
 offsetof probe as the actor layout.
 
@@ -112,7 +135,7 @@ path scenes have actors with update/interact scripts, so those scripts run on
 WSC exactly as they do on GB.
 
 A config with `"rngSync": true` copies the GB `__rand_seed` value at tick 1
-into the WSC `rng_state` RAM word with a `wsrun --poke` before the first
+into the WSC `__rand_seed` RAM word with a `wsrun --poke` before the first
 counted frame. The WSC `randw()` uses GBDK-2020 4.5.0's 16-bit LCG
 (`X = 17*X + 0x5C93`) and returns it byte-swapped like GBDK's assembly, so
 the `VM_RAND` results match. No RNG is consumed before the first waited

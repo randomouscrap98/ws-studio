@@ -1,0 +1,17 @@
+[
+  {
+    "file": "scenes/ui/title_screen/scene.gbsres",
+    "path": "script.4.children.true.1.children.true.0.args.sceneId",
+    "value": "5e64882f-8ce6-423e-b582-70fdb2142ff6"
+  },
+  {
+    "file": "scenes/ui/title_screen/scene.gbsres",
+    "path": "script.4.children.true.1.children.true.0.args.x.value",
+    "value": 13
+  },
+  {
+    "file": "scenes/ui/title_screen/scene.gbsres",
+    "path": "script.4.children.true.1.children.true.0.args.y.value",
+    "value": 11
+  }
+]

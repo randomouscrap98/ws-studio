@@ -61,6 +61,7 @@ GB_ENGINE_STUBS = (
     "src/core/vm_dispatch.c",
     "src/wsc/bankdata_wsc.c",
     "src/wsc/hal_wsc.c",
+    "src/wsc/hal_wsc_sram.c",
     "src/wsc/hal_wsc_bg.c",
     "src/wsc/hal_wsc_spr.c",
     "src/wsc/scroll_wsc.c",
@@ -758,6 +759,9 @@ class Side:
     def player_moving(self):
         return self.trace.u8(self.symbol("player_moving"))
 
+    def variable(self, index):
+        return self.trace.read(self.symbol("script_memory") + (index << 1), 2)
+
     def state_field(self, name):
         return self.trace.read(self.symbol(name), STATE_FIELDS[name])
 
@@ -788,7 +792,8 @@ def trace_path(workdir, side):
     return workdir / "{}.trace".format(side)
 
 
-def build_gb_args(config, rom, workdir, layout, symbols, trace):
+def build_gb_args(config, rom, workdir, layout, symbols, trace,
+                  sram_in=None, sram_out=None):
     start_x = int(config["gb"]["startX"]) * 256
     start_y = int(config["gb"]["startY"]) * 256
     args = [
@@ -810,10 +815,15 @@ def build_gb_args(config, rom, workdir, layout, symbols, trace):
     ])
     if config.get("input"):
         args.extend(["--input", config["input"], "--input-tick"])
+    if sram_in:
+        args.extend(["--sram-in", sram_in])
+    if sram_out:
+        args.extend(["--sram-out", sram_out])
     return args
 
 
-def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None):
+def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None,
+                   sram_in=None, sram_out=None):
     start_x = int(config["gb"]["startX"]) * 256
     start_y = int(config["gb"]["startY"]) * 256
     marker = config["wsc"]["readySymbol"]
@@ -839,6 +849,10 @@ def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None):
     ])
     if config.get("input"):
         args.extend(["--input", config["input"], "--input-tick"])
+    if sram_in:
+        args.extend(["--sram-in", sram_in])
+    if sram_out:
+        args.extend(["--sram-out", sram_out])
     return args
 
 
@@ -904,6 +918,21 @@ def actor_in_gb_view(gb, position_side, index):
     return (left <= x < left + 160 and top <= y < top + 144)
 
 
+def scene_change_ticks(side, trace_cls):
+    """Ticks at which current_scene differs from the previous trace record."""
+    address = side.symbol("current_scene")
+    size = 6 if trace_cls is WSCTrace else 3
+    previous = None
+    result = set()
+    for tick in sorted(side.trace.records):
+        side.set_tick(tick)
+        value = side.trace.read(address, size)
+        if previous is not None and value != previous:
+            result.add(tick)
+        previous = value
+    return result
+
+
 def compare_traces(config, mode, gb, wsc):
     ticks = sorted(set(gb.trace.records) & set(wsc.trace.records))
     if not ticks:
@@ -928,6 +957,7 @@ def compare_traces(config, mode, gb, wsc):
     actor_fields = fields.get("actorFields", (
         "x", "y", "dir", "frame", "animation"))
     projectile_fields = fields.get("projectileFields", ())
+    variable_indices = fields.get("variableIndices", ())
     skip_actor_fields = excluded_actor_fields(config)
     skip_phase = mode != 160 and skip_viewport_animation_phase(config)
     phase_actors = set()
@@ -939,7 +969,19 @@ def compare_traces(config, mode, gb, wsc):
 
     compared = 0
     ignored_activation = 0
+    skip_ticks = set()
+    if config.get("settleSceneChange"):
+        # A scripted scene change resets game_time inside the engine's
+        # exception handler.  The frontend samples at emulator frame
+        # boundaries, so on one side that boundary can fall inside the
+        # handler: the tick's sample is then half-way through the change
+        # (actors still in the inactive list).  The next tick is complete on
+        # both sides, so compare the scene-change tick from that state.
+        skip_ticks = scene_change_ticks(gb, GBTrace) | scene_change_ticks(
+            wsc, WSCTrace)
     for tick in ticks:
+        if tick in skip_ticks:
+            continue
         gb.set_tick(tick)
         wsc.set_tick(tick)
 
@@ -953,6 +995,12 @@ def compare_traces(config, mode, gb, wsc):
             compared += 1
             if a != b:
                 return tick, "player." + field, a, b, compared
+
+        for index in variable_indices:
+            a, b = gb.variable(index), wsc.variable(index)
+            compared += 1
+            if a != b:
+                return (tick, "variable[{}]".format(index), a, b, compared)
 
         if projectile_fields:
             gb_projectiles = gb.projectiles()
@@ -1004,6 +1052,40 @@ def compare_traces(config, mode, gb, wsc):
     return None, compared, ignored_activation, sorted(phase_actors), skipped_phase_values
 
 
+def split_runs(config):
+    """Return [(run_name, merged_config, run_spec)] for a config.
+
+    A config without "runs" is one run.  A multi-run config keeps the start
+    scene and marker fields at the top level (both runs must use the same
+    ROM) and takes ticks, frames, input and save/load from each entry.
+    """
+    runs = config.get("runs")
+    if not runs:
+        return [("", config, {})]
+    if not isinstance(runs, list) or not runs:
+        raise OracleError("runs must be a non-empty list")
+    result = []
+    for index, item in enumerate(runs):
+        if not isinstance(item, dict):
+            raise OracleError("run {} is not an object".format(index))
+        merged = dict(config)
+        merged.pop("runs", None)
+        for key in ("ticks", "frames", "input", "marker_timeout",
+                    "settleSceneChange"):
+            merged.pop(key, None)
+            if key in item:
+                merged[key] = item[key]
+        if "ticks" not in merged:
+            raise OracleError("run {} has no ticks".format(index))
+        name = str(item.get("name", index + 1))
+        result.append((name, merged, item))
+    return result
+
+
+def sram_path(workdir, side, stem):
+    return str(workdir / ("{}-{}.sram".format(side, stem)))
+
+
 def run_pair(config, workdir):
     workdir = ensure_dir(workdir)
     ensure_wsrun()
@@ -1022,57 +1104,83 @@ def run_pair(config, workdir):
     gb_lay = gb_layout(workdir, gbdk, cli_tmp_dir(config))
     wsc_lay = wsc_layout(workdir)
 
-    gb_trace = trace_path(workdir, "gb")
-    print("gbdiff: running GB oracle ROM", file=sys.stderr)
-    run(build_gb_args(config, rom, workdir, gb_lay, gb_symbols, gb_trace),
-        cwd=ROOT, what="GB oracle run")
-
-    pokes = []
-    if config.get("rngSync"):
-        # The two platforms seed the LCG differently (GB DIV_REG, WSC vblank
-        # count). Copy the GB state into WSC once, after the start marker and
-        # before the tick trace: the WSC platform hook uses GBDK's LCG, so the
-        # sequences then match. Both seeds are plain 16-bit RAM words.
-        seed = gb_symbols.get("___rand_seed")  # GBDK's __rand_seed
-        target = wsc_syms.get("rng_state")
-        if seed is None or target is None:
-            raise OracleError("rngSync needs GB __rand_seed and WSC rng_state")
-        gb_start = GBTrace(gb_trace)
-        gb_start.current = 1
-        pokes.append((target, 2, gb_start.u16(seed)))
-
-    gb = Side("GB", read_trace(gb_trace, GBTrace), gb_symbols, gb_lay, "_")
+    runs = split_runs(config)
     fields = config["compare"]
-    for mode in screen_modes(config):
-        wsc_trace = trace_path(workdir, "wsc-{}".format(mode))
-        print("gbdiff: running WSC gamerom at {} px".format(mode),
-              file=sys.stderr)
-        run(build_wsc_args(config, wsc_lay, wsc_syms, wsc_trace, mode, pokes,
-                           wsc_rom),
-            cwd=ROOT, what="WSC oracle run")
+    for run_name, run_config, run_spec in runs:
+        multi = len(runs) > 1
+        if multi:
+            print("gbdiff: run {}".format(run_name), file=sys.stderr)
+        suffix = "-{}".format(run_name) if multi else ""
+        gb_trace = trace_path(workdir, "gb" + suffix)
+        gb_in = sram_path(workdir, "gb", run_spec["load"]) \
+            if run_spec.get("load") else None
+        gb_out = sram_path(workdir, "gb", run_spec["save"]) \
+            if run_spec.get("save") else None
+        print("gbdiff: running GB oracle ROM", file=sys.stderr)
+        run(build_gb_args(run_config, rom, workdir, gb_lay, gb_symbols,
+                          gb_trace, gb_in, gb_out),
+            cwd=ROOT, what="GB oracle run")
 
-        wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms, wsc_lay,
-                   "")
-        result = compare_traces(config, mode, gb, wsc)
-        if result[0] is not None:
-            tick, field, a, b, compared = result
-            print("DIVERGED [{} px] tick {} field {}: GB={} (0x{:X}) "
-                  "WSC={} (0x{:X}) after {} compared values".format(
-                      mode, tick, field, a, a, b, b, compared))
-            return 1
+        pokes = []
+        if config.get("rngSync"):
+            # The two platforms seed the LCG differently (GB DIV_REG, WSC
+            # vblank count). Copy the GB state into WSC once, after the start
+            # marker and before the tick trace: the WSC platform hook uses
+            # GBDK's LCG, so the sequences then match. Both seeds are plain
+            # 16-bit RAM words.
+            seed = gb_symbols.get("___rand_seed")  # GBDK's __rand_seed
+            target = wsc_syms.get("__rand_seed")
+            if seed is None or target is None:
+                raise OracleError(
+                    "rngSync needs GB __rand_seed and WSC __rand_seed")
+            gb_start = GBTrace(gb_trace)
+            gb_start.current = 1
+            pokes.append((target, 2, gb_start.u16(seed)))
 
-        _, compared, ignored_activation, phase_actors, skipped_phase = result
-        print("[{} px] match: {} ticks, {} compared values".format(
-            mode, config["ticks"], compared))
+        gb = Side("GB", read_trace(gb_trace, GBTrace), gb_symbols, gb_lay,
+                  "_")
+        for mode in screen_modes(config):
+            wsc_trace = trace_path(
+                workdir, "wsc{}-{}".format(suffix, mode))
+            wsc_in = sram_path(workdir, "wsc", run_spec["load"]) \
+                if run_spec.get("load") else None
+            wsc_out = sram_path(workdir, "wsc", run_spec["save"]) \
+                if run_spec.get("save") else None
+            print("gbdiff: running WSC gamerom at {} px".format(mode),
+                  file=sys.stderr)
+            run(build_wsc_args(run_config, wsc_lay, wsc_syms, wsc_trace,
+                               mode, pokes, wsc_rom, wsc_in, wsc_out),
+                cwd=ROOT, what="WSC oracle run")
+
+            wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms,
+                       wsc_lay, "")
+            result = compare_traces(run_config, mode, gb, wsc)
+            label = "[{} px]".format(mode)
+            if multi:
+                label = "run {} {}".format(run_name, label)
+            if result[0] is not None:
+                tick, field, a, b, compared = result
+                print("DIVERGED {} tick {} field {}: GB={} (0x{:X}) "
+                      "WSC={} (0x{:X}) after {} compared values".format(
+                          label, tick, field, a, a, b, b, compared))
+                return 1
+
+            _, compared, ignored_activation, phase_actors, skipped_phase = \
+                result
+            print("{} match: {} ticks, {} compared values".format(
+                label, run_config["ticks"], compared))
         player_fields = list(fields["playerFields"])
         if mode == 160:
             player_fields.extend(f for f in CAMERA_FIELDS
                                  if f not in player_fields)
         projectile_fields = fields.get("projectileFields", ())
-        print("fields: player {}; active actor {}; projectiles {}".format(
-            ",".join(player_fields),
-            ",".join(fields["actorFields"]),
-            ",".join(projectile_fields) or "not compared"))
+        variable_indices = fields.get("variableIndices", ())
+        print("fields: player {}; active actor {}; variables {}; "
+              "projectiles {}".format(
+                  ",".join(player_fields),
+                  ",".join(fields["actorFields"]),
+                  ",".join(str(i) for i in variable_indices) or "not compared",
+                  ",".join(projectile_fields) or "not compared"))
         if ignored_activation:
             print("ignored {} off-screen activation differences".format(
                 ignored_activation))
@@ -1148,6 +1256,10 @@ def main():
     config = load_config(config_path)
     if config.get("input"):
         config["input"] = str((config_path.parent / config["input"]).resolve())
+    for run in config.get("runs", []):
+        if run.get("input"):
+            run["input"] = str(
+                (config_path.parent / run["input"]).resolve())
     workdir = Path(args.workdir) if args.workdir else (
         BUILD / "gb-oracle" / config["name"])
     try:

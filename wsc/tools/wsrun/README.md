@@ -25,6 +25,7 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
     [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
     [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
     [--screen-width N] [--poke ADDR:SIZE:VALUE] \
+    [--sram-in FILE] [--sram-out FILE] \
     [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
 
@@ -34,6 +35,12 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
 - `--png OUT` writes the same image through stb_image_write.
 - `--ram OUT` writes the core's full `RETRO_MEMORY_SYSTEM_RAM` (65536 bytes
   on WSC).
+- `--sram-in FILE` copies a save file into the core's
+  `RETRO_MEMORY_SAVE_RAM` after `retro_load_game` and before the first
+  frame. `--sram-out FILE` writes that memory after the run. Both cores
+  expose it (WSC SRAM and Game Boy MBC RAM); a ROM with no save memory makes
+  either option an error. Together they let a test save in one run and load
+  in the next.
 - `--marker ADDR:SIZE:VALUE` polls system RAM after each `retro_run` until
   the little-endian `SIZE` (1, 2 or 4) bytes at `ADDR` equal `VALUE`; only
   then does it start the `--frames` count. `ADDR` and `VALUE` accept decimal

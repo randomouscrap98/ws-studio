@@ -46,6 +46,8 @@ static const struct boot_entry __far boot_table[BOOT_SCENE_COUNT] = {
     { &scene_path_to_sample_town, 14592, 3328 }, /* 57, 13 tiles */
     { &scene_space_battle, 2048, 2304 },        /* 8, 9 tiles */
     { &scene_player_s_house, 2560, 2560 },      /* 10, 10 tiles */
+    { &scene_cave, 3328, 2816 },                /* 13, 11 tiles */
+    { &scene_title_screen, 2560, 2560 },        /* 10, 10 tiles */
 };
 
 /* Called by the generated bootstrap before the first scene is loaded. */
@@ -88,10 +90,12 @@ void wait_vbl_done(void) {
     sys_time++;
 }
 
-static UWORD rng_state;
+/* GBDK's rand state.  The engine's save blob stores this exact variable, so a
+ * load restores the random sequence too. */
+UWORD __rand_seed;
 
 void initrand(UWORD seed) {
-    rng_state = seed;
+    __rand_seed = seed;
 }
 
 UWORD randw(void) {
@@ -100,6 +104,6 @@ UWORD randw(void) {
      * platform hook must advance the same 16-bit state the same way. GBDK's
      * randw returns the new state with its bytes swapped (D is the low byte
      * and E the high byte of the SDCC return value). */
-    rng_state = (UWORD)(rng_state * 17u + 0x5C93u);
-    return (UWORD)((rng_state << 8) | (rng_state >> 8));
+    __rand_seed = (UWORD)(__rand_seed * 17u + 0x5C93u);
+    return (UWORD)((__rand_seed << 8) | (__rand_seed >> 8));
 }

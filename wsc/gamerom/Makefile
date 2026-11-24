@@ -103,6 +103,7 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(GBVM_CORE)/vm_scene.c $(GBVM_CORE)/vm_camera.c \
 		   $(GBVM_CORE)/vm_palette.c $(GBVM_CORE)/vm_math.c \
 		   $(GBVM_CORE)/vm_music.c $(GBVM_CORE)/vm_projectiles.c \
+		   $(GBVM_CORE)/load_save.c \
 		   $(GBVM_CORE)/vm_load_save.c $(GBVM_CORE)/game_time.c \
 		   $(GBVM_CORE)/math.c $(GBVM_CORE)/math_atan2.c \
 		   $(GBVM_CORE)/system.c \
@@ -111,6 +112,7 @@ ENGINE_SOURCES	:= $(GBVM_DIR)/src/main.c \
 		   $(GBVM_STATES)/adventure.c \
 		   $(GBVM_STATES)/shmup.c $(GBVM_STATES)/pointnclick.c \
 		   $(GBVM_WSC)/bankdata_wsc.c $(GBVM_WSC)/hal_wsc.c \
+		   $(GBVM_WSC)/hal_wsc_sram.c \
 		   $(GBVM_WSC)/hal_wsc_bg.c $(GBVM_WSC)/hal_wsc_spr.c \
 		   $(GBVM_WSC)/scroll_wsc.c $(GBVM_WSC)/stubs_wsc.c \
 		   $(GBVM_WSC)/ui_wsc.c \

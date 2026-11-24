@@ -62,6 +62,8 @@ struct options {
     const char *png;
     const char *raw;
     const char *ram;
+    const char *sram_in;
+    const char *sram_out;
     uint32_t frames;
     bool have_frames;
     struct marker markers[MAX_MARKERS];
@@ -633,7 +635,7 @@ static bool read_file(const char *path, uint8_t **out_data, size_t *out_size)
 
     file = fopen(path, "rb");
     if (!file) {
-        fprintf(stderr, "error: cannot open ROM '%s': %s\n", path,
+        fprintf(stderr, "error: cannot open '%s': %s\n", path,
                 strerror(errno));
         return false;
     }
@@ -767,7 +769,8 @@ static void usage(FILE *stream)
 {
     fprintf(stream,
             "usage: wsrun --core SO --rom ROM --frames N [--input FILE] "
-            "[--png OUT] [--raw OUT] [--ram OUT]\n"
+            "[--png OUT] [--raw OUT] [--ram OUT] [--sram-in FILE] "
+            "[--sram-out FILE]\n"
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
             "[--boot-id N] [--screen-width N]\n"
             "             [--poke ADDR:SIZE:VALUE] "
@@ -867,6 +870,8 @@ int main(int argc, char **argv)
     void *handle = NULL;
     void *ram_data;
     size_t ram_size;
+    void *save_ram_data;
+    size_t save_ram_size;
     bool did_init = false;
     bool did_load = false;
     bool ok = false;
@@ -968,6 +973,14 @@ int main(int argc, char **argv)
             if (++i >= (uint32_t)argc)
                 goto bad_args;
             opts.ram = argv[i];
+        } else if (strcmp(arg, "--sram-in") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            opts.sram_in = argv[i];
+        } else if (strcmp(arg, "--sram-out") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            opts.sram_out = argv[i];
         } else if (strcmp(arg, "--tick") == 0) {
             if (++i >= (uint32_t)argc)
                 goto bad_args;
@@ -1093,6 +1106,33 @@ bad_args:
 
     ram_data = core.get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
     ram_size = core.get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
+
+    save_ram_data = core.get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    save_ram_size = core.get_memory_size(RETRO_MEMORY_SAVE_RAM);
+    if (opts.sram_in || opts.sram_out) {
+        if (!save_ram_data || save_ram_size == 0) {
+            fprintf(stderr,
+                    "error: core exposes no save RAM (does the ROM declare "
+                    "cartridge SRAM?)\n");
+            goto cleanup;
+        }
+    }
+    if (opts.sram_in) {
+        uint8_t *sram_data = NULL;
+        size_t sram_size = 0;
+
+        if (!read_file(opts.sram_in, &sram_data, &sram_size))
+            goto cleanup;
+        if (sram_size > save_ram_size) {
+            fprintf(stderr,
+                    "error: save file '%s' is %zu bytes, core save RAM is "
+                    "%zu bytes\n", opts.sram_in, sram_size, save_ram_size);
+            free(sram_data);
+            goto cleanup;
+        }
+        memcpy(save_ram_data, sram_data, sram_size);
+        free(sram_data);
+    }
 
     if (opts.have_marker) {
         bool found = false;
@@ -1269,6 +1309,10 @@ bad_args:
             goto cleanup;
         }
         if (!write_file(opts.ram, ram_data, ram_size))
+            goto cleanup;
+    }
+    if (opts.sram_out) {
+        if (!write_file(opts.sram_out, save_ram_data, save_ram_size))
             goto cleanup;
     }
 

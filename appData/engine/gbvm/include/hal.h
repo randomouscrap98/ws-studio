@@ -163,4 +163,15 @@ uint16_t hal_draw_metasprite(const metasprite_t FAR *ms, uint16_t base_tile,
 void hal_sprites_end(void);
 uint16_t hal_sprite_count(void);
 
+/* Cartridge SRAM used for save data.  The engine treats it as
+ * SRAM_BANKS_TO_SAVE banks of 8 KiB, as on an MBC5 Game Boy cartridge.  A
+ * WSC cartridge with 32 KiB of SRAM maps all four 8 KiB banks into the one
+ * 64 KiB external RAM window (segment 0x1000), so bank N is at offset
+ * N*0x2000.  There is no enable/disable register: the SRAM is always
+ * accessible through the window. */
+void hal_sram_init(void);
+uint8_t FAR *hal_sram_select(uint8_t bank);
+void hal_sram_copy_to(uint8_t FAR *dst, const uint8_t *src, uint16_t len);
+void hal_sram_copy_from(uint8_t *dst, const uint8_t FAR *src, uint16_t len);
+
 #endif

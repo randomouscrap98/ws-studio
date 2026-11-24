@@ -14,8 +14,8 @@
 #include "ui.h"
 #include "interrupts.h"
 #include "parallax.h"
-#include "load_save.h"
 #include "sio.h"
+#include "music_manager.h"
 #include "events.h"
 #include "hal.h"
 
@@ -105,6 +105,12 @@ uint8_t music_mute_mask;
 uint8_t music_effective_mute;
 uint8_t music_global_mute_mask;
 script_event_t music_events[4];
+/* The save blob includes the music state.  The WSC player is still a stub,
+ * but the globals have to exist and start in the engine's "stopped" state. */
+volatile uint8_t music_current_track_bank = MUSIC_STOP_BANK;
+const TRACK_T FAR *music_next_track;
+const TRACK_T FAR *music_current_track;
+uint8_t music_sfx_priority;
 
 void music_init_driver(void) {
 }
@@ -127,31 +133,6 @@ void hUGETrackerRoutine(unsigned char tick, unsigned int param) {
 
 /* ---- serial link stub ---- */
 void SIO_init(void) {
-}
-
-/* ---- save stub ---- */
-void data_init(void) {
-}
-
-void data_save(UBYTE slot) {
-    (void)slot;
-}
-
-UBYTE data_load(UBYTE slot) {
-    (void)slot;
-    return FALSE;
-}
-
-void data_clear(UBYTE slot) {
-    (void)slot;
-}
-
-UBYTE data_peek(UBYTE slot, UINT16 idx, UWORD count, UINT16 *dest) {
-    (void)slot;
-    (void)idx;
-    (void)count;
-    (void)dest;
-    return 0;
 }
 
 /* ---- UI / dialogue: the real ui.c now provides the overlay window ---- */

@@ -14,9 +14,43 @@
     #include "bankdata.h"
     #include "flasher.h"
 #endif
+#ifdef __ia16__
+    #include "hal.h"
+    typedef UBYTE __far *sram_ptr_t;
+#else
+    typedef UBYTE *sram_ptr_t;
+#endif
 
+/* SRAM-only value accesses.  On WSC the save data pointer is a far pointer
+ * into segment 0x1000, so the plain GB expressions would need the DS changed
+ * for every access.  The HAL copies bulk data; the scalar accesses below
+ * just use the matching far pointer type. */
+#ifdef __ia16__
+#define SIGN_BY_PTR(ptr) (*((UINT32 __far *)(ptr)))
+#define SRAM_READ_SIZE(ptr) (*((const size_t __far *)(ptr)))
+#define SRAM_WRITE_SIZE(ptr, v) (*((size_t __far *)(ptr)) = (v))
+#define SRAM_READ_U8(ptr) (*((const uint8_t __far *)(ptr)))
+#define SRAM_WRITE_U8(ptr, v) (*((uint8_t __far *)(ptr)) = (v))
+#define SRAM_BASE(bank) ((sram_ptr_t)hal_sram_select(bank))
+#define SRAM_COPY_TO(dst, src, n) hal_sram_copy_to((dst), (src), (n))
+#define SRAM_COPY_FROM(dst, src, n) hal_sram_copy_from((dst), (src), (n))
+#else
 #define SIGN_BY_PTR(ptr) *((UINT32 *)(ptr))
+#define SRAM_READ_SIZE(ptr) (*((const size_t *)(ptr)))
+#define SRAM_WRITE_SIZE(ptr, v) (*((size_t *)(ptr)) = (v))
+#define SRAM_READ_U8(ptr) (*((const uint8_t *)(ptr)))
+#define SRAM_WRITE_U8(ptr, v) (*((uint8_t *)(ptr)) = (v))
+#define SRAM_BASE(bank) ((sram_ptr_t)(0xA000u))
+#define SRAM_COPY_TO(dst, src, n) memcpy((dst), (src), (n))
+#define SRAM_COPY_FROM(dst, src, n) memcpy((dst), (src), (n))
+#endif
+
+#ifdef __ia16__
+/* d2c generates the signature as far const ROM data on WSC. */
+extern const UINT32 __far save_signature;
+#else
 extern const UINT32 save_signature;
+#endif
 
 typedef struct save_point_t {
     void * target;
@@ -61,8 +95,12 @@ const save_point_t save_points[] = {
 size_t save_blob_size;
 
 void data_init(void) BANKED {
+#ifdef __ia16__
+    hal_sram_init();
+#else
     ENABLE_RAM_MBC5;
     SWITCH_RAM_BANK(0, RAM_BANKS_ONLY);
+#endif
     // calculate save blob size
     save_blob_size = sizeof(save_signature) + sizeof(save_blob_size);
     for(const save_point_t * point = save_points; (point->target); point++) {
@@ -74,7 +112,7 @@ void data_init(void) BANKED {
 #endif
 }
 
-UBYTE * data_slot_address(UBYTE slot, UBYTE *bank) {
+sram_ptr_t data_slot_address(UBYTE slot, UBYTE *bank) {
     UWORD res = 0, res_bank = 0;
     for (UBYTE i = 0; i < slot; i++) {
         res += save_blob_size;
@@ -84,11 +122,12 @@ UBYTE * data_slot_address(UBYTE slot, UBYTE *bank) {
         }
     }
     *bank = res_bank;
-    return (UBYTE *)0xA000u + res;
+    return SRAM_BASE(res_bank) + res;
 }
 
 void data_save(UBYTE slot) BANKED {
-    UBYTE data_bank, *save_data = data_slot_address(slot, &data_bank);
+    UBYTE data_bank;
+    sram_ptr_t save_data = data_slot_address(slot, &data_bank);
     if (save_data == NULL) return;
     SWITCH_RAM_BANK(data_bank, RAM_BANKS_ONLY);
 
@@ -96,17 +135,17 @@ void data_save(UBYTE slot) BANKED {
     SIGN_BY_PTR(save_data) = save_signature;
     save_data += sizeof(save_signature);
     // size of the save blob
-    *(size_t*)save_data = save_blob_size;
+    SRAM_WRITE_SIZE(save_data, save_blob_size);
     save_data += sizeof(save_blob_size);
     for(const save_point_t * point = save_points; (point->target); point++) {
         // size of the block
-        *(size_t*)save_data = point->size;
+        SRAM_WRITE_SIZE(save_data, point->size);
         save_data += sizeof(point->size);
         // ID of the block
-        *(uint8_t*)save_data = point->id;
+        SRAM_WRITE_U8(save_data, point->id);
         save_data += sizeof(point->id);
         // block data
-        memcpy(save_data, point->target, point->size);
+        SRAM_COPY_TO(save_data, point->target, point->size);
         save_data += point->size;
     }
 #ifdef BATTERYLESS
@@ -116,7 +155,8 @@ void data_save(UBYTE slot) BANKED {
 }
 
 UBYTE data_load(UBYTE slot) BANKED {
-    UBYTE data_bank, *save_data = data_slot_address(slot, &data_bank);
+    UBYTE data_bank;
+    sram_ptr_t save_data = data_slot_address(slot, &data_bank);
     if (save_data == NULL) return FALSE;
     SWITCH_RAM_BANK(data_bank, RAM_BANKS_ONLY);
     if (SIGN_BY_PTR(save_data) != save_signature) return FALSE;
@@ -125,11 +165,11 @@ UBYTE data_load(UBYTE slot) BANKED {
     // load blocks
     for(const save_point_t * point = save_points; (point->target); point++) {
         // check chunk size
-        if (*(size_t*)save_data != point->size) return FALSE; else save_data += sizeof(point->size);
+        if (SRAM_READ_SIZE(save_data) != point->size) return FALSE; else save_data += sizeof(point->size);
         // check chunk id
-        if (*(uint8_t*)save_data != point->id) return FALSE; else save_data += sizeof(point->id);
+        if (SRAM_READ_U8(save_data) != point->id) return FALSE; else save_data += sizeof(point->id);
         // copy chunk data
-        memcpy(point->target, save_data, point->size);
+        SRAM_COPY_FROM(point->target, save_data, point->size);
         save_data += point->size;
     }
     // Restart music
@@ -142,7 +182,8 @@ UBYTE data_load(UBYTE slot) BANKED {
 }
 
 void data_clear(UBYTE slot) BANKED {
-    UBYTE data_bank, *save_data = data_slot_address(slot, &data_bank);
+    UBYTE data_bank;
+    sram_ptr_t save_data = data_slot_address(slot, &data_bank);
     if (save_data == NULL) return;
     SWITCH_RAM_BANK(data_bank, RAM_BANKS_ONLY);
     SIGN_BY_PTR(save_data) = 0;
@@ -153,10 +194,12 @@ void data_clear(UBYTE slot) BANKED {
 }
 
 UBYTE data_peek(UBYTE slot, UINT16 idx, UWORD count, UINT16 * dest) BANKED {
-    UBYTE data_bank, *save_data = data_slot_address(slot, &data_bank);
+    UBYTE data_bank;
+    sram_ptr_t save_data = data_slot_address(slot, &data_bank);
     if (save_data == NULL) return FALSE;
     SWITCH_RAM_BANK(data_bank, RAM_BANKS_ONLY);
     if (SIGN_BY_PTR(save_data) != save_signature) return FALSE;
-    if (count) memcpy(dest, save_data + (sizeof(save_signature) + sizeof(save_blob_size) + sizeof(size_t) + sizeof(uint8_t)) + (idx << 1), count << 1);
+    save_data += (sizeof(save_signature) + sizeof(save_blob_size) + sizeof(size_t) + sizeof(uint8_t)) + (idx << 1);
+    if (count) SRAM_COPY_FROM(dest, save_data, count << 1);
     return TRUE;
 }

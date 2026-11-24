@@ -1,0 +1,7 @@
+# Interact with the Cave save point, then choose "Save Game".
+20 A
+25 -
+60 A
+65 -
+100 A
+105 -

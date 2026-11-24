@@ -38,6 +38,8 @@ BOOT_SCENES = {
     "platform-parallax": 14,
     "shmup": 16,
     "pointnclick": 17,
+    "save-point": 18,
+    "title": 19,
 }
 
 # Sections that wf-wswantool places in IRAM, which is what wsrun's system-RAM
@@ -191,7 +193,7 @@ def build_test(spec):
         run_command(["make", "-C", WSC_DIR, target], what="build ({})".format(target))
 
 
-def run_wsrun(test_dir, out_dir, spec):
+def run_wsrun(test_dir, out_dir, spec, sram_dir=None):
     if not WSRUN.is_file():
         raise TestError("wsrun is missing; run make -C wsc/tools/wsrun")
 
@@ -264,6 +266,16 @@ def run_wsrun(test_dir, out_dir, spec):
         if not input_path.is_file():
             raise TestError("input file {} does not exist".format(input_path))
         argv.extend(["--input", input_path])
+
+    for key in ("sram_in", "sram_out"):
+        value = spec.get(key)
+        if not value:
+            continue
+        path = Path(value)
+        if not path.is_absolute():
+            path = (sram_dir or out_dir) / path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        argv.extend(["--" + key.replace("_", "-"), path])
 
     output = run_command(argv, what="wsrun ({})".format(test_dir.name))
     match = re.search(r"width=(\d+) height=(\d+)", output)
@@ -436,15 +448,124 @@ def check_ram(ram_path, elf_path, spec):
         raise TestError("; ".join(problems))
 
 
+def check_ram_match(ram_path, other_ram_path, other_name, elf_path, spec):
+    ram = read_bytes(ram_path, "RAM dump")
+    other = read_bytes(other_ram_path, "{} RAM dump".format(other_name))
+    checks = spec.get("checks")
+    if not isinstance(checks, list) or not checks:
+        raise TestError("ram_match is missing a non-empty checks list")
+    if not elf_path.is_file():
+        raise TestError("ELF {} does not exist after build".format(elf_path))
+
+    problems = []
+    for check in checks:
+        symbol = check.get("symbol")
+        size = check.get("size")
+        if not isinstance(symbol, str) or not symbol:
+            problems.append("ram_match check without a symbol")
+            continue
+        if size not in (1, 2, 4):
+            problems.append("{}: size must be 1, 2 or 4".format(symbol))
+            continue
+        extra = check.get("offset", 0)
+        if type(extra) is not int or extra < 0:
+            problems.append("{}: offset must be a non-negative integer".format(
+                symbol))
+            continue
+        try:
+            base, _ = elf_symbol(elf_path, symbol)
+        except TestError as exc:
+            problems.append(str(exc))
+            continue
+        address = base + extra
+        if address + size > len(ram) or address + size > len(other):
+            problems.append("{} at 0x{:04X} is outside the RAM dump".format(
+                symbol, address))
+            continue
+        actual = ram[address:address + size]
+        expected = other[address:address + size]
+        if actual != expected:
+            problems.append(
+                "{}+0x{:X}: 0x{} does not match {} 0x{}".format(
+                    symbol, extra, actual.hex(), other_name,
+                    expected.hex()))
+    if problems:
+        raise TestError("; ".join(problems))
+
+
+def run_sequence(test_json, spec, out_dir):
+    build_test(spec)
+    sequence = spec["sequence"]
+    if not isinstance(sequence, list) or len(sequence) < 2:
+        raise TestError("sequence must be a list of at least two runs")
+
+    ram_paths = []
+    run_specs = []
+    for index, item in enumerate(sequence):
+        if not isinstance(item, dict):
+            raise TestError("sequence run {} is not an object".format(index))
+        run_spec = dict(spec)
+        run_spec.pop("sequence", None)
+        for key in ("frames", "input", "boot", "marker", "sram_in",
+                    "sram_out", "ram", "frame_sha256"):
+            run_spec.pop(key, None)
+            if key in item:
+                run_spec[key] = item[key]
+        if "frames" not in run_spec:
+            raise TestError("sequence run {} is missing frames".format(index))
+        run_dir = out_dir / "run{}".format(index)
+        raw_path, ram_path, _width, _height = run_wsrun(
+            test_json.parent, run_dir, run_spec, sram_dir=out_dir)
+        ram_paths.append(ram_path)
+        run_specs.append((run_spec, item))
+        if "ram" in run_spec:
+            ram_spec = run_spec["ram"]
+            if isinstance(ram_spec, str):
+                ram_spec = load_json(resolve(ram_spec))
+            if not isinstance(ram_spec, list):
+                raise TestError("RAM check file must contain a JSON list")
+            run_spec = dict(run_spec)
+            run_spec["ram"] = ram_spec
+            check_ram(ram_path, resolve(run_spec["elf"]), run_spec)
+        expected = run_spec.get("frame_sha256")
+        if expected:
+            digest = hashlib.sha256(read_bytes(raw_path, "wsrun frame")).hexdigest()
+            if digest != str(expected).lower():
+                raise TestError("run {} frame hash {} does not match {}".format(
+                    index, digest, expected))
+
+    for index, (_run_spec, item) in enumerate(run_specs):
+        match = item.get("ram_match")
+        if match is None:
+            continue
+        if not isinstance(match, dict):
+            raise TestError("sequence run {} ram_match must be an object".format(
+                index))
+        other = match.get("run")
+        if type(other) is not int or not (0 <= other < len(ram_paths)):
+            raise TestError(
+                "sequence run {} ram_match needs a valid run index".format(
+                    index))
+        check_ram_match(ram_paths[index], ram_paths[other],
+                        "run{}".format(other), resolve(spec["elf"]), match)
+
+
 def run_test(test_json, update_golden):
     spec = load_json(test_json)
     test_dir = test_json.parent
     name = test_dir.name
     out_dir = BUILD_TESTS_DIR / name
 
-    for key in ("rom", "elf", "frames"):
+    for key in ("rom", "elf"):
         if key not in spec:
             raise TestError("test.json is missing {}".format(key))
+
+    if "sequence" in spec:
+        run_sequence(test_json, spec, out_dir)
+        return
+
+    if "frames" not in spec:
+        raise TestError("test.json is missing frames")
 
     build_test(spec)
     raw_path, ram_path, width, _height = run_wsrun(test_dir, out_dir, spec)
