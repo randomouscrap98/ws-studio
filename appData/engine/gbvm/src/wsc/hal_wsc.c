@@ -45,15 +45,21 @@ volatile ws_screen_t hal_screen
 volatile ws_screen_t hal_win_screen
     __attribute__((section(".iramx_screen"), aligned(0x800)));
 
+/* Strong definition lives in parallax_wsc.c; the HAL-only ROM links the
+ * empty fallback. */
+__attribute__((weak)) void hal_parallax_vblank(void) {
+}
+
 static void __attribute__((interrupt)) hal_vblank_isr(void) {
     hal_vblanks++;
     DIV_REG[0] += 1 + inportb(WS_DISPLAY_LINE_PORT);
+    hal_parallax_vblank();
     ws_int_ack(WS_INT_ACK_VBLANK);
 }
 
 /* Distance from the left edge of the physical display to the logical screen.
  * Zero at the full 224 px width. */
-static int16_t hal_screen_origin_x(void) {
+int16_t hal_screen_origin_x(void) {
     return (int16_t)((WS_DISPLAY_WIDTH_PIXELS - hal_screen_w_px) >> 1);
 }
 
@@ -272,7 +278,10 @@ uint8_t hal_input_read(void) {
     return mask;
 }
 
+void hal_scroll_screen1_to(int16_t x, int16_t y) {
+    ws_display_scroll_screen1_to((uint8_t)x, (uint8_t)y);
+}
+
 void hal_scroll_to(int16_t x, int16_t y) {
-    ws_display_scroll_screen1_to((uint8_t)(x - hal_screen_origin_x()),
-                                 (uint8_t)y);
+    hal_scroll_screen1_to(x - hal_screen_origin_x(), y);
 }

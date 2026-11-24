@@ -59,6 +59,14 @@
         "animationPhase": true,
         "why": "the WSC viewport is 14 tiles wide and the GB viewport is 10, so the Elephant and Sign Post activate a few ticks earlier on WSC; their activation ticks are ignored only while they are outside the GB viewport, and while both are active their animation-phase fields (frame, animation) are ignored because the earlier activation has advanced the WSC animation. Position, direction and move_speed are still compared."
       }
+    ],
+    "parallaxFields": [
+      "scx",
+      "shadow_scx",
+      "next_y",
+      "shift",
+      "start_tile",
+      "tile_height"
     ]
   },
   "name": "platform-parallax-actors",

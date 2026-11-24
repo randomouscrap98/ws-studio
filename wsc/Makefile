@@ -26,7 +26,7 @@ HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
 .PHONY: test test-negative wsrun gb-core gb-oracle gb-platform-smoke \
-	host-test gen-dispatch s2c-check
+	parallax-visual host-test gen-dispatch s2c-check
 
 wsrun:
 	$(MAKE) -C $(WSC_DIR)tools/wsrun
@@ -48,6 +48,12 @@ gb-oracle: wsrun gb-core
 gb-platform-smoke: wsrun gb-core
 	$(PYTHON) $(WSC_DIR)tools/gbdiff.py --config $(WSC_DIR)oracle/platform.json \
 		--platform-smoke
+
+# Captures GB and WSC frames at a few ticks and checks each parallax band's
+# horizontal offset against the GB reference render.
+parallax-visual: wsrun gb-core
+	$(PYTHON) $(WSC_DIR)tools/parallax_visual.py \
+		--config $(WSC_DIR)oracle/platform-parallax.json
 
 test: wsrun
 	cd $(WSC_DIR) && $(PYTHON) tests/run.py

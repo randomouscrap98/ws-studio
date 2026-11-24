@@ -64,6 +64,7 @@ GB_ENGINE_STUBS = (
     "src/wsc/hal_wsc_sram.c",
     "src/wsc/hal_wsc_bg.c",
     "src/wsc/hal_wsc_spr.c",
+    "src/wsc/parallax_wsc.c",
     "src/wsc/scroll_wsc.c",
     "src/wsc/stubs_wsc.c",
     "src/wsc/ui_wsc.c",
@@ -78,6 +79,7 @@ STATE_FIELDS = {
     "camera_y": 2,
     "scroll_x": 2,
     "scroll_y": 2,
+    "image_width": 2,
     "plat_vel_x": 2,
     "plat_vel_y": 2,
     "plat_delta_x": 2,
@@ -149,6 +151,17 @@ STATE_FIELDS = {
 }
 
 CAMERA_FIELDS = ("camera_x", "camera_y", "scroll_x", "scroll_y")
+
+# parallax_row_t is six bytes on both toolchains (all members are 8-bit).
+PARALLAX_ROW_SIZE = 6
+PARALLAX_FIELD_OFFSETS = {
+    "scx": 0,
+    "next_y": 1,
+    "shift": 2,
+    "start_tile": 3,
+    "tile_height": 4,
+    "shadow_scx": 5,
+}
 
 FIELD_NAMES = ("flags", "pos", "x", "y", "dir", "frame", "animation",
                "move_speed", "collision_group", "size", "count")
@@ -788,6 +801,10 @@ class Side:
     def scroll(self, axis):
         return self.trace.u16(self.symbol("scroll_" + axis))
 
+    def parallax_field(self, band, field):
+        base = self.symbol("parallax_rows") + band * PARALLAX_ROW_SIZE
+        return self.trace.u8(base + PARALLAX_FIELD_OFFSETS[field])
+
 
 def trace_path(workdir, side):
     return workdir / "{}.trace".format(side)
@@ -945,6 +962,7 @@ def compare_traces(config, mode, gb, wsc):
                 player_fields.append(field)
     actor_fields = fields.get("actorFields", (
         "x", "y", "dir", "frame", "animation"))
+    parallax_fields = fields.get("parallaxFields", ())
     projectile_fields = fields.get("projectileFields", ())
     variable_indices = fields.get("variableIndices", ())
     skip_actor_fields = excluded_actor_fields(config)
@@ -958,6 +976,7 @@ def compare_traces(config, mode, gb, wsc):
 
     compared = 0
     ignored_activation = 0
+    previous_wsc_scx = {}
     for tick in ticks:
         gb.set_tick(tick)
         wsc.set_tick(tick)
@@ -972,6 +991,49 @@ def compare_traces(config, mode, gb, wsc):
             compared += 1
             if a != b:
                 return tick, "player." + field, a, b, compared
+
+        for band in range(3):
+            for field in parallax_fields:
+                if field in ("scx", "shadow_scx") and mode != 160:
+                    # At 224 px the WSC viewport is 64 px wider, so a band's
+                    # source coordinate legitimately differs from the GB's.
+                    # Derive the expected wider-viewport scroll from GB's
+                    # world position and scene width, then apply the same
+                    # band shift.
+                    shift = gb.parallax_field(band, "shift")
+                    if shift >= 128:
+                        shift -= 256
+                    image_w = gb.state_field("image_width")
+                    if mode == 224 and image_w >= 224:
+                        draw = gb.state_field("scroll_x") - 32
+                        draw = max(0, min(draw, image_w - 224))
+                    else:
+                        # A scene narrower than the 224 px screen is centred.
+                        draw = -((224 - image_w) >> 1)
+                    if shift == 127:
+                        expected = 0
+                    elif shift < 0:
+                        expected = (draw << (-shift)) & 0xFF
+                    else:
+                        expected = (draw >> shift) & 0xFF
+                    a, b = expected, wsc.parallax_field(band, field)
+                else:
+                    a = gb.parallax_field(band, field)
+                    b = wsc.parallax_field(band, field)
+                    if (field == "scx" and mode == 160 and
+                            band in previous_wsc_scx and
+                            tick != ticks[0]):
+                        # The WSC trace samples after the vblank copy; the GB
+                        # core sample lands before it, so the live value is
+                        # one tick ahead on WSC. Compare the same latch.
+                        b = previous_wsc_scx[band]
+                compared += 1
+                if a != b:
+                    return (tick, "parallax[{}].{}".format(band, field),
+                            a, b, compared)
+
+        for band in range(3):
+            previous_wsc_scx[band] = wsc.parallax_field(band, "scx")
 
         for index in variable_indices:
             a, b = gb.variable(index), wsc.variable(index)
@@ -1151,12 +1213,14 @@ def run_pair(config, workdir):
                                  if f not in player_fields)
         projectile_fields = fields.get("projectileFields", ())
         variable_indices = fields.get("variableIndices", ())
+        parallax_fields = fields.get("parallaxFields", ())
         print("fields: player {}; active actor {}; variables {}; "
-              "projectiles {}".format(
+              "projectiles {}; parallax {}".format(
                   ",".join(player_fields),
                   ",".join(fields["actorFields"]),
                   ",".join(str(i) for i in variable_indices) or "not compared",
-                  ",".join(projectile_fields) or "not compared"))
+                  ",".join(projectile_fields) or "not compared",
+                  ",".join(parallax_fields) or "not compared"))
         if ignored_activation:
             print("ignored {} off-screen activation differences".format(
                 ignored_activation))

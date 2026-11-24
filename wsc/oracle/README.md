@@ -131,6 +131,25 @@ each active projectile's position, delta, frame and remaining lifetime; the
 `projectile_t`/`projectile_def_t` offsets come from the same compiled
 offsetof probe as the actor layout.
 
+Parallax configs add `parallaxFields`: `scx`, `shadow_scx`, `next_y`, `shift`,
+`start_tile` and `tile_height` for each of the three `parallax_rows` bands.
+At 160 px every value is compared with the GB band state directly. At 224 px
+the WSC viewport is 64 px wider, so `scx`/`shadow_scx` are legitimately
+viewport-relative. `gbdiff` derives the expected WSC scroll from the GB
+`scroll_x` and `image_width`: `clamp(gb_scroll_x - 32, 0, image_width - 224)`
+(or the centred origin for a scene narrower than 224), applies the GB band
+`shift`, and compares that with the WSC band value. The five width-independent
+band fields are still compared raw with GB. The live `scx` at 160 px is one
+trace sample behind GB because the WSC trace lands after the vblank latch
+copy and the GB trace before it; the comparison follows that latch.
+
+`make -C wsc parallax-visual` is the independent hardware-path check. It
+captures GB and WSC frames at ticks 100, 200 and 300 in 160 px mode and
+compares each band's background against the GB reference render by
+cross-correlating binary horizontal-edge maps. A wrong or missing screen-1
+scroll write moves that band's best offset away from 0 even though the
+engine RAM (and therefore `gbdiff`) still matches.
+
 Script banks are numbered from 1 (`s2c_bank1`, ...) by `s2c.py`, and the
 zero slot in `vm_bank_base()`'s table is unused, so the engine's `.bank`
 presence tests keep the GB meaning of "bank 0 = no script". The town and

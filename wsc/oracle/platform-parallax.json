@@ -53,7 +53,15 @@
       "animation",
       "move_speed"
     ],
-    "excluded": []
+    "excluded": [],
+    "parallaxFields": [
+      "scx",
+      "shadow_scx",
+      "next_y",
+      "shift",
+      "start_tile",
+      "tile_height"
+    ]
   },
   "name": "platform-parallax",
   "gb": {

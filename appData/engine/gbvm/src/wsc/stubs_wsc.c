@@ -63,7 +63,9 @@ void add_VBL(void (*isr)(void)) {
 }
 
 void add_LCD(void (*isr)(void)) {
-    (void)isr;
+    /* Only the parallax scene uses a split-screen LCD interrupt on WSC. */
+    if (isr == parallax_LCD_isr)
+        hal_parallax_enable();
 }
 
 /* ---- interrupt / LCD ISR stubs ---- */
@@ -71,6 +73,7 @@ UBYTE hide_sprites;
 UBYTE show_actors_on_overlay;
 
 void remove_LCD_ISRs(void) {
+    hal_parallax_disable();
 }
 
 void simple_LCD_isr(void) {
@@ -80,22 +83,6 @@ void fullscreen_LCD_isr(void) {
 }
 
 void VBL_isr(void) {
-}
-
-/* ---- parallax stub (the scenes on this path have no parallax rows) ---- */
-parallax_row_t parallax_rows[3];
-parallax_row_t *parallax_row;
-
-void parallax_init(void) {
-    parallax_rows[0].next_y = 0;
-    parallax_rows[0].scx = 0;
-    parallax_rows[0].shift = 0;
-    parallax_rows[0].start_tile = 0;
-    parallax_rows[0].tile_height = 0;
-    parallax_rows[0].shadow_scx = 0;
-}
-
-void parallax_LCD_isr(void) {
 }
 
 /* ---- audio driver stub ---- */

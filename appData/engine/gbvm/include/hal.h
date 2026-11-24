@@ -59,6 +59,19 @@ extern uint8_t hal_scroll_refresh_h;
  * supported widths. */
 void hal_screen_set_width(uint16_t width_px);
 
+/* Distance from the left edge of the physical display to the logical screen.
+ * Zero at 224 px and 32 px for the centred 160 px mode. */
+int16_t hal_screen_origin_x(void);
+
+/* Parallax band scroll (WSC builds only; the GB LYC path stays in
+ * parallax.c).  parallax_LCD_isr is only a marker: add_LCD() uses it to
+ * recognise the parallax scene and enables the line-match interrupt.  The
+ * vblank reset copies every band's shadow scroll into its live scroll value
+ * and rewinds the band walk. */
+void hal_parallax_enable(void);
+void hal_parallax_disable(void);
+void hal_parallax_vblank(void);
+
 /* Display and frame timing. hal_display_init also installs and enables the
  * vblank interrupt used by hal_wait_vblank/hal_vblank_count. */
 void hal_display_init(void);
@@ -94,6 +107,9 @@ void hal_put_bkg_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
 
 /* Scroll the background to the given logical pixel position. */
 void hal_scroll_to(int16_t x, int16_t y);
+
+/* Write only screen 1's scroll registers, used by the parallax line ISR. */
+void hal_scroll_screen1_to(int16_t x, int16_t y);
 
 /* Screen-2 overlay window.  x/y are the logical screen position of the
  * window's top-left corner, matching the GB window origin (WX-7, WY).  The
