@@ -1,0 +1,8 @@
+# path/Parallax Example - walk left up to the Elephant. Stop while it is only
+# in the wider WSC viewport, let it animate there, then continue towards the
+# Sign Post so the GB view activates it later.
+5 -
+20 X4
+180 -
+215 X4
+760 -

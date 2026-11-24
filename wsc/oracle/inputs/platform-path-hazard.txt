@@ -1,0 +1,4 @@
+# path/Path to Sample Town - start over the pit at x=57. Falling in
+# activates the row-17 trigger, which sets BLANK state; the blank callback
+# was attached by the scene init script through VM_CALL_NATIVE.
+5 -

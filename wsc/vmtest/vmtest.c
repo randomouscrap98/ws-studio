@@ -185,6 +185,7 @@ static void emit_rand(Code *c, INT16 idx, UWORD min, UWORD limit) { const UBYTE 
 static void emit_join(Code *c, INT16 idx) { const UBYTE b[] = { VM_JOIN(idx) }; emit_bytes(c, b, (int)sizeof b); }
 static void emit_terminate(Code *c, INT16 idx) { const UBYTE b[] = { VM_TERMINATE(idx) }; emit_bytes(c, b, (int)sizeof b); }
 static void emit_invoke(Code *c, UBYTE bank, UWORD fn, UBYTE nparams, INT16 idx) { const UBYTE b[] = { VM_INVOKE(bank, fn, nparams, idx) }; emit_bytes(c, b, (int)sizeof b); }
+static void emit_call_native(Code *c, UBYTE bank, UWORD index) { const UBYTE b[] = { VM_CALL_NATIVE(bank, index) }; emit_bytes(c, b, (int)sizeof b); }
 static void emit_get_far(Code *c, INT16 idx, UBYTE size, UBYTE bank, UWORD addr) { const UBYTE b[] = { VM_GET_FAR(idx, size, bank, addr) }; emit_bytes(c, b, (int)sizeof b); }
 
 static void emit_jump(Code *c, int label) {
@@ -729,6 +730,28 @@ static void test_invoke(void) {
     check_eq("invoke.zero_updates", updates0, 1);
 }
 
+extern UBYTE vmtest_native_hits;
+extern UWORD vmtest_native_arg;
+
+static void test_call_native(void) {
+    Code c;
+    code_init(&c);
+    vmtest_native_hits = 0;
+    vmtest_native_arg = 0;
+    emit_push_const(&c, 0xBEEF);
+    emit_call_native(&c, 0, 1);
+    emit_pop(&c, 1);
+    emit_set_const(&c, 0, 0x55AA);
+    emit_stop(&c);
+    code_finalize(&c);
+
+    UBYTE status = run_code(0, c.bytes, NULL);
+    check_true("call_native.run", status == RUNNER_DONE, "runner did not finish");
+    check_eq("call_native.arg", vmtest_native_arg, 0xBEEF);
+    check_eq("call_native.hits", vmtest_native_hits, 1);
+    check_eq("call_native.after", script_memory[0], 0x55AA);
+}
+
 static void test_memory_ops(void) {
     Code c;
     code_init(&c);
@@ -802,6 +825,7 @@ int main(void) {
     test_threads();
     test_terminate();
     test_invoke();
+    test_call_native();
     test_memory_ops();
     test_rng();
     test_unimplemented();

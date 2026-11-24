@@ -839,9 +839,9 @@ void adv_callback_attach(SCRIPT_CTX *THIS) OLDCALL BANKED
 {
     UWORD *slot = VM_REF_TO_PTR(FN_ARG2);
     UBYTE *bank = VM_REF_TO_PTR(FN_ARG1);
-    UBYTE **ptr = VM_REF_TO_PTR(FN_ARG0);
+    UWORD *ptr = VM_REF_TO_PTR(FN_ARG0);
     adv_events[*slot].script_bank = *bank;
-    adv_events[*slot].script_addr = *ptr;
+    adv_events[*slot].script_addr = vm_script_ptr(*bank, *ptr);
 }
 
 void adv_callback_detach(SCRIPT_CTX *THIS) OLDCALL BANKED

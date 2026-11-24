@@ -1,0 +1,64 @@
+{
+  "description": "path/Path to Sample Town: falling into the pit trigger enters BLANK state, whose callback is attached through VM_CALL_NATIVE; GB vs WSC on game_time ticks",
+  "ticks": 520,
+  "frames": 20000,
+  "marker_timeout": 2500,
+  "input": "inputs/platform-path-hazard.txt",
+  "wsc": {
+    "bootId": 15,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving",
+      "plat_vel_x",
+      "plat_vel_y",
+      "plat_delta_x",
+      "plat_delta_y",
+      "plat_state",
+      "plat_next_state",
+      "plat_jump_type",
+      "plat_run_stage",
+      "plat_grounded",
+      "plat_on_slope",
+      "plat_slope_y",
+      "plat_hold_jump_timer",
+      "plat_coyote_timer",
+      "plat_jump_buffer_timer",
+      "plat_extra_jumps_counter",
+      "plat_wall_jump_counter",
+      "plat_wall_col",
+      "plat_drop_timer",
+      "plat_ladder_block_h",
+      "plat_ladder_block_v",
+      "plat_is_actor_attached",
+      "plat_dash_pressed",
+      "plat_dash_cooldown_timer",
+      "plat_dash_currentframe",
+      "plat_tap_timer",
+      "plat_anim_dirty"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": []
+  },
+  "name": "platform-path-hazard",
+  "gb": {
+    "startSceneId": "f8f027ef-b818-4038-9eda-0ac477facb41",
+    "startX": 57,
+    "startY": 13
+  }
+}

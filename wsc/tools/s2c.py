@@ -1213,6 +1213,27 @@ def write_output(model, out_dir, name):
             "{ (const uint8_t S2C_FAR *)0 };"
         )
     c_lines.append("")
+    # Native functions reached by VM_INVOKE and VM_CALL_NATIVE. Their operand
+    # is the index into this table, in the same order as the converter's
+    # native_addr indexes (wait_frames first, then the rest by symbol name).
+    native = sorted(
+        model.native_addr_symbols, key=lambda sym: (sym != "_wait_frames", sym)
+    )
+    if native:
+        # Only the full engine build has the native handlers and defines this
+        # macro. Data-only ROMs (datarom) convert the same scripts but do not
+        # link the VM, so they must not emit an unresolved table.
+        c_lines.append("#if defined(GBVM_ENGINE_HANDLERS)")
+        c_lines.append("/* Native functions reached through vm_invoke/vm_call_native. */")
+        for sym in native:
+            c_lines.append("extern void {}();".format(sym[1:]))
+        c_lines.append("typedef void (* S2C_FAR s2c_native_fn_t)(void);")
+        c_lines.append("s2c_native_fn_t vm_native_fns[] = {")
+        for sym in native:
+            c_lines.append("    (s2c_native_fn_t){}, /* {} */".format(sym[1:], sym))
+        c_lines.append("};")
+        c_lines.append("#endif")
+        c_lines.append("")
     for bank_index, items in enumerate(model.banks):
         total = sum(script.size for script in items)
         c_lines.append("/* bank {}: {} bytes, {} script(s) */".format(

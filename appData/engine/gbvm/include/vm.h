@@ -79,6 +79,7 @@ extern SCRIPT_UPDATE_FN vm_native_fns[];
 extern UBYTE *const vm_ram_syms[];
 extern const UBYTE FAR *const vm_far_data[];
 const UBYTE FAR * vm_bank_base(UBYTE bank);
+const UBYTE FAR * vm_script_ptr(UBYTE bank, UWORD offset);
 UBYTE * vm_ram_ptr(UWORD idx);
 const UBYTE FAR * vm_far_data_ptr(UBYTE bank, UWORD idx);
 UBYTE * vm_native_token(UWORD index);

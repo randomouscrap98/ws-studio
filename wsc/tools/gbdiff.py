@@ -201,6 +201,12 @@ def write_stub(path, name):
     path.write_text(text)
 
 
+def cli_tmp_dir(config):
+    """Short, stable CLI temp/cache root (see prepare_gb_project)."""
+    digest = hashlib.sha1(config.get("name", "").encode("utf-8")).hexdigest()[:12]
+    return ensure_dir(BUILD / "gb-tmp" / digest)
+
+
 def prepare_gb_project(config, workdir):
     config_text = json.dumps(config, sort_keys=True)
     stamp = workdir / "build.stamp"
@@ -213,7 +219,11 @@ def prepare_gb_project(config, workdir):
     print("gbdiff: building the GB ROM with engine {}".format(
         GB_ENGINE_REV[:12]), file=sys.stderr)
     project = workdir / "project"
-    cli_tmp = workdir / "cli-tmp"
+    # SDCC builds temporary file names from TMPDIR into a small fixed buffer.
+    # A workdir under wsc/build/gb-oracle/<config name> is long enough to
+    # overflow it for the longer config names, so keep the CLI's temporary and
+    # cache root short and stable per config.
+    cli_tmp = cli_tmp_dir(config)
     shutil.rmtree(project, ignore_errors=True)
     shutil.rmtree(cli_tmp / "_gbsbuild", ignore_errors=True)
     ensure_dir(cli_tmp)
@@ -386,12 +396,12 @@ def parse_probe_asm(path, pattern, base):
     return raw
 
 
-def gb_layout(workdir, gbdk):
+def gb_layout(workdir, gbdk, cli_tmp):
     probe = workdir / "layout_gb.c"
     probe.write_text(PROBE_SOURCE)
     asm = workdir / "layout_gb.asm"
     engine_include = workdir / "project" / "assets" / "engine" / "include"
-    data_include = workdir / "cli-tmp" / "_gbsbuild" / "include"
+    data_include = cli_tmp / "_gbsbuild" / "include"
     run([
         gbdk / "bin" / "sdcc", "-msm83", "-S",
         "-D__PORT_sm83", "-D__TARGET_gb", "-DHUGE_TRACKER", "-DCGB",
@@ -598,6 +608,20 @@ def excluded_actor_fields(config):
     return result
 
 
+def skip_viewport_animation_phase(config):
+    """Whether an off-screen activation difference also skips frame/animation.
+
+    Only actors whose activation was ignored because they were outside the GB
+    viewport are affected, and only their animation-phase fields; position,
+    direction and movement are still compared.
+    """
+    for item in config.get("compare", {}).get("excluded", []):
+        if (item.get("category") == "off_screen_actor_activation" and
+                item.get("animationPhase")):
+            return True
+    return False
+
+
 def actor_in_gb_view(gb, position_side, index):
     """Whether an actor is inside the GB viewport (the common visible area)."""
     x = position_side.actor(index, "x")
@@ -627,6 +651,9 @@ def compare_traces(config, gb, wsc):
     actor_fields = fields.get("actorFields", (
         "x", "y", "dir", "frame", "animation"))
     skip_actor_fields = excluded_actor_fields(config)
+    skip_phase = skip_viewport_animation_phase(config)
+    phase_actors = set()
+    skipped_phase_values = 0
     actor_count = gb.layout["count"]
     if wsc.layout["count"] != actor_count:
         raise OracleError("actor counts differ: GB {}, WSC {}".format(
@@ -660,11 +687,17 @@ def compare_traces(config, gb, wsc):
                     return (tick, "actor[{}].active".format(index),
                             int(gb_active), int(wsc_active), compared)
                 ignored_activation += 1
+                if skip_phase:
+                    phase_actors.add(index)
                 continue
             if not gb_active:
                 continue
             for field in actor_fields:
                 if field in skip_actor_fields.get(index, ()):
+                    continue
+                if (skip_phase and index in phase_actors and
+                        field in ("frame", "animation")):
+                    skipped_phase_values += 1
                     continue
                 a, b = gb.actor(index, field), wsc.actor(index, field)
                 compared += 1
@@ -672,7 +705,7 @@ def compare_traces(config, gb, wsc):
                     return (tick, "actor[{}].{}".format(index, field),
                             a, b, compared)
 
-    return None, compared, ignored_activation
+    return None, compared, ignored_activation, sorted(phase_actors), skipped_phase_values
 
 
 def run_pair(config, workdir):
@@ -685,7 +718,7 @@ def run_pair(config, workdir):
     rom, noi = prepare_gb_project(config, workdir)
     gb_symbols = parse_noi(noi)
     wsc_syms = wsc_symbols(WSC_ELF)
-    gb_lay = gb_layout(workdir, gbdk)
+    gb_lay = gb_layout(workdir, gbdk, cli_tmp_dir(config))
     wsc_lay = wsc_layout(workdir)
 
     gb_trace = trace_path(workdir, "gb")
@@ -707,7 +740,7 @@ def run_pair(config, workdir):
                   tick, field, a, a, b, b, compared))
         return 1
 
-    _, compared, ignored_activation = result
+    _, compared, ignored_activation, phase_actors, skipped_phase = result
     exclusions = config.get("compare", {}).get("excluded", [])
     print("match: {} ticks, {} compared values".format(config["ticks"],
                                                        compared))
@@ -717,6 +750,10 @@ def run_pair(config, workdir):
     if ignored_activation:
         print("ignored {} off-screen activation differences".format(
             ignored_activation))
+    if skipped_phase:
+        print("ignored {} viewport-caused animation-phase values for "
+              "actor[s] {}".format(
+                  skipped_phase, ",".join(str(i) for i in phase_actors)))
     for item in exclusions:
         why = item.get("why", "")
         if item.get("category") == "actor_fields":
@@ -734,7 +771,7 @@ def run_platform_smoke(config, workdir):
     gbdk = ensure_gbdk()
     rom, noi = prepare_gb_project(config, workdir)
     symbols = parse_noi(noi)
-    layout = gb_layout(workdir, gbdk)
+    layout = gb_layout(workdir, gbdk, cli_tmp_dir(config))
     trace = trace_path(workdir, "gb")
     run(build_gb_args(config, rom, workdir, layout, symbols, trace),
         cwd=ROOT, what="GB platform smoke run")

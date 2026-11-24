@@ -28,7 +28,7 @@ INCLUDE = ENGINE / "include"
 DISPATCH = ENGINE / "src" / "core" / "vm_dispatch.c"
 BYTECODE = ROOT / "wsc" / "vmtest" / "vm_bytecode.h"
 
-HOST_EXCLUDED = {"vm_call_native", "vm_asm"}
+HOST_EXCLUDED = {"vm_asm"}
 
 # Explicit exclusion list: opcodes handled by these headers stay
 # "unimplemented opcode".  SGB, SIO/link, GB Printer and RTC have no WSC
@@ -383,6 +383,12 @@ def generate_dispatch(entries, protos, core_handlers, handler_header, enums):
                 out.append(
                     f"        const void FAR *a_{name} = "
                     f"vm_far_data_ptr(0, a_{name}_off);"
+                )
+                continue
+            if handler == "vm_call_native" and name == "ptr":
+                out.append(
+                    f"        const void *a_{name} = "
+                    f"(const void *)(void *)vm_native_token(a_{name}_off);"
                 )
                 continue
             qualifier = " FAR" if name in far_names else ""

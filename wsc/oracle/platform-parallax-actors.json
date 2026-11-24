@@ -1,0 +1,70 @@
+{
+  "description": "path/Parallax Example: the Elephant and Sign Post cross the wider WSC viewport, GB vs WSC on game_time ticks",
+  "ticks": 760,
+  "frames": 20000,
+  "marker_timeout": 2500,
+  "input": "inputs/platform-parallax-actors.txt",
+  "wsc": {
+    "bootId": 14,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving",
+      "plat_vel_x",
+      "plat_vel_y",
+      "plat_delta_x",
+      "plat_delta_y",
+      "plat_state",
+      "plat_next_state",
+      "plat_jump_type",
+      "plat_run_stage",
+      "plat_grounded",
+      "plat_on_slope",
+      "plat_slope_y",
+      "plat_hold_jump_timer",
+      "plat_coyote_timer",
+      "plat_jump_buffer_timer",
+      "plat_extra_jumps_counter",
+      "plat_wall_jump_counter",
+      "plat_wall_col",
+      "plat_drop_timer",
+      "plat_ladder_block_h",
+      "plat_ladder_block_v",
+      "plat_is_actor_attached",
+      "plat_dash_pressed",
+      "plat_dash_cooldown_timer",
+      "plat_dash_currentframe",
+      "plat_tap_timer",
+      "plat_anim_dirty"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": [
+      {
+        "category": "off_screen_actor_activation",
+        "animationPhase": true,
+        "why": "the WSC viewport is 14 tiles wide and the GB viewport is 10, so the Elephant and Sign Post activate a few ticks earlier on WSC; their activation ticks are ignored only while they are outside the GB viewport, and while both are active their animation-phase fields (frame, animation) are ignored because the earlier activation has advanced the WSC animation. Position, direction and move_speed are still compared."
+      }
+    ]
+  },
+  "name": "platform-parallax-actors",
+  "gb": {
+    "startSceneId": "896aee79-9b53-4ac1-b41f-b1ddf96da7ff",
+    "startX": 60,
+    "startY": 13
+  }
+}

@@ -320,6 +320,15 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         vm_push_reference(CTX, a_idx);
         return 1;
       }
+      case 0x2D: { /* vm_call_native */
+        const UBYTE FAR *p = CTX->PC + 1;
+    UWORD a_ptr_off = vm_fetch16(&p);
+    UBYTE a_bank = vm_fetch8(&p);
+        const void *a_ptr = (const void *)(void *)vm_native_token(a_ptr_off);
+        CTX->PC = p;
+        vm_call_native(0, 0, CTX, a_bank, a_ptr);
+        return 1;
+      }
 #if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
       case 0x2E: { /* vm_save_peek */
         const UBYTE FAR *p = CTX->PC + 1;

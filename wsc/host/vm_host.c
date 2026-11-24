@@ -18,9 +18,20 @@ void wait_vbl_done(void) {
 
 UBYTE wait_frames(void * THIS, UBYTE start, UWORD * stack_frame) OLDCALL BANKED;
 
+/* Index 1: a VM_CALL_NATIVE target for the host tests. It reads the value the
+ * script pushed and records it so the test can check the argument frame. */
+UBYTE vmtest_native_hits;
+UWORD vmtest_native_arg;
+
+static void vmtest_native_call(SCRIPT_CTX *THIS) {
+    vmtest_native_arg = *((UWORD *)VM_REF_TO_PTR(FN_ARG0));
+    vmtest_native_hits++;
+}
+
 /* Native function operands are indexes into this table on the host. */
 SCRIPT_UPDATE_FN vm_native_fns[] = {
     wait_frames,
+    (SCRIPT_UPDATE_FN)vmtest_native_call,
 };
 
 static UWORD rng_state;

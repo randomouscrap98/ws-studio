@@ -195,9 +195,22 @@ void vm_invoke(SCRIPT_CTX * THIS, UBYTE bank, UBYTE * fn, UBYTE nparams, INT16 i
 #endif
 }
 
+#if defined(__SDCC) && defined(NINTENDO)
+// The Game Boy stores a raw script address in the callback event.
+const UBYTE FAR * vm_script_ptr(UBYTE bank, UWORD offset) {
+    (void)bank;
+    return (const UBYTE FAR *)offset;
+}
+#endif
+
 #if !(defined(__SDCC) && defined(NINTENDO))
 UBYTE * vm_native_token(UWORD index) {
     return (UBYTE *)(void *)&vm_native_fns[index];
+}
+
+// Resolve a (script bank, 16-bit offset) VM operand to a script pointer.
+const UBYTE FAR * vm_script_ptr(UBYTE bank, UWORD offset) {
+    return vm_bank_base(bank) + offset;
 }
 #endif
 
@@ -559,6 +572,12 @@ __asm
         ld l, a
         jp (hl)
 __endasm;
+#else
+    // Host/WonderSwan: the operand is an index into vm_native_fns[], which the
+    // converter emitted in the same order as its native_addr indexes.
+    UWORD fn_index = (UWORD)((SCRIPT_UPDATE_FN *)(void *)ptr - vm_native_fns);
+    void (*fn)(SCRIPT_CTX *) = (void (*)(SCRIPT_CTX *))vm_native_fns[fn_index];
+    fn(THIS);
 #endif
 }
 // call the inlined native code by THIS->PC

@@ -41,6 +41,7 @@ static const struct boot_entry __far boot_table[BOOT_SCENE_COUNT] = {
     { &scene_deeper_underground, 1280, 1024 },  /* 5, 4 tiles */
     { &scene_path_to_sample_town, 1024, 2304 },  /* 4, 9 tiles */
     { &scene_parallax_example, 15360, 3328 },    /* 60, 13 tiles */
+    { &scene_path_to_sample_town, 14592, 3328 }, /* 57, 13 tiles */
 };
 
 /* Called by the generated bootstrap before the first scene is loaded. */
@@ -70,13 +71,6 @@ UBYTE *vm_ram_ptr(UWORD idx) {
 }
 
 UWORD sys_time;
-
-UBYTE wait_frames(void *THIS, UBYTE start, UWORD *stack_frame)
-    OLDCALL BANKED;
-
-SCRIPT_UPDATE_FN vm_native_fns[] = {
-    wait_frames,
-};
 
 void wait_vbl_done(void) {
     hal_wait_vblank();
