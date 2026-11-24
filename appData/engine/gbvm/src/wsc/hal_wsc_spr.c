@@ -48,17 +48,39 @@ static void hal_sprite_add(uint16_t tile, int16_t x, int16_t y,
                            uint16_t attr) {
     volatile ws_sprite_t *sprite;
     int16_t origin_x = (int16_t)((WS_DISPLAY_WIDTH_PIXELS - hal_screen_w_px) >> 1);
+    uint8_t vertical = (hal_orientation() == HAL_ORIENTATION_VERTICAL);
 
     /* Cull a whole 8x8 entry that cannot touch the runtime screen.  A partly
      * visible left/top entry is kept: its 8-bit coordinate (e.g. -4 -> 252)
-     * is interpreted as signed again by the WSC sprite hardware. */
+     * is interpreted as signed again by the WSC sprite hardware.  The cull
+     * uses the logical screen, before the vertical rotation. */
     if (x >= (int16_t)hal_screen_w_px || x + 8 <= 0 ||
         y >= (int16_t)hal_screen_h_px || y + 8 <= 0)
         return;
     if (hal_sprite_entries >= WS_SPRITE_MAX_COUNT)
         return;
 
-    x = (int16_t)(x + origin_x);
+    if (vertical) {
+        /* Logical sprite pixel (x, y) -> physical (223 - y, x).  An 8x8
+         * logical box becomes an 8x8 physical box whose top-left is
+         * (216 - logical_y, logical_x).  The tile data was rotated, so the
+         * logical flips swap axes. */
+        int16_t logical_x = x;
+        int16_t logical_y = y;
+        uint16_t flip_h = attr & WS_SPRITE_ATTR_FLIP_H;
+        uint16_t flip_v = attr & WS_SPRITE_ATTR_FLIP_V;
+
+        x = (int16_t)(216 - logical_y);
+        y = logical_x;
+        attr &= (uint16_t)~WS_SPRITE_ATTR_FLIP_MASK;
+        if (flip_h)
+            attr |= WS_SPRITE_ATTR_FLIP_V;
+        if (flip_v)
+            attr |= WS_SPRITE_ATTR_FLIP_H;
+    } else {
+        x = (int16_t)(x + origin_x);
+    }
+
     sprite = &hal_sprite_table.entry[hal_sprite_entries++];
     /* WSC sprites default to behind screen 2.  GB sprites are drawn above the
      * window, so put every entry in front; actor rendering hides covered

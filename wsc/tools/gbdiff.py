@@ -81,6 +81,7 @@ STATE_FIELDS = {
     "scroll_x": 2,
     "scroll_y": 2,
     "image_width": 2,
+    "image_height": 2,
     "plat_vel_x": 2,
     "plat_vel_y": 2,
     "plat_delta_x": 2,
@@ -881,6 +882,8 @@ def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None,
     ]
     if mode == 160:
         args.extend(["--screen-width", "160"])
+    elif mode == "vertical":
+        args.extend(["--orientation", "vertical"])
     for address, width, value in pokes:
         args.extend(["--poke", "{}:{}:{}".format(address, width, value)])
     player = symbols["actors"]
@@ -890,8 +893,9 @@ def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None,
         "--marker", "{}:2:{}".format(player + layout["x"], start_x),
         "--marker", "{}:2:{}".format(player + layout["y"], start_y),
     ])
-    if config.get("input"):
-        args.extend(["--input", config["input"], "--input-tick"])
+    wsc_input = config.get("wscInput") or config.get("input")
+    if wsc_input:
+        args.extend(["--input", wsc_input, "--input-tick"])
     if sram_in:
         args.extend(["--sram-in", sram_in])
     if sram_out:
@@ -912,7 +916,9 @@ def excluded_actor_fields(config):
 
 
 def screen_modes(config):
-    """Logical widths to run. "both" (the default) runs 160 and 224."""
+    """Logical modes to run. "both" (the default) runs 160 and 224."""
+    if config.get("orientation") == "vertical":
+        return ("vertical",)
     width = config.get("screenWidth", "both")
     if width == "both":
         return (160, 224)
@@ -950,15 +956,31 @@ def skip_viewport_animation_phase(config):
     return False
 
 
-def actor_in_gb_view(gb, position_side, index):
-    """Whether an actor is inside the GB viewport (the common visible area)."""
+def actor_in_gb_view(gb, wsc, position_side, index, mode):
+    """Whether an actor is inside the viewport both platforms show.
+
+    At 224 px the GB viewport is the common area.  In vertical mode the WSC
+    viewport is 144x224, so only the intersection of the two world rectangles
+    requires matching activation.
+    """
     x = position_side.actor(index, "x")
     y = position_side.actor(index, "y")
     if x == 0 and y == 0:
         return False
-    left = gb.scroll("x")
-    top = gb.scroll("y")
-    return (left <= x < left + 160 and top <= y < top + 144)
+    gb_left = gb.scroll("x")
+    gb_top = gb.scroll("y")
+    left = gb_left
+    top = gb_top
+    right = gb_left + 160
+    bottom = gb_top + 144
+    if mode == "vertical":
+        wsc_left = wsc.scroll("x")
+        wsc_top = wsc.scroll("y")
+        left = max(left, wsc_left)
+        top = max(top, wsc_top)
+        right = min(right, wsc_left + 144)
+        bottom = min(bottom, wsc_top + 224)
+    return left <= x < right and top <= y < bottom
 
 
 def camera_bounds_at(config, tick):
@@ -1062,7 +1084,23 @@ def compare_traces(config, mode, gb, wsc):
 
         if mode != 160:
             bounds = camera_bounds_at(config, tick)
-            if bounds:
+            if mode == "vertical":
+                if bounds is None:
+                    bounds = {
+                        "left": 0,
+                        "top": 0,
+                        "right": gb.state_field("image_width"),
+                        "bottom": gb.state_field("image_height"),
+                    }
+                for axis, field in (("x", "scroll_x"),
+                                    ("y", "scroll_y")):
+                    expected = expected_scroll(gb, bounds, 144, 224, axis)
+                    actual = wsc.state_field(field)
+                    compared += 1
+                    if expected != actual:
+                        return (tick, "cameraBounds." + field, expected,
+                                actual, compared)
+            elif bounds:
                 # The GB and WSC cameras follow the same world position;
                 # only the clamp differs because the WSC viewport is wider.
                 # Derive the clamped scroll from the same raw rectangle.
@@ -1148,7 +1186,8 @@ def compare_traces(config, mode, gb, wsc):
                 # difference is a bug. At 224 the WSC's wider screen
                 # intentionally activates more actors outside the GB view.
                 position_side = gb if gb_active else wsc
-                if mode == 160 or actor_in_gb_view(gb, position_side, index):
+                if mode == 160 or actor_in_gb_view(gb, wsc, position_side,
+                                                    index, mode):
                     return (tick, "actor[{}].active".format(index),
                             int(gb_active), int(wsc_active), compared)
                 ignored_activation += 1
@@ -1266,7 +1305,8 @@ def run_pair(config, workdir):
                 if run_spec.get("load") else None
             wsc_out = sram_path(workdir, "wsc", run_spec["save"]) \
                 if run_spec.get("save") else None
-            print("gbdiff: running WSC gamerom at {} px".format(mode),
+            print("gbdiff: running WSC gamerom at {}".format(
+                "144x224 vertical" if mode == "vertical" else "{} px".format(mode)),
                   file=sys.stderr)
             run(build_wsc_args(run_config, wsc_lay, wsc_syms, wsc_trace,
                                mode, pokes, wsc_rom, wsc_in, wsc_out),
@@ -1275,7 +1315,8 @@ def run_pair(config, workdir):
             wsc = Side("WSC", read_trace(wsc_trace, WSCTrace), wsc_syms,
                        wsc_lay, "")
             result = compare_traces(run_config, mode, gb, wsc)
-            label = "[{} px]".format(mode)
+            label = ("[144x224]" if mode == "vertical"
+                     else "[{} px]".format(mode))
             if multi:
                 label = "run {} {}".format(run_name, label)
             if result[0] is not None:
@@ -1378,6 +1419,9 @@ def main():
     config = load_config(config_path)
     if config.get("input"):
         config["input"] = str((config_path.parent / config["input"]).resolve())
+    if config.get("wscInput"):
+        config["wscInput"] = str(
+            (config_path.parent / config["wscInput"]).resolve())
     for run in config.get("runs", []):
         if run.get("input"):
             run["input"] = str(

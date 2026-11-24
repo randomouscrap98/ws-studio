@@ -15,9 +15,10 @@
 
 /* wsrun patches these bytes after the magic in the ROM image before boot:
  * byte 7 is the boot id, byte 8 the logical screen width in pixels (0 or
- * 224 keep the default full-width display). */
-const volatile __far uint8_t wsc_boot_slot[9] = {
-    'W', 'S', 'C', 'B', 'O', 'O', 'T', 0, 224
+ * 224 keep the default full-width display), byte 9 the orientation (0
+ * horizontal, 1 vertical portrait). */
+const volatile __far uint8_t wsc_boot_slot[10] = {
+    'W', 'S', 'C', 'B', 'O', 'O', 'T', 0, 224, 0
 };
 
 struct boot_entry {
@@ -49,6 +50,8 @@ static const struct boot_entry __far boot_table[BOOT_SCENE_COUNT] = {
     { &scene_player_s_house, 2560, 2560 },      /* 10, 10 tiles */
     { &scene_cave, 3328, 2816 },                /* 13, 11 tiles */
     { &scene_title_screen, 2560, 2560 },        /* 10, 10 tiles */
+    { &scene_c35_switch, 3584, 10496 },         /* 112, 328 px */
+    { &scene_c35_idle, 3584, 10496 },           /* 112, 328 px */
 };
 
 /* Called by the generated bootstrap before the first scene is loaded. */
@@ -57,8 +60,11 @@ void wsc_boot_select(far_ptr_t *scene, INT16 *x, INT16 *y) {
     const struct boot_entry __far *entry;
 
     /* Before the first scene load, so every engine and HAL path sees the
-     * selected logical width. */
-    hal_screen_set_width(wsc_boot_slot[8]);
+     * selected logical size and orientation. */
+    if (wsc_boot_slot[9])
+        hal_screen_set_vertical();
+    else
+        hal_screen_set_width(wsc_boot_slot[8]);
 
     if (id >= BOOT_SCENE_COUNT) id = 0;
     entry = &boot_table[id];

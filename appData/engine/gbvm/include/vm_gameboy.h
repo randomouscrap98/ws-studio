@@ -33,6 +33,7 @@ void vm_replace_tile(SCRIPT_CTX * THIS, INT16 idx_target_tile, UBYTE tileset_ban
 void vm_poll(SCRIPT_CTX * THIS, INT16 idx, INT16 res, UBYTE event_mask) OLDCALL BANKED;
 
 void vm_set_sprite_mode(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED;
+void vm_set_orientation(SCRIPT_CTX * THIS, UBYTE orientation) OLDCALL BANKED;
 void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, const tileset_t FAR * tileset, INT16 idx_start_tile) OLDCALL BANKED;
 
 #ifndef RUMBLE_ENABLE

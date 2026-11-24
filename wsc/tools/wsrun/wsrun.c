@@ -74,6 +74,7 @@ struct options {
     unsigned poke_count;
     int boot_id;
     int screen_width;
+    int orientation;
     uint32_t tick_address;
     unsigned tick_width;
     bool have_tick;
@@ -775,26 +776,27 @@ static void usage(FILE *stream)
             "[--png OUT] [--raw OUT] [--ram OUT] [--sram-in FILE] "
             "[--sram-out FILE]\n"
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
-            "[--boot-id N] [--screen-width N]\n"
+            "[--boot-id N] [--screen-width N] [--orientation H|V]\n"
             "             [--poke ADDR:SIZE:VALUE] "
             "[--tick ADDR:SIZE [--tick-gate ADDR:SIZE] [--trace OUT] "
             "[--max-ticks N] [--input-tick]]\n");
 }
 
-/* The gamerom image carries this marker next to a one-byte boot-scene id and
- * a one-byte logical screen width. Patching the loaded ROM image survives the
- * CRT's IRAM initialisation, unlike a poke into system RAM before the first
- * frame. */
-#define BOOT_SLOT_BYTES 9
+/* The gamerom image carries this marker next to a one-byte boot-scene id,
+ * a one-byte logical screen width and a one-byte orientation. Patching the
+ * loaded ROM image survives the CRT's IRAM initialisation, unlike a poke
+ * into system RAM before the first frame. */
+#define BOOT_SLOT_BYTES 10
 static const uint8_t boot_magic[] = { 'W', 'S', 'C', 'B', 'O', 'O', 'T' };
 
-static bool patch_boot_slot(uint8_t *rom, size_t size, int id, int width)
+static bool patch_boot_slot(uint8_t *rom, size_t size, int id, int width,
+                            int orientation)
 {
     size_t matches = 0;
     size_t offset = 0;
     size_t i;
 
-    if (id < 0 && width < 0)
+    if (id < 0 && width < 0 && orientation < 0)
         return true;
     while (offset + BOOT_SLOT_BYTES <= size) {
         bool same = true;
@@ -811,6 +813,9 @@ static bool patch_boot_slot(uint8_t *rom, size_t size, int id, int width)
                 rom[offset + sizeof(boot_magic)] = (uint8_t)id;
             if (width >= 0)
                 rom[offset + sizeof(boot_magic) + 1] = (uint8_t)width;
+            if (orientation >= 0)
+                rom[offset + sizeof(boot_magic) + 2] =
+                    (uint8_t)orientation;
         }
         offset++;
     }
@@ -885,6 +890,7 @@ int main(int argc, char **argv)
 
     opts.boot_id = -1;
     opts.screen_width = -1;
+    opts.orientation = -1;
 
     for (i = 1; i < (uint32_t)argc; i++) {
         const char *arg = argv[i];
@@ -960,6 +966,22 @@ int main(int argc, char **argv)
                 return 2;
             }
             opts.screen_width = (int)width;
+        } else if (strcmp(arg, "--orientation") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (strcmp(argv[i], "horizontal") == 0 ||
+                strcmp(argv[i], "h") == 0 || strcmp(argv[i], "0") == 0)
+                opts.orientation = 0;
+            else if (strcmp(argv[i], "vertical") == 0 ||
+                     strcmp(argv[i], "v") == 0 ||
+                     strcmp(argv[i], "1") == 0)
+                opts.orientation = 1;
+            else {
+                fprintf(stderr, "error: invalid orientation '%s' "
+                        "(expected horizontal or vertical)\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
         } else if (strcmp(arg, "--input") == 0) {
             if (++i >= (uint32_t)argc)
                 goto bad_args;
@@ -1063,7 +1085,7 @@ bad_args:
     if (!read_file(opts.rom, &rom_data, &rom_size))
         return 1;
     if (!patch_boot_slot(rom_data, rom_size, opts.boot_id,
-                         opts.screen_width))
+                         opts.screen_width, opts.orientation))
         goto cleanup;
 
     if (!init_directories())

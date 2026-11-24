@@ -19,10 +19,17 @@
 
 #include "parallax.h"
 #include "scroll.h"
+#include "data_manager.h"
 #include "hal.h"
 
 parallax_row_t parallax_rows[3];
 parallax_row_t *parallax_row;
+
+/* Vertical mode has no horizontal bands: the scene's band table is saved and
+ * replaced by one full-screen row, so the shared scroll path takes its
+ * non-parallax branch.  Leaving vertical restores the saved table. */
+static parallax_row_t parallax_rows_saved[3];
+static uint8_t parallax_rows_saved_valid;
 
 static const parallax_row_t parallax_rows_defaults[3] = {
     PARALLAX_STEP(0, 2, 2),
@@ -66,11 +73,42 @@ void hal_parallax_vblank(void) {
 }
 
 void hal_parallax_enable(void) {
+    if (hal_orientation() == HAL_ORIENTATION_VERTICAL) {
+        hal_parallax_vertical_enter();
+        return;
+    }
     parallax_row = parallax_rows;
     ws_int_set_handler(WS_INT_LINE_MATCH, (void __far *)parallax_line_isr);
     outportb(WS_DISPLAY_LINE_IRQ_PORT, 0);
     ws_int_ack(WS_INT_ACK_LINE_MATCH);
     ws_int_enable(WS_INT_ENABLE_LINE_MATCH);
+}
+
+void hal_parallax_vertical_enter(void) {
+    uint8_t i;
+
+    memcpy(parallax_rows_saved, parallax_rows, sizeof(parallax_rows_saved));
+    parallax_rows_saved_valid = 1;
+
+    parallax_rows[0].scx = 0;
+    parallax_rows[0].next_y = 0;
+    parallax_rows[0].shift = 0;
+    parallax_rows[0].start_tile = 0;
+    parallax_rows[0].tile_height = PARALLAX_MAX_HEIGHT;
+    parallax_rows[0].shadow_scx = 0;
+    for (i = 1; i < 3; i++)
+        parallax_rows[i].next_y = 0;
+    parallax_row = parallax_rows;
+    hal_parallax_disable();
+}
+
+void hal_parallax_vertical_leave(void) {
+    if (parallax_rows_saved_valid) {
+        memcpy(parallax_rows, parallax_rows_saved, sizeof(parallax_rows));
+        parallax_rows_saved_valid = 0;
+    }
+    if (scene_LCD_type == LCD_parallax)
+        hal_parallax_enable();
 }
 
 void hal_parallax_disable(void) {

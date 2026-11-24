@@ -25,6 +25,8 @@ enum {
     BOOT_SCENE_POINTNCLICK,
     BOOT_SCENE_SAVE_POINT,
     BOOT_SCENE_TITLE,
+    BOOT_SCENE_C35_SWITCH,
+    BOOT_SCENE_C35_IDLE,
     BOOT_SCENE_COUNT
 };
 
@@ -37,5 +39,7 @@ extern const __far struct scene_t scene_c16_choice;
 extern const __far struct scene_t scene_c17_edge;
 extern const __far struct scene_t scene_c18_big;
 extern const __far struct scene_t scene_c18_blank;
+extern const __far struct scene_t scene_c35_switch;
+extern const __far struct scene_t scene_c35_idle;
 
 #endif

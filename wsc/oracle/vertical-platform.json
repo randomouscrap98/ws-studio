@@ -1,0 +1,75 @@
+{
+  "name": "vertical-platform",
+  "description": "C35 vertical 144x224 mode: Deeper Underground platform route, world-space fields only. The GB route's d-pad is sent to the WSC Y pad.",
+  "orientation": "vertical",
+  "ticks": 800,
+  "frames": 20000,
+  "marker_timeout": 2500,
+  "input": "inputs/platform-deeper.txt",
+  "wscInput": "inputs/vertical-platform-deeper.txt",
+  "wsc": {
+    "bootId": 12,
+    "readySymbol": "wsc_test_marker"
+  },
+  "gb": {
+    "startSceneId": "a15eed10-615c-488a-b972-b4b37ccfc14e",
+    "startX": 5,
+    "startY": 4
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving",
+      "plat_vel_x",
+      "plat_vel_y",
+      "plat_delta_x",
+      "plat_delta_y",
+      "plat_state",
+      "plat_next_state",
+      "plat_jump_type",
+      "plat_run_stage",
+      "plat_grounded",
+      "plat_on_slope",
+      "plat_slope_y",
+      "plat_hold_jump_timer",
+      "plat_coyote_timer",
+      "plat_jump_buffer_timer",
+      "plat_extra_jumps_counter",
+      "plat_wall_jump_counter",
+      "plat_wall_col",
+      "plat_drop_timer",
+      "plat_ladder_block_h",
+      "plat_ladder_block_v",
+      "plat_is_actor_attached",
+      "plat_dash_pressed",
+      "plat_dash_cooldown_timer",
+      "plat_dash_currentframe",
+      "plat_tap_timer",
+      "plat_anim_dirty"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": [
+      {
+        "category": "camera_scroll",
+        "why": "the WSC vertical viewport is 144x224 and the GB viewport is 160x144; camera and scroll are compared through the 144x224 clamp, not raw"
+      },
+      {
+        "category": "off_screen_actor_activation",
+        "why": "the two viewports overlap but are not identical, so activation is required to match only inside the overlap"
+      }
+    ]
+  }
+}

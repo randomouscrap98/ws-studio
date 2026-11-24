@@ -24,7 +24,7 @@ Nothing is re-downloaded or rebuilt when everything is already up to date.
 wsc/build/wsrun --core SO --rom ROM --frames N \
     [--input FILE] [--png OUT] [--raw OUT] [--ram OUT] \
     [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
-    [--screen-width N] [--poke ADDR:SIZE:VALUE] \
+    [--screen-width N] [--orientation H|V] [--poke ADDR:SIZE:VALUE] \
     [--sram-in FILE] [--sram-out FILE] \
     [--tick ADDR:SIZE [--tick-gate ADDR:SIZE] [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
@@ -73,6 +73,10 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
   slot. The gamerom uses it to pick its logical screen width (160 or 224 px)
   before the first scene loads. Without the option the ROM default (224) is
   used.
+- `--orientation H|V` (also `horizontal`/`vertical`) patches the byte after
+  the screen width. `vertical` boots the 144x224 portrait view; the HAL
+  rotates the tiles, map, sprites and window 90 degrees and maps the Y pad
+  to the d-pad. Without the option the ROM default (horizontal) is used.
 - On success one line is printed to stdout:
 
   ```
@@ -101,6 +105,9 @@ are an error.
 Supported names: `X1 X2 X3 X4 Y1 Y2 Y3 Y4 A B START`, where `X1`/`X2`/`X3`/`X4`
 are up/right/down/left on the X pad (same for Y). They map to libretro joypad
 IDs through the core's horizontal-layout table:
+
+In vertical mode the HAL uses the Y pad as the logical d-pad:
+logical up/right/down/left = `Y2`/`Y3`/`Y4`/`Y1`, and `X1` is Select.
 
 | Name | libretro ID | Name | libretro ID |
 | --- | --- | --- | --- |

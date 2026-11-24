@@ -259,5 +259,8 @@ void set_bkg_data(UINT8 first, UINT8 count, const void *data) {
             dst[row * 4 + 2] = p2;
             dst[row * 4 + 3] = p3;
         }
+
+        if (hal_orientation() == HAL_ORIENTATION_VERTICAL)
+            hal_wsc_rotate_tile((uint16_t)(first + t), 1);
     }
 }

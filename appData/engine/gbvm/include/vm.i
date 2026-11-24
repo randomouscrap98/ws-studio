@@ -1046,8 +1046,10 @@ OP_VM_OVERLAY_SETPOS    = 0x42
         .db OP_VM_OVERLAY_SETPOS, #<Y, #<X
 .endm
 
-.MENU_CLOSED_Y          = 0x12
-;-- Hides the overlay window.
+.MENU_CLOSED_Y          = 0xFF
+;-- Hides the overlay window.  The value is a tile row beyond both the
+;-- 144 px horizontal and 224 px vertical logical heights, so the runtime
+;-- overlay (and its runtime closed sentinel) hides in either orientation.
 .macro VM_OVERLAY_HIDE
         VM_OVERLAY_SETPOS 0, .MENU_CLOSED_Y
 .endm
@@ -1815,4 +1817,20 @@ OP_VM_PRINT_OVERLAY     = 0x8D
 ; @param MARGIN Lines to feed after the printing is finished.
 .macro VM_PRINT_OVERLAY ERROR, START, HEIGHT, MARGIN
         .db OP_VM_PRINT_OVERLAY, #<MARGIN, #<HEIGHT, #<START, #>ERROR, #<ERROR
+.endm
+
+; --- WonderSwan Color display orientation --------------------------------
+; @section WonderSwan Color
+
+OP_VM_SET_ORIENTATION   = 0x96
+.ORIENTATION_HORIZONTAL = 0
+.ORIENTATION_VERTICAL   = 1
+;-- Sets the logical screen orientation.  Horizontal is the native landscape
+;-- view; vertical is a 144x224 portrait view rotated onto the physical
+;-- display.  The switch re-rotates the tiles in VRAM and repaints at once.
+; @param ORIENTATION Orientation to set:
+;   `.ORIENTATION_HORIZONTAL` - Native landscape view.
+;   `.ORIENTATION_VERTICAL`   - Portrait view for a rotated console.
+.macro VM_SET_ORIENTATION ORIENTATION
+        .db OP_VM_SET_ORIENTATION, #<ORIENTATION
 .endm

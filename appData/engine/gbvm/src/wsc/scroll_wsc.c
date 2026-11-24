@@ -36,6 +36,7 @@ void hal_clear_bkg(void) {
 void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
                     const unsigned char __far *map, UINT8 map_w) {
     UINT8 row, col;
+    UINT8 vertical = (hal_orientation() == HAL_ORIENTATION_VERTICAL);
 
     for (row = 0; row < h; row++) {
         UINT16 src_y = (UINT16)y + row;
@@ -44,8 +45,9 @@ void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
 
         for (col = 0; col < w; col++) {
             UINT16 src_x = (UINT16)x + col;
-            UINT16 src, index, cell;
+            UINT16 src, index, cell, dst;
             UBYTE tile, attr;
+            UINT16 flip_h, flip_v;
 
             if (src_x >= image_tile_width)
                 continue;
@@ -58,12 +60,23 @@ void set_bkg_submap(UINT8 x, UINT8 y, UINT8 w, UINT8 h,
             if (attr & 0x08)
                 index += WSC_TILE_BG_BANK1_BASE;
 
+            flip_h = (attr & 0x20) ? WS_SCREEN_ATTR_FLIP_H : 0;
+            flip_v = (attr & 0x40) ? WS_SCREEN_ATTR_FLIP_V : 0;
+            if (vertical) {
+                UINT16 tmp = flip_h;
+                flip_h = flip_v;
+                flip_v = tmp;
+            }
+
             cell = WS_SCREEN_ATTR_TILE_EX(index)
                  | WS_SCREEN_ATTR_PALETTE(attr & 0x07)
-                 | ((attr & 0x20) ? WS_SCREEN_ATTR_FLIP_H : 0)
-                 | ((attr & 0x40) ? WS_SCREEN_ATTR_FLIP_V : 0);
+                 | flip_h | flip_v;
 
-            hal_screen.cell[((src_y & 31) << 5) | (src_x & 31)] = cell;
+            if (vertical)
+                dst = (src_x & 31) * 32 + ((27 - src_y) & 31);
+            else
+                dst = ((src_y & 31) << 5) | (src_x & 31);
+            hal_screen.cell[dst] = cell;
         }
     }
 }

@@ -21,7 +21,13 @@
 
 #define MENU_OPEN_Y 112
 #define WIN_LEFT_X 7
+#ifdef __ia16__
+/* WSC: the closed position follows the runtime logical height so the boot
+ * overlay stays closed in vertical mode (hal_window_set hides y >= height). */
+#define MENU_CLOSED_Y ((UBYTE)hal_screen_h_px)
+#else
 #define MENU_CLOSED_Y (UBYTE)(MAXWNDPOSY + 1U)
+#endif
 #define MENU_LAYOUT_INITIAL_X 88
 #define MENU_CANCEL_ON_LAST_OPTION 0x01U
 #define MENU_CANCEL_ON_B_PRESSED 0x02U

@@ -371,7 +371,8 @@ def apply_timer_tiles(export, scene, scenario, background, timer_runs):
 
 
 def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
-                frames, effects=None, final=None, timer_runs=0):
+                frames, effects=None, final=None, timer_runs=0,
+                screen_w=224, screen_h=144):
     effects = effects or {}
     final = final or {}
     scene = export.scene(scene_symbol)
@@ -390,7 +391,6 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
 
     image_w = background["width"] * 8
     image_h = background["height"] * 8
-    screen_w, screen_h = 224, 144
 
     # Rule 4: bounds come from the scene size and the HAL screen size.
     max_x = max(0, image_w - screen_w)
@@ -502,8 +502,9 @@ def build_scene(export, project, scene_symbol, start_x, start_y, start_dir,
                 info["frame"] = override["frame"]
         actor_info.append(info)
 
-    player_frame = (player_sheet["animations"][start_dir][0]
-                    if player_sheet["animations"] else 0)
+    player_frame = final.get("player_frame",
+                             (player_sheet["animations"][start_dir][0]
+                              if player_sheet["animations"] else 0))
     sprites = []
     sprite_groups = []
 

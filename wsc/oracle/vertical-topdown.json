@@ -1,0 +1,50 @@
+{
+  "name": "vertical-topdown",
+  "description": "C35 vertical 144x224 mode: Sample Town topdown walk from (50,50), world-space fields only. The GB route's d-pad is sent to the WSC Y pad.",
+  "orientation": "vertical",
+  "ticks": 320,
+  "frames": 8000,
+  "marker_timeout": 1500,
+  "input": "inputs/vertical-topdown.txt",
+  "wscInput": "inputs/vertical-topdown-wsc.txt",
+  "gb": {
+    "startSceneId": "4e26a44e-ca20-448d-b47a-9982231bf69f",
+    "startX": 50,
+    "startY": 50
+  },
+  "wsc": {
+    "bootId": 1,
+    "readySymbol": "wsc_test_marker"
+  },
+  "compare": {
+    "playerFields": [
+      "x",
+      "y",
+      "dir",
+      "flags",
+      "frame",
+      "animation",
+      "move_speed",
+      "player_moving"
+    ],
+    "actorFields": [
+      "x",
+      "y",
+      "dir",
+      "frame",
+      "animation",
+      "move_speed"
+    ],
+    "excluded": [
+      {
+        "category": "camera_scroll",
+        "why": "the WSC vertical viewport is 144x224 and the GB viewport is 160x144; camera and scroll are compared through the 144x224 clamp, not raw"
+      },
+      {
+        "category": "off_screen_actor_activation",
+        "why": "the two viewports overlap but are not identical, so activation is required to match only inside the overlap"
+      }
+    ]
+  },
+  "rngSync": true
+}

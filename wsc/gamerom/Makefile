@@ -32,6 +32,8 @@ C16_TEST_SCRIPT	:= $(CURDIR)/src/script_c16_choice.s
 C17_TEST_SCRIPT	:= $(CURDIR)/src/script_c17_edge.s
 C18_TEST_SCRIPTS	:= $(CURDIR)/src/script_c18_stop.s \
 			   $(CURDIR)/src/script_c18_blank.s
+C35_TEST_SCRIPTS	:= $(CURDIR)/src/script_c35_switch.s \
+			   $(CURDIR)/src/script_c35_idle.s
 C18_GEN		:= $(WSC_DIR)/tools/gen_c18_tiles.py
 C18_DATA_DIR	:= $(GEN_DIR)/c18
 C18_DATA_C	:= $(C18_DATA_DIR)/c18_bg_data.c
@@ -79,7 +81,8 @@ ENGINE_SOURCES	:= $(WSC_ENGINE_SOURCES) \
 		   $(CURDIR)/src/c15_test_scene.c \
 		   $(CURDIR)/src/c16_test_scene.c \
 		   $(CURDIR)/src/c17_test_scene.c \
-		   $(CURDIR)/src/c18_test_scene.c
+		   $(CURDIR)/src/c18_test_scene.c \
+		   $(CURDIR)/src/c35_test_scene.c
 ifeq ($(CAPACITY_FILLER),1)
 CFLAGS		+= -DWSC_CAPACITY_TEST
 ENGINE_SOURCES	+= $(CURDIR)/src/capacity_filler.c
@@ -144,7 +147,7 @@ $(EXPORT_READY): $(COMPILER_DEPS) $(PROJECT_DEPS)
 # runs with the moved far-data/far-code layout that exposed the C16a bug.
 $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 		$(C15_TEST_SCRIPTS) $(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT) \
-		$(C18_TEST_SCRIPTS) $(LAYOUT_PAD_SCRIPT) \
+		$(C18_TEST_SCRIPTS) $(C35_TEST_SCRIPTS) $(LAYOUT_PAD_SCRIPT) \
 		$(WSC_DIR)/tools/s2c.py $(EXPORT_READY) \
 		$(GBVM_INCLUDE)/vm.i $(GBVM_INCLUDE)/macro.i
 	@echo "  S2C     $(S2C_DIR)"
@@ -155,7 +158,7 @@ $(S2C_H) $(S2C_C): $(EXPORT_SCRIPTS) $(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) \
 		$$(find $(EXPORT_DIR)/src/data -name '*.s' | sort) \
 		$(C13_TEST_SCRIPT) $(C14_TEST_SCRIPT) $(C15_TEST_SCRIPTS) \
 		$(C16_TEST_SCRIPT) $(C17_TEST_SCRIPT) $(C18_TEST_SCRIPTS) \
-		$(LAYOUT_PAD_SCRIPT)
+		$(C35_TEST_SCRIPTS) $(LAYOUT_PAD_SCRIPT)
 
 $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS)
 	@echo "  D2C     $(GEN_DIR)"

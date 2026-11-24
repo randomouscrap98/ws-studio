@@ -1,0 +1,5 @@
+# C35 vertical mode topdown route: hold right across the open bottom-right
+# area of Sample Town.  The GB side uses X2; the WSC copy uses the vertical
+# Y-pad mapping for logical right (Y3).
+20 Y3
+320 -

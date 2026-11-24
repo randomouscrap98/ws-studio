@@ -22,6 +22,13 @@ extern uint8_t hal_win_attrs[WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES];
 void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
                                 const uint8_t __far *data, uint8_t index_shift);
 
+/* Rotate tile data already in VRAM in place.  direction > 0 rotates the
+ * logical tile 90 degrees clockwise into the physical vertical view;
+ * direction < 0 undoes it.  Used by the tile loaders and the runtime
+ * orientation switch. */
+void hal_wsc_rotate_tiles(uint16_t first, uint16_t count, int8_t direction);
+void hal_wsc_rotate_tile(uint16_t index, int8_t direction);
+
 /* Screen-2/window variant of the background tile-map writer. */
 void hal_put_win_tiles(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
                        const uint8_t __far *map,

@@ -2546,6 +2546,21 @@ class ScriptBuilder extends ScriptBuilderBase {
     this._addNL();
   };
 
+  setScreenOrientation = (orientation: "horizontal" | "vertical") => {
+    this._addComment(
+      `Set Screen Orientation: ${
+        orientation === "vertical" ? "Vertical" : "Horizontal"
+      }`,
+    );
+    this._addCmd(
+      "VM_SET_ORIENTATION",
+      orientation === "vertical"
+        ? ".ORIENTATION_VERTICAL"
+        : ".ORIENTATION_HORIZONTAL",
+    );
+    this._addNL();
+  };
+
   // --------------------------------------------------------------------------
   // Scenes
 

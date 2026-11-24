@@ -6,6 +6,63 @@
 #include "hal_wsc_internal.h"
 #include "wsc_tiles.h"
 
+/* Reverse the bit order of one byte. */
+static uint8_t hal_reverse_bits(uint8_t value) {
+    value = (uint8_t)(((value & 0xF0u) >> 4) | ((value & 0x0Fu) << 4));
+    value = (uint8_t)(((value & 0xCCu) >> 2) | ((value & 0x33u) << 2));
+    value = (uint8_t)(((value & 0xAAu) >> 1) | ((value & 0x55u) << 1));
+    return value;
+}
+
+/* In-place transpose of an 8x8 bit matrix stored as eight bytes.  The three
+ * butterfly stages swap 1x1, 2x2 and 4x4 blocks. */
+static void hal_transpose8(uint8_t *a) {
+    uint8_t j, k, t, m = 0xFFu;
+
+    for (j = 4; j; j >>= 1) {
+        m ^= (uint8_t)(m << j);
+        for (k = 0; k < 8; k = (uint8_t)((k + j + 1) & ~j)) {
+            t = (uint8_t)(((a[k] >> j) ^ a[k + j]) & m);
+            a[k] ^= (uint8_t)(t << j);
+            a[k + j] ^= t;
+        }
+    }
+}
+
+/* Rotate one 4bpp tile in place.  direction > 0 maps logical pixel (x, y) to
+ * physical (7 - y, x), which is the clockwise rotation used by vertical
+ * mode; direction < 0 is its inverse.  The four plane rows are transposed
+ * with bit operations instead of visiting all 64 pixels individually. */
+void hal_wsc_rotate_tile(uint16_t index, int8_t direction) {
+    volatile uint8_t *mem = (volatile uint8_t *)WS_TILE_4BPP_MEM(index);
+    uint8_t plane, row;
+    uint8_t a[8];
+
+    for (plane = 0; plane < 4; plane++) {
+        for (row = 0; row < 8; row++)
+            a[row] = mem[row * 4 + plane];
+
+        hal_transpose8(a);
+
+        if (direction > 0) {
+            /* Rotate clockwise: the transposed rows come back reversed. */
+            for (row = 0; row < 8; row++)
+                mem[row * 4 + plane] = a[7 - row];
+        } else {
+            /* Counter-clockwise: transpose, then mirror every row. */
+            for (row = 0; row < 8; row++)
+                mem[row * 4 + plane] = hal_reverse_bits(a[row]);
+        }
+    }
+}
+
+void hal_wsc_rotate_tiles(uint16_t first, uint16_t count, int8_t direction) {
+    uint16_t i;
+
+    for (i = 0; i < count; i++)
+        hal_wsc_rotate_tile((uint16_t)(first + i), direction);
+}
+
 void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
                                 const uint8_t __far *data, uint8_t index_shift) {
     uint16_t t, row, bit;
@@ -38,6 +95,9 @@ void hal_wsc_convert_tiles_2bpp(uint16_t first, uint16_t count,
             dst[row * 4 + 2] = p2;
             dst[row * 4 + 3] = p3;
         }
+
+        if (hal_orientation() == HAL_ORIENTATION_VERTICAL)
+            hal_wsc_rotate_tile((uint16_t)(first + t), 1);
     }
 }
 
@@ -81,6 +141,9 @@ void hal_load_bkg_tiles_ram(uint16_t first, uint16_t count,
             dst[row * 4 + 2] = p2;
             dst[row * 4 + 3] = p3;
         }
+
+        if (hal_orientation() == HAL_ORIENTATION_VERTICAL)
+            hal_wsc_rotate_tile((uint16_t)(first + t), 1);
     }
 }
 
@@ -108,6 +171,7 @@ static void hal_put_screen_tiles(volatile ws_screen_t *screen,
                                  const uint8_t __far *map,
                                  const uint8_t __far *attrs, uint8_t map_w) {
     uint8_t row, col;
+    uint8_t vertical = (hal_orientation() == HAL_ORIENTATION_VERTICAL);
 
     for (row = 0; row < h; row++) {
         for (col = 0; col < w; col++) {
@@ -118,17 +182,31 @@ static void hal_put_screen_tiles(volatile ws_screen_t *screen,
             uint8_t attr = attrs ? attrs[off] : 0;
             uint16_t index = (uint16_t)tile;
             uint16_t cell;
+            uint16_t flip_h;
+            uint16_t flip_v;
+            uint16_t dst;
 
             if (attr & 0x08)
                 index += WSC_TILE_BG_BANK1_BASE;
 
+            flip_h = (attr & 0x20) ? WS_SCREEN_ATTR_FLIP_H : 0;
+            flip_v = (attr & 0x40) ? WS_SCREEN_ATTR_FLIP_V : 0;
+            if (vertical) {
+                uint16_t tmp = flip_h;
+                flip_h = flip_v;
+                flip_v = tmp;
+            }
+
             cell = WS_SCREEN_ATTR_TILE_EX(index)
                  | WS_SCREEN_ATTR_PALETTE(attr & 0x07)
-                 | ((attr & 0x20) ? WS_SCREEN_ATTR_FLIP_H : 0)
-                 | ((attr & 0x40) ? WS_SCREEN_ATTR_FLIP_V : 0);
+                 | flip_h | flip_v;
 
-            screen->cell[((uint16_t)(map_y & 31) << 5) |
-                         (map_x & 31)] = cell;
+            if (vertical)
+                dst = ((uint16_t)map_x & 31) * 32 +
+                      ((27 - (uint16_t)map_y) & 31);
+            else
+                dst = ((uint16_t)(map_y & 31) << 5) | (map_x & 31);
+            screen->cell[dst] = cell;
         }
     }
 }

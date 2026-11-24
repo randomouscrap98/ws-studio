@@ -52,6 +52,7 @@ WSC_ENGINE_SOURCES := \
 	$(GBVM_WSC)/hal_wsc_sram.c \
 	$(GBVM_WSC)/hal_wsc_bg.c $(GBVM_WSC)/hal_wsc_spr.c \
 	$(GBVM_WSC)/parallax_wsc.c \
+	$(GBVM_WSC)/orient_wsc.c \
 	$(GBVM_WSC)/scroll_wsc.c $(GBVM_WSC)/stubs_wsc.c \
 	$(GBVM_WSC)/ui_wsc.c \
 	$(WSC_DIR)src/platform_common.c

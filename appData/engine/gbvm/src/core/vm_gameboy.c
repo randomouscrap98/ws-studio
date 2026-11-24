@@ -18,6 +18,7 @@
 
 #ifdef __ia16__
 #include "wsc_tiles.h"
+#include "hal.h"
 #endif
 
 #define TILESET_PTR(p) ((const tileset_t FAR *)(p))
@@ -162,6 +163,16 @@ void vm_poll(SCRIPT_CTX * THIS, INT16 idx, INT16 res, UBYTE event_mask) OLDCALL 
 void vm_set_sprite_mode(SCRIPT_CTX * THIS, UBYTE mode) OLDCALL BANKED {
     THIS;
     if (mode) SPRITES_8x16; else SPRITES_8x8;
+}
+
+void vm_set_orientation(SCRIPT_CTX * THIS, UBYTE orientation) OLDCALL BANKED {
+    THIS;
+#ifdef __ia16__
+    hal_screen_switch_orientation(orientation
+        ? HAL_ORIENTATION_VERTICAL : HAL_ORIENTATION_HORIZONTAL);
+#else
+    (void)orientation;
+#endif
 }
 
 void vm_replace_tile_xy(SCRIPT_CTX * THIS, UBYTE x, UBYTE y, UBYTE tileset_bank, const tileset_t FAR * tileset, INT16 idx_start_tile) OLDCALL BANKED {

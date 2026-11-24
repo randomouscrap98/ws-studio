@@ -1,0 +1,29 @@
+# C35 vertical mode: the Deeper Underground route of
+# inputs/platform-deeper.txt with the d-pad moved to the Y pad.
+# caves/Deeper Underground
+5 -
+20 Y2
+26 Y4
+36 -
+40 Y3
+55 A
+70 -
+80 Y1
+115 -
+120 Y3, Y4
+252 Y3
+300 -
+305 Y4
+320 Y4, A
+330 -
+340 Y3
+400 Y1
+512 Y1, A
+527 Y1
+560 -
+570 Y3, B
+610 -
+620 Y1
+680 -
+710 A
+711 -

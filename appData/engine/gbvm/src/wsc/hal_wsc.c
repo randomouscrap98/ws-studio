@@ -18,6 +18,13 @@ uint8_t hal_scroll_pad_bottom;
 uint8_t hal_scroll_refresh_w;
 uint8_t hal_scroll_refresh_h;
 
+static uint8_t hal_vertical;
+
+uint8_t hal_orientation(void) {
+    return hal_vertical ? HAL_ORIENTATION_VERTICAL
+                        : HAL_ORIENTATION_HORIZONTAL;
+}
+
 static volatile uint16_t hal_vblanks;
 
 /* Script-visible DIV. The ISR advances it so VM_RANDOMIZE sees a value that
@@ -60,14 +67,19 @@ static void __attribute__((interrupt)) hal_vblank_isr(void) {
 /* Distance from the left edge of the physical display to the logical screen.
  * Zero at the full 224 px width. */
 int16_t hal_screen_origin_x(void) {
+    if (hal_vertical)
+        return 0;
     return (int16_t)((WS_DISPLAY_WIDTH_PIXELS - hal_screen_w_px) >> 1);
 }
 
 void hal_screen_set_width(uint16_t width_px) {
     if (width_px != WS_DISPLAY_WIDTH_PIXELS && width_px != 160)
         return;
+    hal_vertical = 0;
     hal_screen_w_px = width_px;
     hal_screen_w = (uint8_t)(width_px >> 3);
+    hal_screen_h_px = WS_DISPLAY_HEIGHT_PIXELS;
+    hal_screen_h = WS_DISPLAY_HEIGHT_TILES;
 
     if (width_px == 160) {
         /* Match the GB's scroll padding so the same rows/columns activate
@@ -86,6 +98,24 @@ void hal_screen_set_width(uint16_t width_px) {
         hal_scroll_refresh_w = (uint8_t)(hal_screen_w + 1);
         hal_scroll_refresh_h = (uint8_t)(hal_screen_h + 1);
     }
+}
+
+/* Portrait logical screen: 144x224.  The engine keeps using logical pixels
+ * and the HAL transposes map cells, sprites and scroll when it talks to the
+ * hardware.  No scroll padding is needed because the hardware map wraps in
+ * both directions. */
+void hal_screen_set_vertical(void) {
+    hal_vertical = HAL_ORIENTATION_VERTICAL;
+    hal_screen_w_px = WS_DISPLAY_HEIGHT_PIXELS; /* 144 */
+    hal_screen_h_px = WS_DISPLAY_WIDTH_PIXELS;  /* 224 */
+    hal_screen_w = (uint8_t)(hal_screen_w_px >> 3);
+    hal_screen_h = (uint8_t)(hal_screen_h_px >> 3);
+    hal_scroll_pad_left = 0;
+    hal_scroll_pad_right = 0;
+    hal_scroll_pad_top = 0;
+    hal_scroll_pad_bottom = 0;
+    hal_scroll_refresh_w = (uint8_t)(hal_screen_w + 1);
+    hal_scroll_refresh_h = (uint8_t)(hal_screen_h + 1);
 }
 
 void hal_display_init(void) {
@@ -149,12 +179,27 @@ void hal_window_set(int16_t x, int16_t y) {
         return;
     }
 
-    ws_display_set_screen2_window((uint8_t)(origin_x + x), (uint8_t)y,
-                                  (uint8_t)(hal_screen_w_px - x),
-                                  (uint8_t)(hal_screen_h_px - y));
-    /* Screen 2 has a fixed origin.  Scrolling it by -(origin + x)/-y puts
-     * window-map cell (0, 0) at the window's top-left corner, as on the GB. */
-    ws_display_scroll_screen2_to((uint8_t)(-(origin_x + x)), (uint8_t)(-y));
+    if (hal_vertical) {
+        /* The logical window extends to the bottom-right of the logical
+         * screen.  Rotated clockwise, that is a physical window from the
+         * left edge at logical y down to the bottom edge at logical x.  Its
+         * map is addressed from the physical window origin, so the logical
+         * window cell (0, 0) lands there; the horizontal shift makes the
+         * sub-tile offset come out as the rotated tile's 90-degree offset. */
+        ws_display_set_screen2_window(0, (uint8_t)x,
+                                      (uint8_t)(WS_DISPLAY_WIDTH_PIXELS - y),
+                                      (uint8_t)(WS_DISPLAY_HEIGHT_PIXELS - x));
+        ws_display_scroll_screen2_to((uint8_t)(y & 7), 0);
+    } else {
+        ws_display_set_screen2_window((uint8_t)(origin_x + x), (uint8_t)y,
+                                      (uint8_t)(hal_screen_w_px - x),
+                                      (uint8_t)(hal_screen_h_px - y));
+        /* Screen 2 has a fixed origin.  Scrolling it by -(origin + x)/-y puts
+         * window-map cell (0, 0) at the window's top-left corner, as on the
+         * GB. */
+        ws_display_scroll_screen2_to((uint8_t)(-(origin_x + x)),
+                                     (uint8_t)(-y));
+    }
 
     control = ws_display_get_control();
     control |= WS_DISPLAY_CTRL_SCR2_ENABLE |
@@ -190,12 +235,41 @@ void hal_window_reset(void) {
 
 void hal_window_flush(void) {
     uint16_t i;
+    uint8_t row_ofs;
 
+    if (!hal_vertical) {
+        for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES;
+             i++) {
+            uint8_t attr = hal_win_attrs[i];
+            uint16_t index = hal_win_tiles[i];
+            uint16_t cell = WS_SCREEN_ATTR_TILE_EX(index);
+
+            if (attr & HAL_WIN_BANK1)
+                cell |= WS_SCREEN_ATTR_BANK(1);
+
+            if (attr & HAL_WIN_UI_ATTR) {
+                cell |= WS_SCREEN_ATTR_PALETTE(hal_win_palette);
+            } else {
+                cell |= WS_SCREEN_ATTR_PALETTE(attr & 0x07);
+                if (attr & 0x20)
+                    cell |= WS_SCREEN_ATTR_FLIP_H;
+                if (attr & 0x40)
+                    cell |= WS_SCREEN_ATTR_FLIP_V;
+            }
+            hal_win_screen.cell[i] = cell;
+        }
+        return;
+    }
+
+    row_ofs = (uint8_t)(hal_win_y >> 3);
     for (i = 0; i < WS_SCREEN_WIDTH_TILES * WS_SCREEN_HEIGHT_TILES; i++) {
         uint8_t attr = hal_win_attrs[i];
         uint16_t index = hal_win_tiles[i];
-
         uint16_t cell = WS_SCREEN_ATTR_TILE_EX(index);
+        uint16_t src_x = i & 31;
+        uint16_t src_y = (i >> 5) & 31;
+        uint16_t dst = src_x * 32 + ((27 - row_ofs - src_y) & 31);
+
         if (attr & HAL_WIN_BANK1)
             cell |= WS_SCREEN_ATTR_BANK(1);
 
@@ -203,12 +277,13 @@ void hal_window_flush(void) {
             cell |= WS_SCREEN_ATTR_PALETTE(hal_win_palette);
         } else {
             cell |= WS_SCREEN_ATTR_PALETTE(attr & 0x07);
+            /* Tile data was rotated clockwise, so logical flips swap axes. */
             if (attr & 0x20)
-                cell |= WS_SCREEN_ATTR_FLIP_H;
-            if (attr & 0x40)
                 cell |= WS_SCREEN_ATTR_FLIP_V;
+            if (attr & 0x40)
+                cell |= WS_SCREEN_ATTR_FLIP_H;
         }
-        hal_win_screen.cell[i] = cell;
+        hal_win_screen.cell[dst] = cell;
     }
 }
 
@@ -245,12 +320,16 @@ void hal_wait_vblank(void) {
         ;
 }
 
-/* WSC keypad bits to GB J_* bits, including Y1 -> Select. */
+/* WSC keypad bits to GB J_* bits.  Horizontal uses the X pad as the d-pad
+ * and Y1 as Select.  Vertical rotates the console 90 degrees
+ * counter-clockwise to view the portrait image upright: the Y pad then
+ * reads as the d-pad (logical up = physical right = Y2, and so on) and X1
+ * takes over Select. */
 uint8_t hal_input_read(void) {
     static const struct {
         uint16_t ws_key;
         uint8_t j_mask;
-    } map[] = {
+    } map_horizontal[] = {
         { WS_KEY_X1, J_UP },
         { WS_KEY_X2, J_RIGHT },
         { WS_KEY_X3, J_DOWN },
@@ -260,17 +339,37 @@ uint8_t hal_input_read(void) {
         { WS_KEY_START, J_START },
         { WS_KEY_Y1, J_SELECT },
     };
+    static const struct {
+        uint16_t ws_key;
+        uint8_t j_mask;
+    } map_vertical[] = {
+        { WS_KEY_Y2, J_UP },
+        { WS_KEY_Y3, J_RIGHT },
+        { WS_KEY_Y4, J_DOWN },
+        { WS_KEY_Y1, J_LEFT },
+        { WS_KEY_A, J_A },
+        { WS_KEY_B, J_B },
+        { WS_KEY_START, J_START },
+        { WS_KEY_X1, J_SELECT },
+    };
+    const struct {
+        uint16_t ws_key;
+        uint8_t j_mask;
+    } *map = hal_vertical ? map_vertical : map_horizontal;
+    uint16_t map_count = hal_vertical
+        ? (uint16_t)(sizeof(map_vertical) / sizeof(map_vertical[0]))
+        : (uint16_t)(sizeof(map_horizontal) / sizeof(map_horizontal[0]));
     uint16_t keys = ws_keypad_scan();
     uint8_t mask = 0;
     uint16_t i;
 
-    for (i = 0; i < sizeof(map) / sizeof(map[0]); i++) {
+    for (i = 0; i < map_count; i++) {
         if (keys & map[i].ws_key)
             mask |= map[i].j_mask;
     }
-    /* The X pad has separate up/down and left/right keys; a GB d-pad cannot
-     * report both members of a pair. Treat an opposite pair like a neutral
-     * d-pad so engine logic sees only states a GB could produce. */
+    /* The active pad has separate up/down and left/right keys; a GB d-pad
+     * cannot report both members of a pair. Treat an opposite pair like a
+     * neutral d-pad so engine logic sees only states a GB could produce. */
     if ((mask & (J_UP | J_DOWN)) == (J_UP | J_DOWN))
         mask &= (uint8_t)~(J_UP | J_DOWN);
     if ((mask & (J_LEFT | J_RIGHT)) == (J_LEFT | J_RIGHT))
@@ -283,5 +382,12 @@ void hal_scroll_screen1_to(int16_t x, int16_t y) {
 }
 
 void hal_scroll_to(int16_t x, int16_t y) {
+    if (hal_vertical) {
+        /* Logical (x, y) is rotated clockwise onto the physical display, so
+         * the physical X axis shows the logical Y axis (reversed) and the
+         * physical Y axis shows logical X. */
+        hal_scroll_screen1_to((int16_t)(-y), x);
+        return;
+    }
     hal_scroll_screen1_to(x - hal_screen_origin_x(), y);
 }

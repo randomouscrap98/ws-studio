@@ -1212,6 +1212,15 @@ UBYTE vm_dispatch_step(SCRIPT_CTX *CTX) {
         return 1;
       }
 #endif
+#if defined(__ia16__) && defined(GBVM_ENGINE_HANDLERS)
+      case 0x96: { /* vm_set_orientation */
+        const UBYTE FAR *p = CTX->PC + 1;
+    UBYTE a_orientation = vm_fetch8(&p);
+        CTX->PC = p;
+        vm_set_orientation(CTX, a_orientation);
+        return 1;
+      }
+#endif
       default:
 #if !defined(__ia16__)
         fprintf(stderr, "vm: unimplemented opcode 0x%02X\n", op);

@@ -26,7 +26,8 @@ HOST_SRCS := $(GBVM_CORE)/vm.c $(GBVM_CORE)/vm_dispatch.c \
 HOST_DEPS := $(HOST_SRCS) $(GBVM_INCLUDE)/vm.h $(WSC_DIR)vmtest/vm_bytecode.h
 
 .PHONY: test test-negative wsrun gb-core gb-oracle gb-platform-smoke \
-	parallax-visual host-test gen-dispatch s2c-check s2c-equiv d2c-equiv product
+	parallax-visual vertical-visual vertical-switch host-test gen-dispatch \
+	s2c-check s2c-equiv d2c-equiv product
 
 # Build a product ROM from an exported project. The CLI command `make:wsc`
 # does the export itself; this target is the scripted entry point for tests.
@@ -62,6 +63,23 @@ gb-platform-smoke: wsrun gb-core
 parallax-visual: wsrun gb-core
 	$(PYTHON) $(WSC_DIR)tools/parallax_visual.py \
 		--config $(WSC_DIR)oracle/platform-parallax.json
+
+# Capture the physical frame, rotate it back to the logical 144x224 view and
+# compare it exactly with a reference render at the RAM camera position.
+vertical-visual: wsrun
+	$(MAKE) -C $(WSC_DIR)gamerom
+	$(PYTHON) $(WSC_DIR)tools/vertical_visual.py --boot 2 \
+		--scene scene_sample_town --start-x 112 --start-y 328 \
+		--ticks 100,200,300
+	$(PYTHON) $(WSC_DIR)tools/vertical_visual.py --boot 12 \
+		--scene scene_deeper_underground --start-x 40 --start-y 32 \
+		--ticks 100,200,300
+
+# Horizontal -> vertical -> horizontal mid-scene; frame check each phase and
+# compare the world state with a no-switch control run.
+vertical-switch: wsrun
+	$(MAKE) -C $(WSC_DIR)gamerom
+	$(PYTHON) $(WSC_DIR)tools/vertical_switch.py
 
 test: wsrun
 	cd $(WSC_DIR) && $(PYTHON) tests/run.py

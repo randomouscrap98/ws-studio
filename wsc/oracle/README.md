@@ -93,6 +93,27 @@ auto-scroll, enemy scripts, projectiles and the player hit). It sets
 activation window and projectile culling are all defined by the GB's 160 px
 viewport and would change on the native 224 px WSC playfield.
 
+Vertical configs set `"orientation": "vertical"` instead of `screenWidth`.
+They boot through `wsrun --orientation vertical` (logical 144x224) and print
+`[144x224]`. `gbdiff` does not compare raw camera/scroll in that mode: it
+derives the expected `scroll_x`/`scroll_y` from the GB camera and the scene
+rectangle with the 144x224 clamp, and it requires activation to match only
+in the intersection of the GB 160x144 and WSC 144x224 viewports. `wscInput`
+names a separate input file whose d-pad presses use the vertical Y pad
+(logical up/right/down/left = Y2/Y3/Y4/Y1), while the GB side uses `input`.
+`vertical-topdown.json` walks the open bottom-right area of Sample Town;
+`vertical-platform.json` keeps the full 800-tick Deeper Underground route.
+
+`make -C wsc vertical-visual` and `make -C wsc vertical-switch` run the frame
+checks. `wsc/tools/vertical_visual.py` captures the physical 224x144 frame,
+rotates it back with `logical x = physical y`, `logical y = 223 - physical x`
+and compares it byte for byte with `boot_oracle.py` + `ref_render.py` at a
+logical 144x224 size. The camera/scroll come from the RAM dump and every
+actor's position/frame/active flag is read from RAM too.
+`wsc/tools/vertical_switch.py` boots boot id 20 (the town scene with the C35
+script), checks a frame in each phase and compares the world state at tick
+150 with boot id 21, a no-switch control scene with the same tick sequence.
+
 The comparison front end is `wsc/tools/gbdiff.py`. Each `*.json` here selects
 the start scene, tick count, input script and the explicit intended
 differences. `inputs/*.txt` lines are `TICK BUTTONS` (tick-relative, not

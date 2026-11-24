@@ -196,5 +196,8 @@ const SCRIPT_CMD script_cmds[] = {
     {vm_actor_move_to_xy,               BANK(VM_ACTOR),         3}, // 0x92
     {vm_actor_move_to_set_dir_x,        BANK(VM_ACTOR),         2}, // 0x93
     {vm_actor_move_to_set_dir_y,        BANK(VM_ACTOR),         2}, // 0x94
-    {vm_actor_set_anim_moving,          BANK(VM_ACTOR),         2}  // 0x95
+    {vm_actor_set_anim_moving,          BANK(VM_ACTOR),         2}, // 0x95
+
+    // WonderSwan Color display orientation
+    {vm_set_orientation,                BANK(VM_GAMEBOY),       1}  // 0x96
 };

@@ -56,8 +56,23 @@ extern uint8_t hal_scroll_refresh_h;
 /* Set the logical screen width before the engine loads its first scene. The
  * hardware display stays 224 px wide; a narrower logical screen is centred
  * and only that part of the display is rendered. 224 and 160 are the only
- * supported widths. */
+ * supported horizontal widths. */
 void hal_screen_set_width(uint16_t width_px);
+
+/* Screen orientation.  Horizontal is the native 224x144 (or 160x144) view;
+ * vertical is a logical 144x224 portrait view whose image is rotated 90
+ * degrees clockwise onto the physical display.  Set it before the first
+ * scene with hal_screen_set_vertical(), or switch at run time with
+ * hal_screen_switch_orientation(), which re-rotates the tiles already in
+ * VRAM and repaints the visible scene. */
+#define HAL_ORIENTATION_HORIZONTAL 0
+#define HAL_ORIENTATION_VERTICAL   1
+uint8_t hal_orientation(void);
+void hal_screen_set_vertical(void);
+void hal_screen_switch_orientation(uint8_t orientation);
+
+/* Number of vblank frames the last runtime orientation switch took. */
+extern uint16_t hal_orientation_switch_frames;
 
 /* Distance from the left edge of the physical display to the logical screen.
  * Zero at 224 px and 32 px for the centred 160 px mode. */
@@ -67,10 +82,14 @@ int16_t hal_screen_origin_x(void);
  * parallax.c).  parallax_LCD_isr is only a marker: add_LCD() uses it to
  * recognise the parallax scene and enables the line-match interrupt.  The
  * vblank reset copies every band's shadow scroll into its live scroll value
- * and rewinds the band walk. */
+ * and rewinds the band walk.  Vertical mode has no horizontal bands, so the
+ * band table is saved and replaced by one full-screen band until the next
+ * horizontal switch. */
 void hal_parallax_enable(void);
 void hal_parallax_disable(void);
 void hal_parallax_vblank(void);
+void hal_parallax_vertical_enter(void);
+void hal_parallax_vertical_leave(void);
 
 /* Display and frame timing. hal_display_init also installs and enables the
  * vblank interrupt used by hal_wait_vblank/hal_vblank_count. */
@@ -81,7 +100,8 @@ void hal_wait_vblank(void);
 uint16_t hal_vblank_count(void);
 
 /* Returns a GB J_* mask: X1-X4 -> up/right/down/left, A/B/Start,
- * Y1 -> Select. */
+ * Y1 -> Select.  In vertical mode the Y pad is the d-pad (rotated with the
+ * console) and X1 is Select. */
 uint8_t hal_input_read(void);
 
 /* Load count GB 2bpp tiles at logical tile index first, converting each
