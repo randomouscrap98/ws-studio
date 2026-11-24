@@ -519,7 +519,8 @@ def wsc_symbols(elf_path):
         base = section.rstrip("!&")
         if not (base.startswith(".bss") or base.startswith(".data") or
                 base.startswith(".sbss") or base.startswith(".sdata") or
-                base.startswith(".srodata") or base.startswith(".snoinit")):
+                base.startswith(".srodata") or base.startswith(".snoinit") or
+                base.startswith(".iramC")):
             continue
         try:
             symbols[name] = int(address_text, 16) & 0xFFFF
@@ -802,6 +803,8 @@ def build_gb_args(config, rom, workdir, layout, symbols, trace,
         "--marker-timeout", str(config.get("marker_timeout", 1500)),
         "--tick", "{}:1".format(gb_ram_offset(symbols["_game_time"],
                                              0x8000)),
+        "--tick-gate", "{}:1".format(gb_ram_offset(
+            symbols["_vm_exception_code"], 0x8000)),
         "--max-ticks", str(config["ticks"]),
         "--trace", trace,
     ]
@@ -833,6 +836,7 @@ def build_wsc_args(config, layout, symbols, trace, mode, pokes=(), rom=None,
         "--frames", str(config.get("frames", 5000)),
         "--marker-timeout", str(config.get("marker_timeout", 1500)),
         "--tick", "{}:1".format(symbols["game_time"]),
+        "--tick-gate", "{}:1".format(symbols["vm_exception_code"]),
         "--max-ticks", str(config["ticks"]),
         "--trace", trace,
     ]
@@ -918,21 +922,6 @@ def actor_in_gb_view(gb, position_side, index):
     return (left <= x < left + 160 and top <= y < top + 144)
 
 
-def scene_change_ticks(side, trace_cls):
-    """Ticks at which current_scene differs from the previous trace record."""
-    address = side.symbol("current_scene")
-    size = 6 if trace_cls is WSCTrace else 3
-    previous = None
-    result = set()
-    for tick in sorted(side.trace.records):
-        side.set_tick(tick)
-        value = side.trace.read(address, size)
-        if previous is not None and value != previous:
-            result.add(tick)
-        previous = value
-    return result
-
-
 def compare_traces(config, mode, gb, wsc):
     ticks = sorted(set(gb.trace.records) & set(wsc.trace.records))
     if not ticks:
@@ -969,19 +958,7 @@ def compare_traces(config, mode, gb, wsc):
 
     compared = 0
     ignored_activation = 0
-    skip_ticks = set()
-    if config.get("settleSceneChange"):
-        # A scripted scene change resets game_time inside the engine's
-        # exception handler.  The frontend samples at emulator frame
-        # boundaries, so on one side that boundary can fall inside the
-        # handler: the tick's sample is then half-way through the change
-        # (actors still in the inactive list).  The next tick is complete on
-        # both sides, so compare the scene-change tick from that state.
-        skip_ticks = scene_change_ticks(gb, GBTrace) | scene_change_ticks(
-            wsc, WSCTrace)
     for tick in ticks:
-        if tick in skip_ticks:
-            continue
         gb.set_tick(tick)
         wsc.set_tick(tick)
 
@@ -1070,8 +1047,7 @@ def split_runs(config):
             raise OracleError("run {} is not an object".format(index))
         merged = dict(config)
         merged.pop("runs", None)
-        for key in ("ticks", "frames", "input", "marker_timeout",
-                    "settleSceneChange"):
+        for key in ("ticks", "frames", "input", "marker_timeout"):
             merged.pop(key, None)
             if key in item:
                 merged[key] = item[key]

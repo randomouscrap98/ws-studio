@@ -51,12 +51,15 @@ including the ticks after the load. A run is:
 
 `save` writes `<side>-<stem>.sram` under the config's work directory and
 `load` reads it back. `gbdiff` passes the file through `wsrun --sram-out` /
-`--sram-in`. A run may set `"settleSceneChange": true`: the tick where
-`current_scene` changes is sampled from the next complete tick. The engine
-resets `game_time` inside the scene-change exception handler, so a frontend
-frame boundary can fall inside the handler and record the actors before and
-after activation on the two sides. The following tick is complete, and the
-save/load run does not need this option.
+`--sram-in`.
+
+`game_time` is reset inside the scene-change and load exception handlers, but
+the handler itself is not a completed engine tick. `gbdiff` therefore samples
+every run with `wsrun --tick-gate` on `vm_exception_code`: a tick change seen
+while an exception is in progress is dropped, and the next change after the
+handler ends is recorded. Both sides then compare the first complete tick of
+the new scene (and, for the load run, the first complete tick after the load)
+rather than a frame boundary inside the handler.
 
 `shmup-cull` is a 160 px Space Battle route with an A-button player bullet.
 Its variant slows the shooter auto-scroll to `16` subpixels per tick so the

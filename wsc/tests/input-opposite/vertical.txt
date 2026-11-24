@@ -1,0 +1,2 @@
+# Hold X1 (up) and X3 (down) together.
+30 X1,X3

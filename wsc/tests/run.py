@@ -51,6 +51,7 @@ IRAM_SECTION_PREFIXES = (
     ".sdata",
     ".srodata",
     ".snoinit",
+    ".iramC",
 )
 
 

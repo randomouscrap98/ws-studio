@@ -176,8 +176,8 @@ def find_moved_section(elf, name):
         return elf.find_section(name)
     except CheckError:
         pass
-    # If the build's rename table has not caught up with a changed placement
-    # attribute, still inspect the explicit upper-IRAM section directly.
+    # If the placement attribute names a different explicit upper-IRAM
+    # section, still inspect the one .iramC_* section directly.
     candidates = [
         section
         for section in elf.sections
@@ -234,8 +234,9 @@ def main(argv=None):
     parser.add_argument("--elf", required=True, help="final ELF to inspect")
     parser.add_argument(
         "--section",
-        default=".sbss.upper",
-        help="section holding the WSC_UPPER_RAM buffers (default: .sbss.upper)",
+        default=".iramC_C000",
+        help="section holding the WSC_UPPER_RAM buffers "
+        "(default: .iramC_C000)",
     )
     args = parser.parse_args(argv)
     try:

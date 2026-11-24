@@ -19,8 +19,7 @@
       "ticks": 260,
       "frames": 6000,
       "input": "inputs/save-save.txt",
-      "save": "run1",
-      "settleSceneChange": true
+      "save": "run1"
     },
     {
       "name": "load",

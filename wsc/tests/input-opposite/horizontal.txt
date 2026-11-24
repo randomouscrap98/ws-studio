@@ -1,0 +1,2 @@
+# Hold X2 (right) and X4 (left) together.
+30 X2,X4

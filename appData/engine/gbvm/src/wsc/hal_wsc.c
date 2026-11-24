@@ -262,6 +262,13 @@ uint8_t hal_input_read(void) {
         if (keys & map[i].ws_key)
             mask |= map[i].j_mask;
     }
+    /* The X pad has separate up/down and left/right keys; a GB d-pad cannot
+     * report both members of a pair. Treat an opposite pair like a neutral
+     * d-pad so engine logic sees only states a GB could produce. */
+    if ((mask & (J_UP | J_DOWN)) == (J_UP | J_DOWN))
+        mask &= (uint8_t)~(J_UP | J_DOWN);
+    if ((mask & (J_LEFT | J_RIGHT)) == (J_LEFT | J_RIGHT))
+        mask &= (uint8_t)~(J_LEFT | J_RIGHT);
     return mask;
 }
 

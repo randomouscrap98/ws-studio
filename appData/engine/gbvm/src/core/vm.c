@@ -739,9 +739,8 @@ __endasm;
 }
 
 // global shared script memory
-// Kept in low IRAM: the standalone vmrom/scriptconv test ROMs link this file
-// without the gamerom build's final-ELF section fixup.
-UWORD script_memory[VM_HEAP_SIZE + (VM_MAX_CONTEXTS * VM_CONTEXT_STACK_SIZE)];
+UWORD script_memory[VM_HEAP_SIZE + (VM_MAX_CONTEXTS * VM_CONTEXT_STACK_SIZE)]
+    WSC_UPPER_RAM;
 
 // initialize script runner contexts
 // resets whole VM engine

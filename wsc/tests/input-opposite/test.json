@@ -1,0 +1,44 @@
+{
+  "rom": "gamerom/gamerom.wsc",
+  "elf": "gamerom/build/gamerom.elf",
+  "build": "gamerom",
+  "frame_sha256": null,
+  "sequence": [
+    {
+      "frames": 60,
+      "boot": "town",
+      "input": "vertical.txt",
+      "marker": {
+        "symbol": "wsc_test_marker",
+        "size": 1,
+        "equals": "0x01",
+        "timeout": 600
+      },
+      "ram": [
+        {
+          "symbol": "frame_joy",
+          "size": 1,
+          "equals": "0x00"
+        }
+      ]
+    },
+    {
+      "frames": 60,
+      "boot": "town",
+      "input": "horizontal.txt",
+      "marker": {
+        "symbol": "wsc_test_marker",
+        "size": 1,
+        "equals": "0x01",
+        "timeout": 600
+      },
+      "ram": [
+        {
+          "symbol": "frame_joy",
+          "size": 1,
+          "equals": "0x00"
+        }
+      ]
+    }
+  ]
+}

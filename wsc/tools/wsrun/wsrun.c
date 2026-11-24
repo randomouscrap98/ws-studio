@@ -77,6 +77,9 @@ struct options {
     uint32_t tick_address;
     unsigned tick_width;
     bool have_tick;
+    uint32_t tick_gate_address;
+    unsigned tick_gate_width;
+    bool have_tick_gate;
     uint32_t max_ticks;
     bool have_max_ticks;
     const char *trace;
@@ -774,8 +777,8 @@ static void usage(FILE *stream)
             "             [--marker ADDR:SIZE:VALUE [--marker-timeout N]] "
             "[--boot-id N] [--screen-width N]\n"
             "             [--poke ADDR:SIZE:VALUE] "
-            "[--tick ADDR:SIZE [--trace OUT] [--max-ticks N] "
-            "[--input-tick]]\n");
+            "[--tick ADDR:SIZE [--tick-gate ADDR:SIZE] [--trace OUT] "
+            "[--max-ticks N] [--input-tick]]\n");
 }
 
 /* The gamerom image carries this marker next to a one-byte boot-scene id and
@@ -992,6 +995,17 @@ int main(int argc, char **argv)
                 return 2;
             }
             opts.have_tick = true;
+        } else if (strcmp(arg, "--tick-gate") == 0) {
+            if (++i >= (uint32_t)argc)
+                goto bad_args;
+            if (!parse_address_size(argv[i], &opts.tick_gate_address,
+                                    &opts.tick_gate_width)) {
+                fprintf(stderr, "error: invalid tick gate address '%s' "
+                        "(expected ADDR:SIZE)\n", argv[i]);
+                usage(stderr);
+                return 2;
+            }
+            opts.have_tick_gate = true;
         } else if (strcmp(arg, "--max-ticks") == 0) {
             if (++i >= (uint32_t)argc)
                 goto bad_args;
@@ -1028,9 +1042,10 @@ bad_args:
         return 2;
     }
     if (!opts.have_tick &&
-        (opts.trace || opts.have_max_ticks || opts.input_tick)) {
-        fprintf(stderr, "error: --trace, --max-ticks and --input-tick "
-                "require --tick\n");
+        (opts.trace || opts.have_max_ticks || opts.input_tick ||
+         opts.have_tick_gate)) {
+        fprintf(stderr, "error: --trace, --max-ticks, --input-tick and "
+                "--tick-gate require --tick\n");
         return 2;
     }
     if (opts.input_tick && !opts.input) {
@@ -1253,6 +1268,21 @@ bad_args:
                 continue;
 
             previous = value;
+            if (opts.have_tick_gate) {
+                uint32_t gate;
+
+                if (!ram_value(ram_data, ram_size, opts.tick_gate_address,
+                               opts.tick_gate_width, &gate)) {
+                    fprintf(stderr, "error: tick gate address left the RAM "
+                            "dump\n");
+                    goto cleanup;
+                }
+                /* A changed tick while this gate is set belongs to an
+                 * exception handler, not to a completed engine tick. Stop
+                 * sampling until the next change after the handler ends. */
+                if (gate != 0)
+                    continue;
+            }
             logical_ticks++;
             if (trace &&
                 (!write_u32(trace, logical_ticks) ||

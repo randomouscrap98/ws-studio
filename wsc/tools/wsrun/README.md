@@ -26,7 +26,7 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
     [--marker ADDR:SIZE:VALUE [--marker-timeout N]] [--boot-id N] \
     [--screen-width N] [--poke ADDR:SIZE:VALUE] \
     [--sram-in FILE] [--sram-out FILE] \
-    [--tick ADDR:SIZE [--trace OUT] [--max-ticks N] [--input-tick]]
+    [--tick ADDR:SIZE [--tick-gate ADDR:SIZE] [--trace OUT] [--max-ticks N] [--input-tick]]
 ```
 
 - `--frames N` runs `retro_run` exactly N times, as fast as possible. With
@@ -59,6 +59,13 @@ wsc/build/wsrun --core SO --rom ROM --frames N \
   bytes` record per tick. `--max-ticks N` stops after N ticks (frames remains
   a safety limit). `--input-tick` makes input-file frame numbers mean logical
   tick numbers instead of `retro_run` indices.
+- `--tick-gate ADDR:SIZE` makes a tick count only when the little-endian
+  value at `ADDR` is zero after the change. A change seen while the gate is
+  non-zero is dropped, so the trace contains the next completed tick instead
+  of a sample taken inside an exception handler. `gbdiff.py` gates on
+  `vm_exception_code`; the engine resets `game_time` inside its scene-change
+  and load handlers, where a frame boundary can otherwise capture a
+  half-updated handler state.
 - `--boot-id N` patches the byte following the `WSCBOOT` marker in the
   loaded ROM image. The gamerom image uses it to select a start scene from
   its run-time table; the patch is in memory only.

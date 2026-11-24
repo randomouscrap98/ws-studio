@@ -59,13 +59,6 @@ RAM_WALK_WALL	:= $(BUILDDIR)/ram_walk_wall.json
 IRAM_CHECK	:= $(WSC_DIR)/tools/iram_check.py
 IRAM_STAMP	:= $(BUILDDIR)/iram_check.stamp
 
-# wf-wswantool names the upper-IRAM section .iramC_C000 (the explicit offset
-# keeps it out of the C18 tile area). The final ELF calls it .sbss.upper so
-# the test runner, which classifies RAM-dump symbols by section prefix, can
-# read them. The address is unchanged; iram_check validates it.
-IRAM_SECTION_IN	:= .iramC_C000
-IRAM_SECTION_OUT := .sbss.upper
-
 INCLUDEFLAGS	:= -I$(CURDIR)/include -I$(GEN_DIR)/include \
 		   -I$(C18_DATA_DIR) \
 		   -I$(S2C_DIR) -I$(WSC_DIR)/host/include \
@@ -205,20 +198,13 @@ $(D2C_STAMP): $(WSC_DIR)/tools/d2c.py $(C18_GEN) $(S2C_H) $(S2C_C) $(EXPORT_DEPS
 	$(PYTHON) $(C18_GEN) --out $(C18_DATA_DIR)
 	@touch $@
 
-define RENAME_IRAM_SECTION
-	$(OBJCOPY) --rename-section $(IRAM_SECTION_IN)=$(IRAM_SECTION_OUT) $(1) $(1).tmp
-	mv -f $(1).tmp $(1)
-endef
-
 $(ROM): $(STAGE) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $@"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $<
-	$(call RENAME_IRAM_SECTION,$(ELF))
 
 $(ELF): $(ROM) $(CURDIR)/wfconfig.toml
 	@echo "  ROM     $(ROM) (ELF rebuilt)"
 	$(BUILDROM) -o $(ROM) --output-elf $(ELF) $(STAGE)
-	$(call RENAME_IRAM_SECTION,$(ELF))
 
 $(IRAM_STAMP): $(ELF) $(IRAM_CHECK)
 	@echo "  CHECK   $(ELF)"

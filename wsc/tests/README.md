@@ -22,10 +22,11 @@ full 64 KiB system RAM dump).
 ## RAM symbol → dump offset
 
 `wf-wswantool build` allocates ordinary writable sections (`.bss*`, `.data*`,
-`.sbss*`, `.sdata*`, `.srodata*`, `.snoinit*`) into the console's internal
-RAM. In the resulting ELF the symbol value is already the flat IRAM byte
-offset, and `wsrun --ram` dumps that same 64 KiB IRAM image starting at
-offset 0. So the dump offset is simply:
+`.sbss*`, `.sdata*`, `.srodata*`, `.snoinit*`, and the explicit upper-IRAM
+`.iramC*` sections) into the console's internal RAM. In the resulting ELF the
+symbol value is already the flat IRAM byte offset, and `wsrun --ram` dumps
+that same 64 KiB IRAM image starting at offset 0. So the dump offset is
+simply:
 
 ```
 offset = symbol_value & 0xFFFF
@@ -157,6 +158,11 @@ The Python oracles take marker-relative frame counts too. In particular,
   loop iteration. The input files hold one button from marker-relative
   frame 30; the final
   RAM value must contain only that button's libws bit.
+- `input-opposite`: runs the gamerom town scene twice. One run holds X1 and
+  X3 (up+down), the other X2 and X4 (right+left), from marker-relative frame
+  30. The engine's `frame_joy` must be zero for both: the WSC X pad can
+  report both keys of a pair, while a GB d-pad cannot, so `hal_input_read()`
+  removes an opposite pair instead of choosing one direction.
 - `_negative/wrong-magic`: same ROM as `hello`, but waits for
   `hello_magic == 0x9999`, which never happens, so it must fail. Run it with
   `test-negative`.
